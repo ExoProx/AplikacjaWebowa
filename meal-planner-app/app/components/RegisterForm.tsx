@@ -46,62 +46,50 @@ const RegisterForm: React.FC = () => {
         <InputField
           label="Imię:"
           type="text"
-          id="firstName"
-          name="firstName"
+          field="firstName"
           value={formData.firstName}
           onChange={handleChange}
           placeholder="Wpisz swoje imię"
-          icon={<User className="text-gray-500" size={20} />}
         />
         <InputField
           label="Nazwisko:"
           type="text"
-          id="lastName"
-          name="lastName"
+          field="lastName"
           value={formData.lastName}
           onChange={handleChange}
           placeholder="Wpisz swoje nazwisko"
-          icon={<UsersRound className="text-gray-500" size={20} />}
         />
         <InputField
           label="Adres E-mail:"
           type="email"
-          id="email"
-          name="email"
+          field="email"
           value={formData.email}
           onChange={handleChange}
           placeholder="Wpisz swój e-mail"
-          icon={<MailCheck className="text-gray-500" size={20} />}
         />
         <InputField
           label="Login:"
           type="text"
-          id="username"
-          name="username"
+          field="username"
           value={formData.username}
           onChange={handleChange}
           placeholder="Wpisz swój login"
-          icon={<CaseLower className="text-gray-500" size={20} />}
         />
         <InputField
           label="Numer telefonu:"
           type="text"
-          id="phoneNumber"
-          name="phoneNumber"
+          field="phoneNumber"
           value={formData.phoneNumber}
           onChange={handleChange}
           placeholder="Wpisz swój numer telefonu"
-          icon={<Phone className="text-gray-500" size={20} />}
         />
         <InputField
           label="Hasło:"
           type="password"
-          id="password"
-          name="password"
+          field="password"
           value={formData.password}
           onChange={handleChange}
           placeholder="Wpisz hasło"
-          icon={<FileLockIcon className="text-gray-500" size={20} />}
         />
 
         {/* Użycie komponentu przycisku */}

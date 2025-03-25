@@ -1,40 +1,50 @@
 // components/InputField.tsx
 import React from 'react';
+import { User, UsersRound, MailCheck, CaseLower, Phone, FileLockIcon } from "lucide-react";
 
 interface InputFieldProps {
   label: string;
   type: string;
-  id: string;
-  name: string;
+  field: string; //name == id 
   value: string;
   placeholder: string;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   required?: boolean;
 }
 
+// Mapa domyślnych ikon dla konkretnych pól:
+const defaultIcons: Record<string, React.ReactNode> = {
+  firstName: <User className="text-gray-500" size={20} />,
+  lastName: <UsersRound className="text-gray-500" size={20} />,
+  email: <MailCheck className="text-gray-500" size={20} />,
+  username: <CaseLower className="text-gray-500" size={20} />,
+  phoneNumber: <Phone className="text-gray-500" size={20} />,
+  password: <FileLockIcon className="text-gray-500" size={20} />,
+};
+
 const InputField: React.FC<InputFieldProps> = ({
   label,
   type,
-  id,
-  name,
+  field,
   value,
   placeholder,
   icon,
   onChange,
   required = true,
 }) => {
+  const usedIcon = icon || defaultIcons[field];
   return (
     <div className="mb-4">
-      <label htmlFor={id} className="block text-gray-700 mb-2">
+      <label htmlFor={field} className="block text-gray-700 mb-2">
         {label}
       </label>
       <div className="flex items-center border hover:bg-blue-200 border-gray-300 rounded bg-blue-50 focus-within:ring-2 focus-within:ring-blue-500">
-        <span className="ml-2">{icon}</span>
+        <span className="ml-2">{usedIcon}</span>
         <input
           type={type}
-          id={id}
-          name={name}
+          id={field}
+          name={field}
           value={value}
           onChange={onChange}
           placeholder={placeholder}
