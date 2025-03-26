@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { CaseLower, MailCheck, Phone, User, UsersRound, FileLockIcon } from 'lucide-react';
 import InputField from './InputField';
 import SubmitButton from './SubmitButton';
+import Link from "next/link";
 
 interface FormData {
   firstName: string;
@@ -98,6 +99,14 @@ const RegisterForm: React.FC = () => {
       {message && (
         <p className="mt-4 text-center text-green-600 font-semibold">{message}</p>
       )}
+
+      <div className="mt-6">
+        <Link href="/">
+          <SubmitButton type="button" back>
+            Powrót do strony głównej
+          </SubmitButton>
+        </Link>
+      </div>
     </div>
   );
 };
