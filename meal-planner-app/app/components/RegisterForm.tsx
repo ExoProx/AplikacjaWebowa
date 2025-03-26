@@ -1,10 +1,9 @@
 // components/RegisterForm.tsx
-'use client'
+"use client";
 
-import React, { useState } from 'react';
-import { CaseLower, MailCheck, Phone, User, UsersRound, FileLockIcon } from 'lucide-react';
-import InputField from './InputField';
-import SubmitButton from './SubmitButton';
+import React, { useState } from "react";
+import InputField from "./InputField";
+import SubmitButton from "./SubmitButton";
 import Link from "next/link";
 
 interface FormData {
@@ -18,14 +17,14 @@ interface FormData {
 
 const RegisterForm: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    username: '',
-    phoneNumber: '',
-    password: '',
+    firstName: "",
+    lastName: "",
+    email: "",
+    username: "",
+    phoneNumber: "",
+    password: "",
   });
-  const [message, setMessage] = useState<string>('');
+  const [message, setMessage] = useState<string>("");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -37,12 +36,14 @@ const RegisterForm: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setMessage('Rejestracja przebiegła pomyślnie!');
+    setMessage("Rejestracja przebiegła pomyślnie!");
   };
 
   return (
     <div className="bg-blue-100 p-4 rounded-lg shadow-lg w-full max-w-xs">
-      <h1 className="text-2xl font-bold mb-2 text-center">Formularz rejestracji</h1>
+      <h1 className="text-2xl font-bold mb-2 text-center">
+        Formularz rejestracji
+      </h1>
       <form onSubmit={handleSubmit}>
         <InputField
           label="Imię:"
@@ -78,10 +79,14 @@ const RegisterForm: React.FC = () => {
         />
         <InputField
           label="Numer telefonu:"
-          type="text"
+          type="number"
           field="phoneNumber"
           value={formData.phoneNumber}
           onChange={handleChange}
+          /*
+          ! * DO POPRAWY - NIE DZIALA MAXLENGHT DO NUMEROW
+           */
+          maxLength={11}
           placeholder="Wpisz swój numer telefonu"
         />
         <InputField
@@ -97,7 +102,9 @@ const RegisterForm: React.FC = () => {
         <SubmitButton type="submit">Zarejestruj się</SubmitButton>
       </form>
       {message && (
-        <p className="mt-4 text-center text-green-600 font-semibold">{message}</p>
+        <p className="mt-4 text-center text-green-600 font-semibold">
+          {message}
+        </p>
       )}
 
       <div className="mt-6">

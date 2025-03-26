@@ -1,15 +1,23 @@
 // components/InputField.tsx
-import React from 'react';
-import { User, UsersRound, MailCheck, CaseLower, Phone, FileLockIcon } from "lucide-react";
+import React from "react";
+import {
+  User,
+  UsersRound,
+  MailCheck,
+  CaseLower,
+  Phone,
+  FileLockIcon,
+} from "lucide-react";
 
 interface InputFieldProps {
   label: string;
   type: string;
-  field: string; //name == id 
+  field: string; //name == id
   value: string;
   placeholder: string;
   icon?: React.ReactNode;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  maxLength?: number;
   required?: boolean;
 }
 
@@ -31,6 +39,7 @@ const InputField: React.FC<InputFieldProps> = ({
   placeholder,
   icon,
   onChange,
+  maxLength = 30,
   required = true,
 }) => {
   const usedIcon = icon || defaultIcons[field];
@@ -49,6 +58,7 @@ const InputField: React.FC<InputFieldProps> = ({
           onChange={onChange}
           placeholder={placeholder}
           className="w-full p-2 bg-transparent focus:outline-none transition duration-300 ease-in-out"
+          maxLength={maxLength}
           required={required}
         />
       </div>
