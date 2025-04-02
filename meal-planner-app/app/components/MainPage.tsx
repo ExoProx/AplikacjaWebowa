@@ -20,30 +20,39 @@ const MainPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 font-sans">
-      {/* Nawigacja */}
       <nav className="bg-blue-600 text-white p-4 shadow-md">
-        <ul className="flex space-x-6 justify-center">
-          <li>
-            <Link href="/recipes" className="hover:underline">
-              Przeglądaj przepisy
-            </Link>
-          </li>
-          <li>
-            <Link href="/menu" className="hover:underline">
-              Ułóż jadłospis
-            </Link>
-          </li>
-          <li>
-            <Link href="/favorites" className="hover:underline">
-              Ulubione przepisy
-            </Link>
-          </li>
-          <li>
-            <Link href="/share" className="hover:underline">
-              Udostępnij jadłospis
-            </Link>
-          </li>
-        </ul>
+        <div className="flex justify-between items-center">
+          <div className="w-32"></div>
+          <ul className="flex space-x-6">
+            <li>
+              <Link href="/recipes" className="hover:underline">
+                <SubmitButton type="submit">Przeglądaj przepisy</SubmitButton>
+              </Link>
+            </li>
+            <li>
+              <Link href="/menu" className="hover:underline">
+                Ułóż jadłospis
+              </Link>
+            </li>
+            <li>
+              <Link href="/favorites" className="hover:underline">
+                Ulubione przepisy
+              </Link>
+            </li>
+            <li>
+              <Link href="/share" className="hover:underline">
+                Udostępnij jadłospis
+              </Link>
+            </li>
+          </ul>
+          <div>
+            <div className="w-40">
+              <Link href="/">
+                <SubmitButton type="button">Powrót do strony głównej</SubmitButton>
+              </Link>
+            </div>
+          </div>
+        </div>
       </nav>
 
       {/* Sekcja powitalna */}
