@@ -10,7 +10,6 @@ interface FormData {
   firstName: string;
   lastName: string;
   email: string;
-  username: string;
   phoneNumber: string;
   password: string;
 }
@@ -20,7 +19,6 @@ const RegisterForm: React.FC = () => {
     firstName: "",
     lastName: "",
     email: "",
-    username: "",
     phoneNumber: "",
     password: "",
   });
@@ -34,9 +32,31 @@ const RegisterForm: React.FC = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setMessage("Rejestracja przebiegła pomyślnie!");
+    try {
+      const response = await fetch('http://localhost:5000/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setMessage(data.message); 
+      } else {
+        const data = await response.json();
+        setMessage(data.error); 
+      }
+    } catch (err) {
+      console.error('Error during registration:', err);
+      setMessage('Something went wrong. Please try again.'); 
+    }
   };
 
   return (
@@ -68,14 +88,6 @@ const RegisterForm: React.FC = () => {
           value={formData.email}
           onChange={handleChange}
           placeholder="Wpisz swój e-mail"
-        />
-        <InputField
-          label="Login:"
-          type="text"
-          field="username"
-          value={formData.username}
-          onChange={handleChange}
-          placeholder="Wpisz swój login"
         />
         <InputField
           label="Numer telefonu:"
