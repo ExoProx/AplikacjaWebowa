@@ -43,6 +43,9 @@ const RegisterForm: React.FC = () => {
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
+          firstName: formData.password,
+          phoneNumber: formData.phoneNumber,
+          lastName: formData.lastName
         }),
       });
 

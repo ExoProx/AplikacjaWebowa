@@ -31,7 +31,7 @@ router.post('/', async (req: Request, res: Response) => {
        RETURNING id_account`, 
       [email, hashedPassword]
     );
-    const accountId = accountResult.rows[0].id;
+    const accountId = accountResult.rows[0].id_account;
 
     await client.query(
       `INSERT INTO users (name, lastname, phone_number, id_account) VALUES ($1, $2, $3, $4)`,

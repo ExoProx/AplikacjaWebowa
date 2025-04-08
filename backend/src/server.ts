@@ -9,6 +9,8 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
+console.log('DB_PASSWORD:', process.env.DB_PASSWORD);
+console.log('Type of password:', typeof process.env.DB_PASSWORD);
 app.use(cors());
 app.use(bodyParser.json());  // Make sure the body parser middleware is correctly in place
 
