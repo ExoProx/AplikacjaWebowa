@@ -29,7 +29,8 @@ const LoginForm: React.FC = () => {
     setMessage('Logowanie powiodło się!');
   };
   return (
-    <div className="bg-blue-100 p-4 rounded-lg shadow-lg w-full max-w-xs">
+  
+    <div className=" p-4 rounded-lg shadow-lg w-full max-w-xs bg-emerald-100">
       <h1 className="text-2xl font-bold mb-2 text-center">Logowanie</h1>
       <form onSubmit={handleSubmit}>
         <InputField
@@ -50,17 +51,22 @@ const LoginForm: React.FC = () => {
           placeholder="Wpisz hasło"
           icon={<FileLockIcon className="text-gray-500" size={20} />}
         />
-        <SubmitButton type="submit">Zaloguj się</SubmitButton>
+        <div className="transform transition-transform hover:scale-110 duration-300">
+          <SubmitButton type="submit" className="text-white">
+            Zaloguj się
+          </SubmitButton>
+        </div>
       </form>
 
-      <div className="mt-6">
+      <div className="mt-6 transform transition-transform hover:scale-110 duration-300">
         <Link href="/">
-          <SubmitButton type="button" back>
+          <SubmitButton type="button" back className="text-white">
             Powrót do strony głównej
           </SubmitButton>
         </Link>
       </div>
     </div>
+  
   );
 };
 

@@ -63,7 +63,7 @@ const RegisterForm: React.FC = () => {
   };
 
   return (
-    <div className="bg-blue-100 p-4 rounded-lg shadow-lg w-full max-w-xs">
+    <div className="bg-emerald-100 p-4 rounded-lg shadow-lg w-full max-w-xs">
       <h1 className="text-2xl font-bold mb-2 text-center">
         Formularz rejestracji
       </h1>
@@ -114,7 +114,12 @@ const RegisterForm: React.FC = () => {
         />
 
         {/* Użycie komponentu przycisku */}
-        <SubmitButton type="submit">Zarejestruj się</SubmitButton>
+        <div className="transform transition-transform hover:scale-110 duration-300">
+          <SubmitButton type="submit" className="text-white">
+            Zarejestruj się
+          </SubmitButton>
+        </div>
+
       </form>
       {message && (
         <p className="mt-4 text-center text-green-600 font-semibold">
@@ -122,9 +127,10 @@ const RegisterForm: React.FC = () => {
         </p>
       )}
 
-      <div className="mt-6">
+
+      <div className="mt-6 transform transition-transform hover:scale-110 duration-300">
         <Link href="/">
-          <SubmitButton type="button" back>
+          <SubmitButton type="button" className="text-white" back>
             Powrót do strony głównej
           </SubmitButton>
         </Link>

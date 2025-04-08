@@ -48,7 +48,7 @@ const InputField: React.FC<InputFieldProps> = ({
       <label htmlFor={field} className="block text-gray-700 mb-2">
         {label}
       </label>
-      <div className="flex items-center border hover:bg-blue-200 border-gray-300 rounded bg-blue-50 focus-within:ring-2 focus-within:ring-blue-500">
+      <div className="flex items-center border hover:bg-green-300 border-gray-300 rounded bg-green-50 focus-within:ring-2 focus-within:ring-green-400">
         <span className="ml-2">{usedIcon}</span>
         <input
           type={type}
