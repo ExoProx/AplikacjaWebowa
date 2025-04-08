@@ -39,7 +39,7 @@ router.post('/', async (req: Request, res: Response) => {
     );
 
     await client.query('COMMIT');
-    res.status(201).json({ message: 'Account created', userId: accountId.rows[0].id });
+    res.status(201).json({ message: 'Account created', userId: accountId});
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Transaction error:', err);
