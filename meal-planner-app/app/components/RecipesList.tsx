@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { HeartIcon } from "@heroicons/react/24/outline"; // Zainstaluj @heroicons/react
-import Navbar from "./Navbar"; // Twój istniejący komponent Navbar
-import Footer from "./Footer";
+import { HeartIcon, HomeIcon } from "@heroicons/react/24/outline";
+import Link from "next/link";
 
 // Interfejs dla przepisu
 interface Recipe {
@@ -12,10 +11,10 @@ interface Recipe {
   description: string;
   ingredients: string[];
   instructions: string;
-  image?: string; // Opcjonalne pole na zdjęcie z API
+  image?: string;
 }
 
-// Mockowe dane przepisów (dodano więcej przepisów, aby pokazać paginację)
+// Mockowe dane przepisów
 const mockRecipes: Recipe[] = [
   {
     id: 1,
@@ -134,28 +133,28 @@ const mockRecipes: Recipe[] = [
 // Komponent Sidebar
 const Sidebar: React.FC = () => {
   return (
-    <div className="w-64 h-147.5 bg-white shadow-md p-4">
-      <h2 className="text-lg font-semibold mb-4">Filtry</h2>
+    <div className="w-64 h-full bg-gray-800 shadow-md p-4">
+      <h2 className="text-lg font-semibold mb-4 text-white">Filtry</h2>
       <input
         type="text"
         placeholder="Szukaj przepisów"
-        className="w-full p-2 mb-4 border rounded"
+        className="w-full p-2 mb-4 border rounded bg-gray-700 text-white"
       />
-      <h3 className="text-md font-semibold mb-2">Sortuj wg</h3>
-      <select className="w-full p-2 mb-4 border rounded">
+      <h3 className="text-md font-semibold mb-2 text-white">Sortuj wg</h3>
+      <select className="w-full p-2 mb-4 border rounded bg-gray-700 text-white">
         <option>Nazwa</option>
         <option>Popularność</option>
         <option>Ocena</option>
       </select>
-      <h3 className="text-md font-semibold mb-2">Kategorie</h3>
+      <h3 className="text-md font-semibold mb-2 text-white">Kategorie</h3>
       <div className="space-y-2">
-        <label className="flex items-center">
+        <label className="flex items-center text-white">
           <input type="checkbox" className="mr-2" /> Śniadanie
         </label>
-        <label className="flex items-center">
+        <label className="flex items-center text-white">
           <input type="checkbox" className="mr-2" /> Obiad
         </label>
-        <label className="flex items-center">
+        <label className="flex items-center text-white">
           <input type="checkbox" className="mr-2" /> Kolacja
         </label>
       </div>
@@ -169,10 +168,16 @@ interface RecipeTileProps {
   onSelect: (recipe: Recipe) => void;
 }
 
+// Komponent RecipeTile
+interface RecipeTileProps {
+  recipe: Recipe;
+  onSelect: (recipe: Recipe) => void;
+}
+
 const RecipeTile: React.FC<RecipeTileProps> = ({ recipe, onSelect }) => {
   return (
     <div
-      className="bg-white shadow-md rounded-lg overflow-hidden transform transition-transform hover:scale-105 duration-300 cursor-pointer"
+      className="bg-gray-700 shadow-md rounded-lg overflow-hidden transform transition-transform hover:scale-105 duration-300 cursor-pointer"
       onClick={() => onSelect(recipe)}
     >
       <img
@@ -180,7 +185,7 @@ const RecipeTile: React.FC<RecipeTileProps> = ({ recipe, onSelect }) => {
         alt={recipe.name}
         className="w-full h-24.5 object-cover"
       />
-      <div className="p-4 flex justify-between items-center">
+      <div className="p-4 flex justify-between items-center text-white">
         <h3 className="text-lg font-semibold">{recipe.name}</h3>
         <button className="text-gray-500 hover:text-red-500">
           <HeartIcon className="w-6 h-6" />
@@ -200,9 +205,9 @@ const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose }) => {
   return (
     <div
       className="fixed inset-0 flex items-center justify-center z-50"
-      style={{ backgroundColor: "rgba(229, 231, 235, 0.8)" }} // bg-gray-100 z opacity 0.2
+      style={{ backgroundColor: "rgba(229, 231, 235, 0.8)" }}
     >
-      <div className="bg-white p-6 rounded-lg max-w-lg w-full shadow-xl">
+      <div className="bg-gray-800 p-6 rounded-lg max-w-lg w-full shadow-xl text-white">
         <h2 className="text-2xl font-bold mb-4">{recipe.name}</h2>
         <p className="mb-4">{recipe.description}</p>
         <h3 className="text-xl font-semibold mb-2">Składniki:</h3>
@@ -240,7 +245,7 @@ const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages, onPage
   return (
     <div className="flex justify-center mt-4">
       <button
-        className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+        className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50 text-white"
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
       >
@@ -250,7 +255,7 @@ const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages, onPage
         <button
           key={page}
           className={`px-3 py-1 rounded mx-1 ${
-            currentPage === page ? "bg-blue-500 text-white" : "bg-gray-200 hover:bg-gray-300"
+            currentPage === page ? "bg-blue-500 text-white" : "bg-gray-700 hover:bg-gray-600 text-white"
           }`}
           onClick={() => onPageChange(page)}
         >
@@ -258,7 +263,7 @@ const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages, onPage
         </button>
       ))}
       <button
-        className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+        className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50 text-white"
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
       >
@@ -273,13 +278,8 @@ const RecipesList: React.FC = () => {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Liczba przepisów na stronę (4 wiersze x 3 kolumny = 12 kafelków)
   const recipesPerPage = 12;
-
-  // Oblicz całkowitą liczbę stron
   const totalPages = Math.ceil(mockRecipes.length / recipesPerPage);
-
-  // Oblicz indeksy przepisów do wyświetlenia na bieżącej stronie
   const startIndex = (currentPage - 1) * recipesPerPage;
   const endIndex = startIndex + recipesPerPage;
   const currentRecipes = mockRecipes.slice(startIndex, endIndex);
@@ -293,9 +293,17 @@ const RecipesList: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-gray-100 font-sans">
-      <Navbar />
-      <div className="flex">
+    <div className="min-h-screen flex flex-col w-full bg-gray-900 font-sans text-white">
+      {/* Uproszczony pasek nawigacji */}
+      <div className="bg-gray-800 py-4 shadow-md">
+        <div className="max-w-7xl mx-auto flex justify-between items-center px-6">
+          <Link href="/" className="text-white hover:text-gray-300">
+            <HomeIcon className="h-6 w-6" />
+          </Link>
+          <button className="text-white hover:text-gray-300">Wyloguj się</button>
+        </div>
+      </div>
+      <div className="flex flex-1">
         <Sidebar />
         <div className="flex-1 p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -317,7 +325,10 @@ const RecipesList: React.FC = () => {
       {selectedRecipe && (
         <RecipeModal recipe={selectedRecipe} onClose={() => setSelectedRecipe(null)} />
       )}
-      <Footer/>
+      {/* Szary pasek na dole strony */}
+      <div className="bg-gray-800 py-4 text-center">
+        <p className="text-white">@MNIAMPLAN</p>
+      </div>
     </div>
   );
 };

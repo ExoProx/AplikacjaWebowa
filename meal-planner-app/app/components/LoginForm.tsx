@@ -1,4 +1,3 @@
-// components/LoginForm.tsx
 'use client'
 
 import React, { useState } from 'react';
@@ -8,9 +7,9 @@ import SubmitButton from './SubmitButton';
 import Link from "next/link";
 
 interface LoginData {
-    email: string;
-    password: string;
-  }
+  email: string;
+  password: string;
+}
 
 const LoginForm: React.FC = () => {
   const [formData, setFormData] = useState<LoginData>({
@@ -28,9 +27,9 @@ const LoginForm: React.FC = () => {
     e.preventDefault();
     setMessage('Logowanie powiodło się!');
   };
+
   return (
-  
-    <div className=" p-4 rounded-lg shadow-lg w-full max-w-xs bg-emerald-100">
+    <div className="p-4 rounded-lg shadow-lg w-full max-w-xs bg-gray-700 text-white">
       <h1 className="text-2xl font-bold mb-2 text-center">Logowanie</h1>
       <form onSubmit={handleSubmit}>
         <InputField
@@ -40,7 +39,8 @@ const LoginForm: React.FC = () => {
           value={formData.email}
           onChange={handleChange}
           placeholder="Wpisz swój e-mail"
-          icon={<MailCheck className="text-gray-500" size={20} />}
+          icon={<MailCheck className="text-gray-800" size={20} />}
+          className="bg-gray-200 border border-gray-300 rounded-md p-2 w-full"
         />
         <InputField
           label="Hasło"
@@ -49,10 +49,11 @@ const LoginForm: React.FC = () => {
           value={formData.password}
           onChange={handleChange}
           placeholder="Wpisz hasło"
-          icon={<FileLockIcon className="text-gray-500" size={20} />}
+          icon={<FileLockIcon className="text-gray-800" size={20} />}
+          className="bg-gray-200 border border-gray-300 rounded-md p-2 w-full"
         />
         <div className="transform transition-transform hover:scale-110 duration-300">
-          <SubmitButton type="submit" className="text-white">
+          <SubmitButton type="submit" className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-md">
             Zaloguj się
           </SubmitButton>
         </div>
@@ -60,15 +61,23 @@ const LoginForm: React.FC = () => {
 
       <div className="mt-6 transform transition-transform hover:scale-110 duration-300">
         <Link href="/">
-          <SubmitButton type="button" back className="text-white">
+          <SubmitButton type="button" back className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-md ">
             Powrót do strony głównej
           </SubmitButton>
         </Link>
       </div>
+
+      {/* rejestracja */}
+      <div className="mt-4 text-center">
+        <p className="text-sm">Nie masz konta?</p>
+        <Link href="/register">
+          <button className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-md mt-2">
+            Zarejestruj się
+          </button>
+        </Link>
+      </div>
     </div>
-  
   );
 };
 
 export default LoginForm;
-  

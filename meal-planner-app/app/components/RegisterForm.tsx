@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import InputField from "./InputField";
 import SubmitButton from "./SubmitButton";
 import Link from "next/link";
+import { User, MailCheck, Phone, FileLockIcon } from 'lucide-react'
 
 interface FormData {
   firstName: string;
@@ -63,7 +64,7 @@ const RegisterForm: React.FC = () => {
   };
 
   return (
-    <div className="bg-emerald-100 p-4 rounded-lg shadow-lg w-full max-w-xs">
+    <div className="p-4 rounded-lg shadow-lg w-full max-w-xs bg-gray-700 text-white">
       <h1 className="text-2xl font-bold mb-2 text-center">
         Formularz rejestracji
       </h1>
@@ -75,6 +76,7 @@ const RegisterForm: React.FC = () => {
           value={formData.firstName}
           onChange={handleChange}
           placeholder="Wpisz swoje imię"
+          
         />
         <InputField
           label="Nazwisko:"
@@ -113,13 +115,11 @@ const RegisterForm: React.FC = () => {
           placeholder="Wpisz hasło"
         />
 
-        {/* Użycie komponentu przycisku */}
-        <div className="transform transition-transform hover:scale-110 duration-300">
-          <SubmitButton type="submit" className="text-white">
+<div className="transform transition-transform hover:scale-110 duration-300">
+          <SubmitButton type="submit" className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-md">
             Zarejestruj się
           </SubmitButton>
         </div>
-
       </form>
       {message && (
         <p className="mt-4 text-center text-green-600 font-semibold">
@@ -127,10 +127,18 @@ const RegisterForm: React.FC = () => {
         </p>
       )}
 
+      <div className="mt-4 text-center">
+        <p className="text-sm">Masz już konto?</p>
+        <Link href="/login">
+          <SubmitButton className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-md mt-2" type='button'>
+            Zaloguj się
+          </SubmitButton>
+        </Link>
+      </div>
 
       <div className="mt-6 transform transition-transform hover:scale-110 duration-300">
         <Link href="/">
-          <SubmitButton type="button" className="text-white" back>
+          <SubmitButton type="button" className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-md" back>
             Powrót do strony głównej
           </SubmitButton>
         </Link>
