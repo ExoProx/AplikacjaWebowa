@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { Users, BookOpen, Sliders, Zap, ChevronDown, ChevronUp, Utensils, Search, Share2 } from "lucide-react";
-import HomeContent from "./home";
+
 
 
 
