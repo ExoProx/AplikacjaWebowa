@@ -4,16 +4,17 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { Users, BookOpen, Sliders, Zap, ChevronDown, ChevronUp, Utensils, Search, Share2 } from "lucide-react";
+import HomeContent from "./home";
 
 
 
 const HomePage = () => {
+  const poznajNasRef = useRef<HTMLDivElement | null>(null);
+  const coOferujemyRef = useRef<HTMLDivElement | null>(null);
+  const faqRef = useRef<HTMLDivElement | null>(null);
   const [liczbaKlientow, setLiczbaKlientow] = useState(0);
   const [liczbaPrzepisow, setLiczbaPrzepisow] = useState(0);
-  const poznajNasRef = useRef(null);
-  const coOferujemyRef = useRef(null);
-  const faqRef = useRef(null);
-  const [otwartePytanie, setOtwartePytanie] = useState(null);
+  const [otwartePytanie, setOtwartePytanie] = useState<number | null>(null);
 
 
   useEffect(() => {
@@ -71,7 +72,7 @@ const HomePage = () => {
     { pytanie: "Czy mogę korzystać z aplikacji na urządzeniach mobilnych?", odpowiedz: "Tak, nasza aplikacja jest responsywna i działa poprawnie na wszystkich urządzeniach mobilnych." },
   ];
 
-  const otworzPytanie = (indeks) => {
+  const otworzPytanie = (indeks: number) => {
     setOtwartePytanie(otwartePytanie === indeks ? null : indeks);
   };
 
