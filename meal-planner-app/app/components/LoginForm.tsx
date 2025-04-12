@@ -5,6 +5,7 @@ import { CaseLower, MailCheck, Phone, User, UsersRound, FileLockIcon } from 'luc
 import InputField from './InputField';
 import SubmitButton from './SubmitButton';
 import Link from "next/link";
+import { useRouter } from 'next/navigation';
 
 interface LoginData {
   email: string;
@@ -16,6 +17,7 @@ const LoginForm: React.FC = () => {
     email: '',
     password: '',
   });
+  const router = useRouter();
 
   const [message, setMessage] = useState<string>('');
 
@@ -23,9 +25,34 @@ const LoginForm: React.FC = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setMessage('Logowanie powiodło się!');
+  const handleSubmit = async(e: React.FormEvent<HTMLFormElement>) => {
+    const data = {
+      email: formData.email,
+      password: formData.password
+    };
+    try {
+      const response = await fetch('http://localhost:5000/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+  
+      const result = await response.json();
+  
+      if (response.ok) {
+        localStorage.setItem('token', result.token); // ✅ Store JWT token
+        setMessage('Login successful!');
+        router.push('/mainPage');
+      } else {
+        console.error('Login failed:', result.error);
+        setMessage(result.error || 'Invalid credentials.');
+      }
+    } catch (err) {
+      console.error('Error during login:', err);
+      setMessage('Something went wrong. Please try again.');
+    }
   };
 
   return (
@@ -66,7 +93,11 @@ const LoginForm: React.FC = () => {
           </SubmitButton>
         </Link>
       </div>
-
+      {message && (
+        <p className="mt-4 text-center text-green-600 font-semibold">
+          {message}
+        </p>
+      )}
       {/* rejestracja */}
       <div className="mt-4 text-center">
         <p className="text-sm">Nie masz konta?</p>
