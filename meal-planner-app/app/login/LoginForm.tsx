@@ -1,9 +1,10 @@
-'use client'
+// app/components/LoginForm.client.tsx
+"use client";
 
 import React, { useState } from 'react';
-import { CaseLower, MailCheck, Phone, User, UsersRound, FileLockIcon } from 'lucide-react';
-import InputField from './InputField';
-import SubmitButton from './SubmitButton';
+import { MailCheck, FileLockIcon } from 'lucide-react';
+import InputField from 'components/InputField';
+import SubmitButton from 'components/SubmitButton';
 import Link from "next/link";
 import { useRouter } from 'next/navigation';
 
@@ -13,38 +14,35 @@ interface LoginData {
 }
 
 const LoginForm: React.FC = () => {
-  const [formData, setFormData] = useState<LoginData>({
-    email: '',
-    password: '',
-  });
-  const router = useRouter();
-
+  const [formData, setFormData] = useState<LoginData>({ email: '', password: '' });
   const [message, setMessage] = useState<string>('');
+  const router = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async(e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
     const data = {
       email: formData.email,
       password: formData.password
     };
+
     try {
       const response = await fetch('http://localhost:5000/api/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
   
       const result = await response.json();
   
       if (response.ok) {
-        localStorage.setItem('token', result.token); // ✅ Store JWT token
+        localStorage.setItem('token', result.token); // Store JWT token
         setMessage('Login successful!');
-        router.push('/mainPage');
+        router.push('/mainPage');  // Redirect on successful login
       } else {
         console.error('Login failed:', result.error);
         setMessage(result.error || 'Invalid credentials.');
@@ -86,19 +84,20 @@ const LoginForm: React.FC = () => {
         </div>
       </form>
 
-      <div className="mt-6 transform transition-transform hover:scale-110 duration-300">
-        <Link href="/">
-          <SubmitButton type="button" back className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-md ">
-            Powrót do strony głównej
-          </SubmitButton>
-        </Link>
-      </div>
       {message && (
         <p className="mt-4 text-center text-green-600 font-semibold">
           {message}
         </p>
       )}
-      {/* rejestracja */}
+
+      <div className="mt-6 transform transition-transform hover:scale-110 duration-300">
+        <Link href="/">
+          <SubmitButton type="button" back className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-md">
+            Powrót do strony głównej
+          </SubmitButton>
+        </Link>
+      </div>
+
       <div className="mt-4 text-center">
         <p className="text-sm">Nie masz konta?</p>
         <Link href="/register">

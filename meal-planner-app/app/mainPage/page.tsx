@@ -2,11 +2,17 @@
 
 
 import React from 'react';
-import MainPage from '../components/MainPage';
+import MainPage from './MainPage';
 
 const MainPageU: React.FC = () => {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" 
+    style={{
+      backgroundImage: 'url("/jedzenie.jpg")',
+      backgroundSize: "cover",
+      backgroundRepeat: "no-repeat",
+    }}
+    >
       <MainPage />
     </div>
   );

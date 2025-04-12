@@ -18,8 +18,10 @@
         "name": "next"
       }
     ],
+    "baseUrl": ".",  // Set base URL to the root directory
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],  // Alias to the root directory
+      "components/*": ["app/components/*"],
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

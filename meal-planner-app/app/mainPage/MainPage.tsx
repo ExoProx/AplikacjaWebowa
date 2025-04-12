@@ -1,9 +1,9 @@
 "use client"
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import SubmitButton from './SubmitButton';
-import Navbar from "./Navbar";
-import Footer from "./Footer";
+import SubmitButton from 'components/SubmitButton';
+import Navbar from "components/Navbar";
+import Footer from "components/Footer";
 
 const MainPage: React.FC = () => {
   const [userName, setUserName] = useState("Jan");
