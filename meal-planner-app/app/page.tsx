@@ -3,9 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
-import { Users, BookOpen, Sliders, Zap, ChevronDown, ChevronUp, Utensils, Search, Share2 } from "lucide-react";
-
-
+import { Users, BookOpen, Sliders, Zap, ChevronDown, ChevronUp, Utensils, Search, Share2, Book } from "lucide-react";
 
 const HomePage = () => {
   const [liczbaKlientow, setLiczbaKlientow] = useState(0);
@@ -14,7 +12,13 @@ const HomePage = () => {
   const coOferujemyRef = useRef(null);
   const faqRef = useRef(null);
   const [otwartePytanie, setOtwartePytanie] = useState(null);
-
+  const [cytat, setCytat] = useState("");
+  const [widoczneSekcje, setWidoczneSekcje] = useState({
+    coOferujemy: false,
+    dlaczegoWarto: false,
+    faq: false,
+    poznajNas: false,
+  });
 
   useEffect(() => {
     let klientTimer: NodeJS.Timeout;
@@ -46,6 +50,45 @@ const HomePage = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const cytaty = [
+      "Jedz, aby żyć, nie żyj, aby jeść. - Sokrates",
+      "Zdrowe jedzenie to inwestycja w siebie.",
+      "Nie ma rzeczy niemożliwych, są tylko rzeczy, których jeszcze nie próbowaliśmy. - Jordan Belfort",
+      "Dobre jedzenie, dobry nastrój, dobre życie.",
+      "Jedzenie to nie tylko paliwo, to doświadczenie. - James Beard",
+      "Człowiek jest tym, co je. - Ludwig Feuerbach",
+      "Zdrowe jedzenie to zdrowy umysł. - Juvenal"
+    ];
+
+    setCytat(cytaty[Math.floor(Math.random() * cytaty.length)]);
+  }, []);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            if (entry.target === coOferujemyRef.current) {
+              setWidoczneSekcje((prev) => ({ ...prev, coOferujemy: true }));
+            } else if (entry.target === faqRef.current) {
+              setWidoczneSekcje((prev) => ({ ...prev, faq: true }));
+            } else if (entry.target === poznajNasRef.current) {
+              setWidoczneSekcje((prev) => ({ ...prev, poznajNas: true }));
+            }
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+
+    if (coOferujemyRef.current) observer.observe(coOferujemyRef.current);
+    if (faqRef.current) observer.observe(faqRef.current);
+    if (poznajNasRef.current) observer.observe(poznajNasRef.current);
+
+    return () => observer.disconnect();
+  }, []);
+
   const scrollToPoznajNas = () => {
     poznajNasRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -65,7 +108,7 @@ const HomePage = () => {
     { pytanie: "Jak mogę udostępnić swój jadłospis?", odpowiedz: "Możesz udostępnić swój jadłospis, generując link do udostępnienia lub eksportując go do pliku PDF." },
     { pytanie: "Czy mogę edytować istniejący jadłospis?", odpowiedz: "Tak, w każdej chwili możesz edytować swoje jadłospisy, dodając, usuwając lub modyfikując posiłki." },
     { pytanie: "Czy aplikacja oferuje przepisy dla wegetarian?", odpowiedz: "Tak, w naszej bazie przepisów znajdziesz wiele opcji dla wegetarian i wegan." },
-    { pytanie: "Jak mogę skontaktować się z obsługą klienta?", odpowiedz: "Możesz skontaktować się z nami, wysyłając wiadomość e-mail na adres kontakt@naszaaplikacja.pl lub korzystając z formularza kontaktowego na stronie." },
+    { pytanie: "Jak mogę skontaktować się z obsługą klienta?", odpowiedz: "Możesz skontaktować się z nami, wysyłając wiadomość e-mail na adres kontakt@naszaaplikacja.pl." },
     { pytanie: "Czy mogę zapisywać ulubione przepisy?", odpowiedz: "Tak, możesz dodawać przepisy do ulubionych, aby mieć do nich szybki dostęp." },
     { pytanie: "Czy aplikacja analizuje wartość odżywczą jadłospisów?", odpowiedz: "Tak, aplikacja automatycznie oblicza wartość odżywczą Twoich jadłospisów, dostarczając szczegółowych informacji o kaloriach, makroskładnikach i witaminach." },
     { pytanie: "Czy mogę korzystać z aplikacji na urządzeniach mobilnych?", odpowiedz: "Tak, nasza aplikacja jest responsywna i działa poprawnie na wszystkich urządzeniach mobilnych." },
@@ -75,26 +118,10 @@ const HomePage = () => {
     setOtwartePytanie(otwartePytanie === indeks ? null : indeks);
   };
 
-  const cytaty = [
-    "Jedz, aby żyć, nie żyj, aby jeść. - Sokrates",
-    "Zdrowe jedzenie to inwestycja w siebie.",
-    "Nie ma rzeczy niemożliwych, są tylko rzeczy, których jeszcze nie próbowaliśmy. - Jordan Belfort",
-    "Dobre jedzenie, dobry nastrój, dobre życie.",
-    "Jedzenie to nie tylko paliwo, to doświadczenie. - James Beard",
-    "Człowiek jest tym, co je. - Ludwig Feuerbach",
-    "Zdrowe jedzenie to zdrowy umysł. - Juvenal"
-  ];
-
-  const [cytat, setCytat] = useState(""); 
-
-  useEffect(() => {
-    setCytat(cytaty[Math.floor(Math.random() * cytaty.length)]);
-  }, []);
-
   return (
     <div className="bg-gray-900 text-white relative">
       {/* Belka u góry -, przyciski po prawej */}
-      <div className="bg-gray-800 py-4 shadow-md">
+      <div className="absolute top-0 left-0 w-full z-20 bg-transparent py-4 shadow-md">
         <div className="max-w-7xl mx-auto flex justify-between items-center px-6">
           <h1 className="text-xl font-bold text-white">Nasza Aplikacja</h1>
           <div className="flex space-x-6">
@@ -123,52 +150,50 @@ const HomePage = () => {
         </div>
       </div>
 
-
-
       {/* Zdjęcie z napisem */}
       <div className="relative h-screen flex items-center justify-center">
-                <Image
-                    src="/jedzenie.jpg"
-                    alt="Tło z jedzeniem"
-                    layout="fill"
-                    objectFit="cover"
-                    className="opacity-50"
-                />
-                <div className="z-10 flex flex-col items-center">
-                    <h2 className="text-6xl md:text-6xl font-ozdobna text-center text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-wide py-5">
-                        Stwórz z nami swój idealny jadłospis
-                    </h2>
-                    <p className="text-lg md:text-2xl font-ozdobna text-center mt-4 pt-9">{cytat}</p>
-                </div>
-            </div>
+        <Image
+          src="/jedzenie.jpg"
+          alt="Tło z jedzeniem"
+          layout="fill"
+          objectFit="cover"
+          className="opacity-50"
+        />
+        <div className="z-10 flex flex-col items-center">
+          <h2 className="text-6xl md:text-6xl font-ozdobna text-center text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-wide py-5">
+            Stwórz z nami swój idealny jadłospis
+          </h2>
+          <p className="text-lg md:text-2xl font-ozdobna text-center mt-4 pt-9">{cytat}</p>
+        </div>
+      </div>
 
-                 {/* Sekcja Co oferujemy */}
-                <div ref={coOferujemyRef} className="bg-gray-800 py-10">
-                <h2 className="text-3xl font-bold text-center mb-8">Co oferujemy?</h2>
-                <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div className="bg-gray-700 p-6 rounded-lg shadow-lg transform transition-transform hover:scale-110 duration-300 cursor-pointer flex flex-col items-center">
-                        <Utensils size={48} className="mb-4" />
-                        <h3 className="text-xl font-semibold mb-4 text-center">Układanie jadłospisów</h3>
-                        <p className="text-center">
-                            Twórz spersonalizowane plany posiłków, korzystając z bogatej bazy przepisów.
-                        </p>
-                    </div>
-                    <div className="bg-gray-700 p-6 rounded-lg shadow-lg transform transition-transform hover:scale-110 duration-300 flex flex-col items-center">
-                        <Search size={48} className="mb-4" />
-                        <h3 className="text-xl font-semibold mb-4 text-center">Przeglądanie przepisów</h3>
-                        <p className="text-center">
-                            Odkrywaj tysiące przepisów i zapisuj swoje ulubione, by mieć je zawsze pod ręką.
-                        </p>
-                    </div>
-                    <div className="bg-gray-700 p-6 rounded-lg shadow-lg transform transition-transform hover:scale-110 duration-300 flex flex-col items-center">
-                        <Share2 size={48} className="mb-4" />
-                        <h3 className="text-xl font-semibold mb-4 text-center">Udostępnianie i edycja</h3>
-                        <p className="text-center">
-                            Dziel się swoimi jadłospisami z innymi, edytuj je lub usuwaj w dowolnym momencie.
-                        </p>
-                    </div>
-                </div>
-            </div>
+      {/* Sekcja Co oferujemy */}
+      <div ref={coOferujemyRef} className={`bg-gray-800 py-10 transition-opacity duration-1000 ${widoczneSekcje.coOferujemy ? "opacity-100" : "opacity-0"}`}>
+        <h2 className="text-3xl font-bold text-center mb-8">Co oferujemy?</h2>
+        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="bg-gray-700 p-6 rounded-lg shadow-lg transform transition-transform hover:scale-110 duration-300 cursor-pointer flex flex-col items-center">
+            <Utensils size={48} className="mb-4" />
+            <h3 className="text-xl font-semibold mb-4 text-center">Układanie jadłospisów</h3>
+            <p className="text-center">
+              Twórz spersonalizowane plany posiłków, korzystając z bogatej bazy przepisów.
+            </p>
+          </div>
+          <div className="bg-gray-700 p-6 rounded-lg shadow-lg transform transition-transform hover:scale-110 duration-300 flex flex-col items-center">
+            <Search size={48} className="mb-4" />
+            <h3 className="text-xl font-semibold mb-4 text-center">Przeglądanie przepisów</h3>
+            <p className="text-center">
+              Odkrywaj tysiące przepisów i zapisuj swoje ulubione, by mieć je zawsze pod ręką.
+            </p>
+          </div>
+          <div className="bg-gray-700 p-6 rounded-lg shadow-lg transform transition-transform hover:scale-110 duration-300 flex flex-col items-center">
+            <Share2 size={48} className="mb-4" />
+            <h3 className="text-xl font-semibold mb-4 text-center">Udostępnianie i edycja</h3>
+            <p className="text-center">
+              Dziel się swoimi jadłospisami z innymi, edytuj je lub usuwaj w dowolnym momencie.
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* Sekcja Dlaczego warto nas wybrać */}
       <div className="bg-gray-700 py-10 text-white">
@@ -185,7 +210,7 @@ const HomePage = () => {
           <div className="flex flex-col items-center text-center">
             <BookOpen size={48} className="text-yellow-400 mb-4" />
             <div className="text-4xl font-bold">{liczbaPrzepisow}</div>
-            <p>Przepisów</p>
+            <h3>Przepisów</h3>
           </div>
 
           {/* Personalizacja */}
@@ -205,7 +230,7 @@ const HomePage = () => {
       </div>
 
       {/* Sekcja FAQ */}
-      <div ref={faqRef} className="bg-gray-800 py-10">
+      <div ref={faqRef} className={`bg-gray-800 py-10 transition-opacity duration-1000 ${widoczneSekcje.faq ? "opacity-100" : "opacity-0"}`}>
         <h2 className="text-3xl font-bold text-center mb-8">FAQ</h2>
         <div className="max-w-3xl mx-auto">
           {pytania.map((pytanie, indeks) => (
@@ -218,7 +243,7 @@ const HomePage = () => {
                 {otwartePytanie === indeks ? <ChevronUp /> : <ChevronDown />}
               </button>
               {otwartePytanie === indeks && (
-                <div className="py-2 px-4"> {/* Usunięto bg-gray-700 */}
+                <div className="py-2 px-4">
                   <p>{pytanie.odpowiedz}</p>
                 </div>
               )}
@@ -228,9 +253,9 @@ const HomePage = () => {
       </div>
 
       {/* Sekcja Poznaj nas */}
-      <div ref={poznajNasRef} className="bg-gray-700 py-10">
-        <h2 className="text-3xl font-bold text-center mb-8">Poznaj nas</h2>
-        <div className="py-1 px-4 md:px-8 bg-gray-700">
+      <div ref={poznajNasRef} className={`bg-gray-800 py-10 transition-opacity duration-1000 ${widoczneSekcje.poznajNas ? "opacity-100" : "opacity-0"}`}>
+        <h2 className="text-3xl font-bold text-center mb-8">Poznaj nas !</h2>
+        <div className="py-1 px-4 md:px-8 bg-gray-800">
           <p className="text-center text-xl max-w-7xl mx-auto mb-2">
             Jesteśmy zespołem entuzjastów zdrowego stylu życia i nowoczesnych technologii. Naszym
             celem jest ułatwienie Ci planowania diety dzięki intuicyjnej aplikacji, która łączy 
@@ -259,7 +284,7 @@ const HomePage = () => {
                 <h3 className="text-lg font-semibold absolute bottom-10 left-1/2 transform -translate-x-1/2 text-white">
                   {name}
                 </h3>
-                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg">
+                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg">
                   <p className="text-white text-sm px-2">{name} - {desc}</p>
                 </div>
               </div>
