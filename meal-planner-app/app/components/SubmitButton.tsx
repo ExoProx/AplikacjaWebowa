@@ -29,7 +29,12 @@ const SubmitButton: React.FC<ButtonProps> = ({ type = "button", onClick, back, c
     <button
       type={type}
       onClick={handleClick}
-      className={`w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition-colors ${className || ''}`}
+      className={clsx(
+        "w-full p-2 rounded hover:bg-emerald-600 transition-colors",
+        !className?.includes("bg-") && "bg-emerald-400",
+        !className?.includes("text-") && "text-white",
+        className
+      )}
     >
       {children}
     </button>

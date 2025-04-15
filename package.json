@@ -1,5 +1,8 @@
 {
   "dependencies": {
-    "clsx": "^2.1.1"
+    "add": "^2.0.6",
+    "clsx": "^2.1.1",
+    "react-responsive-carousel": "^3.2.23",
+    "yarn": "^1.22.22"
   }
 }

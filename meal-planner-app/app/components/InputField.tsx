@@ -45,10 +45,10 @@ const InputField: React.FC<InputFieldProps> = ({
   const usedIcon = icon || defaultIcons[field];
   return (
     <div className="mb-4">
-      <label htmlFor={field} className="block text-gray-700 mb-2">
+      <label htmlFor={field} className="block mb-1 font-semibold text-white">
         {label}
       </label>
-      <div className="flex items-center border hover:bg-blue-200 border-gray-300 rounded bg-blue-50 focus-within:ring-2 focus-within:ring-blue-500">
+      <div className="flex items-center border hover:bg-gray-300 border-gray-300 rounded bg-stone-50 focus-within:ring-2 focus-within:ring-stone-300">
         <span className="ml-2">{usedIcon}</span>
         <input
           type={type}
@@ -57,7 +57,7 @@ const InputField: React.FC<InputFieldProps> = ({
           value={value}
           onChange={onChange}
           placeholder={placeholder}
-          className="w-full p-2 bg-transparent focus:outline-none transition duration-300 ease-in-out"
+          className="w-full p-2 bg-transparent placeholder-gray-500 focus:outline-none transition duration-300 ease-in-out"
           maxLength={maxLength}
           required={required}
         />
