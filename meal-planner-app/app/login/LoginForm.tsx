@@ -91,7 +91,7 @@ const LoginForm: React.FC = () => {
       )}
 
       <div className="mt-6 transform transition-transform hover:scale-110 duration-300">
-        <Link href="/">
+        <Link href="/app">
           <SubmitButton type="button" back className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-md">
             Powrót do strony głównej
           </SubmitButton>

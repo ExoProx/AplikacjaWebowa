@@ -12,8 +12,14 @@ const HomePage = () => {
   const faqRef = useRef<HTMLDivElement | null>(null);
   const [liczbaKlientow, setLiczbaKlientow] = useState(0);
   const [liczbaPrzepisow, setLiczbaPrzepisow] = useState(0);
-
   const [otwartePytanie, setOtwartePytanie] = useState<number | null>(null);
+  const [cytat, setCytat] = useState("");
+  const [widoczneSekcje, setWidoczneSekcje] = useState({
+    coOferujemy: false,
+    dlaczegoWarto: false,
+    faq: false,
+    poznajNas: false,
+  });
 
 
   useEffect(() => {
