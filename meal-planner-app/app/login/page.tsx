@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { HomeIcon } from "lucide-react";
 import React from "react";
-import LoginForm from "../components/LoginForm";
+import LoginForm from "./LoginForm";
 
 const LoginPage: React.FC = () => {
   return (

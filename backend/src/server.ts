@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import userRoutes from './routes/user'; // Make sure you are correctly importing the userRoutes
+import loginRoutes from './routes/login';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -14,7 +15,7 @@ app.use(bodyParser.json());  // Make sure the body parser middleware is correctl
 
 // Register /api/users route with the userRoutes from user.ts
 app.use('/api/users', userRoutes);  // The '/api/users' endpoint will be handled by the userRoutes
-
+app.use('/api/login', loginRoutes);
 // Test route
 app.get('/test', (req, res) => {
   res.send('Test route is working!');
