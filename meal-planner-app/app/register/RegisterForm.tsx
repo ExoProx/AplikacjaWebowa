@@ -70,6 +70,7 @@ const RegisterForm: React.FC = () => {
         Formularz rejestracji
       </h1>
       <form onSubmit={handleSubmit}>
+      <div className="text-black">
         <InputField
           label="Imię:"
           type="text"
@@ -113,6 +114,7 @@ const RegisterForm: React.FC = () => {
           onChange={handleChange}
           placeholder="Wpisz hasło"
         />
+        </div>
 
         <div className="transform transition-transform hover:scale-110 duration-300">
           <SubmitButton type="submit" className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-md">

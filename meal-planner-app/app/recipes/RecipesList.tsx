@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { HeartIcon, HomeIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 
@@ -130,11 +130,52 @@ const mockRecipes: Recipe[] = [
   },
 ];
 
+// Dni tygodnia i typy posiłków
+const daysOfWeek = [
+  "Poniedziałek",
+  "Wtorek",
+  "Środa",
+  "Czwartek",
+  "Piątek",
+  "Sobota",
+  "Niedziela",
+] as const;
+type DayOfWeek = typeof daysOfWeek[number];
+
+const mealTypes = [
+  { key: "breakfast", label: "Śniadanie" },
+  { key: "secondBreakfast", label: "II Śniadanie" },
+  { key: "lunch", label: "Obiad" },
+  { key: "afternoonSnack", label: "Podwieczorek" },
+  { key: "dinner", label: "Kolacja" },
+] as const;
+type MealType = typeof mealTypes[number]["key"];
+
+// Struktura jadłospisu
+type MealPlan = {
+  [key in MealType]: Recipe | null;
+};
+
+type MealPlans = {
+  [key in DayOfWeek]: MealPlan;
+};
+
+// Inicjalizacja pustych jadłospisów
+const initializeMealPlans = (): MealPlans => {
+  return daysOfWeek.reduce((acc, day) => {
+    acc[day] = mealTypes.reduce((mealAcc, meal) => {
+      mealAcc[meal.key] = null;
+      return mealAcc;
+    }, {} as MealPlan);
+    return acc;
+  }, {} as MealPlans);
+};
+
 // Komponent Sidebar
 const Sidebar: React.FC = () => {
   return (
-    <div className="w-64 h-full bg-gray-800 shadow-md p-4">
-      <h2 className="text-lg font-semibold mb-4 text-white">Filtry</h2>
+    <div className="w-64 h-148 bg-gray-800 shadow-md p-4">
+      <h2 className="text-lg font-semibold mb-4 mt-10 text-white">Filtry</h2>
       <input
         type="text"
         placeholder="Szukaj przepisów"
@@ -168,13 +209,18 @@ interface RecipeTileProps {
   onSelect: (recipe: Recipe) => void;
 }
 
-// Komponent RecipeTile
-interface RecipeTileProps {
-  recipe: Recipe;
-  onSelect: (recipe: Recipe) => void;
-}
-
 const RecipeTile: React.FC<RecipeTileProps> = ({ recipe, onSelect }) => {
+  const [favoriteRecipes, setFavoriteRecipes] = useState<Recipe[]>([]);
+
+  useEffect(() => {
+    const storedFavorites = localStorage.getItem("favoriteRecipes");
+    if (storedFavorites) {
+      setFavoriteRecipes(JSON.parse(storedFavorites));
+    }
+  }, []);
+
+  const isFavorite = favoriteRecipes.some((fav) => fav.id === recipe.id);
+
   return (
     <div
       className="bg-gray-700 shadow-md rounded-lg overflow-hidden transform transition-transform hover:scale-105 duration-300 cursor-pointer"
@@ -187,8 +233,8 @@ const RecipeTile: React.FC<RecipeTileProps> = ({ recipe, onSelect }) => {
       />
       <div className="p-4 flex justify-between items-center text-white">
         <h3 className="text-lg font-semibold">{recipe.name}</h3>
-        <button className="text-gray-500 hover:text-red-500">
-          <HeartIcon className="w-6 h-6" />
+        <button className={isFavorite ? "text-red-500" : "text-gray-500 hover:text-red-500"}>
+          <HeartIcon className={`w-6 h-6 ${isFavorite ? "fill-current" : ""}`} />
         </button>
       </div>
     </div>
@@ -202,10 +248,36 @@ interface RecipeModalProps {
 }
 
 const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose }) => {
+  const [selectedDay, setSelectedDay] = useState<DayOfWeek>(daysOfWeek[0]);
+  const [selectedMeal, setSelectedMeal] = useState<MealType>(mealTypes[0].key);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const handleAddToMealPlan = () => {
+    const stored = localStorage.getItem("mealPlans");
+    let mealPlans: MealPlans = stored ? JSON.parse(stored) : initializeMealPlans();
+
+    mealPlans[selectedDay][selectedMeal] = recipe;
+
+    localStorage.setItem("mealPlans", JSON.stringify(mealPlans));
+    onClose();
+    window.location.href = "/menu";
+  };
+
+  const handleAddToFavorites = (recipe: Recipe) => {
+    const storedFavorites = localStorage.getItem("favoriteRecipes");
+    const currentFavorites: Recipe[] = storedFavorites ? JSON.parse(storedFavorites) : [];
+    if (!currentFavorites.some((fav) => fav.id === recipe.id)) {
+      const updatedFavorites = [...currentFavorites, recipe];
+      localStorage.setItem("favoriteRecipes", JSON.stringify(updatedFavorites));
+      setMessage("Dodano przepis do ulubionych!");
+      setTimeout(() => setMessage(null), 2000);
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 flex items-center justify-center z-50"
-      style={{ backgroundColor: "rgba(229, 231, 235, 0.8)" }}
+      style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}
     >
       <div className="bg-gray-800 p-6 rounded-lg max-w-lg w-full shadow-xl text-white">
         <h2 className="text-2xl font-bold mb-4">{recipe.name}</h2>
@@ -218,14 +290,47 @@ const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose }) => {
         </ul>
         <h3 className="text-xl font-semibold mb-2">Instrukcje:</h3>
         <p className="mb-4">{recipe.instructions}</p>
+        <div className="mb-4">
+          <label className="block mb-2">Wybierz dzień:</label>
+          <select
+            value={selectedDay}
+            onChange={(e) => setSelectedDay(e.target.value as DayOfWeek)}
+            className="w-full p-2 border rounded bg-gray-700 text-white mb-2"
+          >
+            {daysOfWeek.map((day) => (
+              <option key={day} value={day}>
+                {day}
+              </option>
+            ))}
+          </select>
+          <label className="block mb-2">Wybierz posiłek:</label>
+          <select
+            value={selectedMeal}
+            onChange={(e) => setSelectedMeal(e.target.value as MealType)}
+            className="w-full p-2 border rounded bg-gray-700 text-white mb-2"
+          >
+            {mealTypes.map((meal) => (
+              <option key={meal.key} value={meal.key}>
+                {meal.label}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="flex justify-between mb-4">
-          <button className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+          <button
+            onClick={handleAddToMealPlan}
+            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+          >
             Dodaj do jadłospisu
           </button>
-          <button className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+          <button
+            onClick={() => handleAddToFavorites(recipe)}
+            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+          >
             Dodaj do ulubionych
           </button>
         </div>
+        {message && <p className="text-green-400 mb-4">{message}</p>}
         <button className="text-blue-500 hover:underline" onClick={onClose}>
           Zamknij
         </button>
@@ -241,7 +346,11 @@ interface PaginationProps {
   onPageChange: (page: number) => void;
 }
 
-const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages, onPageChange }) => {
+const Pagination: React.FC<PaginationProps> = ({
+  currentPage,
+  totalPages,
+  onPageChange,
+}) => {
   return (
     <div className="flex justify-center mt-4">
       <button
@@ -251,17 +360,21 @@ const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages, onPage
       >
         {"<"}
       </button>
-      {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
-        <button
-          key={page}
-          className={`px-3 py-1 rounded mx-1 ${
-            currentPage === page ? "bg-blue-500 text-white" : "bg-gray-700 hover:bg-gray-600 text-white"
-          }`}
-          onClick={() => onPageChange(page)}
-        >
-          {page}
-        </button>
-      ))}
+      {Array.from({ length: totalPages }, (_, index) => index + 1).map(
+        (page) => (
+          <button
+            key={page}
+            className={`px-3 py-1 rounded mx-1 ${
+              currentPage === page
+                ? "bg-blue-500 text-white"
+                : "bg-gray-700 hover:bg-gray-600 text-white"
+            }`}
+            onClick={() => onPageChange(page)}
+          >
+            {page}
+          </button>
+        )
+      )}
       <button
         className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50 text-white"
         onClick={() => onPageChange(currentPage + 1)}
@@ -294,11 +407,19 @@ const RecipesList: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col w-full bg-gray-900 font-sans text-white">
-      {/* Uproszczony pasek nawigacji */}
       <div className="bg-gray-800 py-4 shadow-md">
         <div className="max-w-7xl mx-auto flex justify-between items-center px-6">
-          <Link href="/" className="text-white hover:text-gray-300">
+          <Link href="/mainPage" className="text-white hover:text-gray-300">
             <HomeIcon className="h-6 w-6" />
+          </Link>
+          <Link href="/recipes" className="text-white hover:text-gray-300">
+            Przepisy
+          </Link>
+          <Link href="/favorites" className="text-white hover:text-gray-300">
+            Ulubione przepisy
+          </Link>
+          <Link href="/menu" className="text-white hover:text-gray-300">
+            Jadłospisy
           </Link>
           <button className="text-white hover:text-gray-300">Wyloguj się</button>
         </div>
@@ -323,9 +444,11 @@ const RecipesList: React.FC = () => {
         </div>
       </div>
       {selectedRecipe && (
-        <RecipeModal recipe={selectedRecipe} onClose={() => setSelectedRecipe(null)} />
+        <RecipeModal
+          recipe={selectedRecipe}
+          onClose={() => setSelectedRecipe(null)}
+        />
       )}
-      {/* Szary pasek na dole strony */}
       <div className="bg-gray-800 py-4 text-center">
         <p className="text-white">@MNIAMPLAN</p>
       </div>
