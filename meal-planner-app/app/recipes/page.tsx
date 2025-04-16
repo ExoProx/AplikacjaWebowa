@@ -1,5 +1,5 @@
 import React from 'react';
-import RecipesList from '../components/RecipesList';
+import RecipesList from './RecipesList';
 
 const RecipesList_: React.FC = () => {
   return (

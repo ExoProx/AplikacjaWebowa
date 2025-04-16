@@ -56,7 +56,8 @@ const LoginForm: React.FC = () => {
   return (
     <div className="p-4 rounded-lg shadow-lg w-full max-w-xs bg-gray-700 text-white">
       <h1 className="text-2xl font-bold mb-2 text-center">Logowanie</h1>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} >
+        <div className="text-black">
         <InputField
           label="E-mail"
           type="email"
@@ -65,7 +66,7 @@ const LoginForm: React.FC = () => {
           onChange={handleChange}
           placeholder="Wpisz swój e-mail"
           icon={<MailCheck className="text-gray-800" size={20} />}
-          className="bg-gray-200 border border-gray-300 rounded-md p-2 w-full"
+          className="bg-gray-200 border border-gray-300 text-black rounded-md p-2 w-full"
         />
         <InputField
           label="Hasło"
@@ -75,8 +76,9 @@ const LoginForm: React.FC = () => {
           onChange={handleChange}
           placeholder="Wpisz hasło"
           icon={<FileLockIcon className="text-gray-800" size={20} />}
-          className="bg-gray-200 border border-gray-300 rounded-md p-2 w-full"
+          className="bg-gray-200 border border-gray-300 text-black rounded-md p-2 w-full"
         />
+        </div>
         <div className="transform transition-transform hover:scale-110 duration-300">
           <SubmitButton type="submit" className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-md">
             Zaloguj się
