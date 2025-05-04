@@ -3,14 +3,15 @@
 import React, { useState, useEffect } from "react";
 import { HeartIcon, HomeIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
+import axios from "axios";
 
 // Interfejs dla przepisu
 interface Recipe {
   id: number;
   name: string;
   description: string;
-  ingredients: string[];
-  instructions: string;
+  ingredients?: string[];
+  instructions? : string;
   image?: string;
 }
 
@@ -388,14 +389,32 @@ const Pagination: React.FC<PaginationProps> = ({
 
 // Główny komponent RecipesList
 const RecipesList: React.FC = () => {
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(false);
 
   const recipesPerPage = 12;
-  const totalPages = Math.ceil(mockRecipes.length / recipesPerPage);
-  const startIndex = (currentPage - 1) * recipesPerPage;
-  const endIndex = startIndex + recipesPerPage;
-  const currentRecipes = mockRecipes.slice(startIndex, endIndex);
+  const totalPages = Math.ceil(recipes.length / recipesPerPage);
+  const currentRecipes = recipes.slice(
+    (currentPage - 1) * recipesPerPage,
+    currentPage * recipesPerPage
+  );
+
+  useEffect(() => {
+    const fetchRecipes = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/foodSecret/search?query=a');
+        setRecipes(response.data);
+      } catch (error) {
+        console.error('Error fetching recipes:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRecipes();
+  }, []);
 
   const handleSelectRecipe = (recipe: Recipe) => {
     setSelectedRecipe(recipe);

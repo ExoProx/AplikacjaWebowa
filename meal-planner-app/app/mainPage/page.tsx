@@ -1,21 +1,26 @@
-// MainPage/page.tsx
+// app/mainPage/page.tsx
+import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
+import MainPage from './MainPage'
 
+export default async function Page() {
+  const cookieStore = await cookies()
+  const token = cookieStore.get('token')?.value
 
-import React from 'react';
-import MainPage from './MainPage';
+  if (!token) {
+    redirect('/login')
+  }
 
-const MainPageU: React.FC = () => {
   return (
-    <div className="min-h-screen" 
-    style={{
-      backgroundImage: 'url("/jedzenie.jpg")',
-      backgroundSize: "cover",
-      backgroundRepeat: "no-repeat",
-    }}
+    <div
+      className="min-h-screen"
+      style={{
+        backgroundImage: 'url("/jedzenie.jpg")',
+        backgroundSize: "cover",
+        backgroundRepeat: "no-repeat",
+      }}
     >
       <MainPage />
     </div>
-  );
-};
-
-export default MainPageU;
+  )
+}

@@ -2,8 +2,28 @@
 import React from "react";
 import Link from "next/link";
 import SubmitButton from "./SubmitButton";
+import axios from "axios";
+import { useRouter } from "next/navigation";
 
 const Navbar: React.FC = () => {
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await axios.post(
+        "http://localhost:5000/api/logout",
+        {},
+        {
+          withCredentials: true, 
+        }
+      );
+    } catch (err) {
+      console.error("Logout error:", err);
+    } finally {
+      localStorage.removeItem("token");
+      router.push("/login");
+    }
+  };
   return (
     <nav className="w-full bg-emerald-300 text-gray-600 shadow-md">
       <div className="max-w-screen-xl py-2 mx-auto px-4 flex items-center justify-between">
@@ -41,11 +61,13 @@ const Navbar: React.FC = () => {
 
         {/* Prawa część - wyloguj się */}
         <div className="ml-auto transform transition-transform hover:scale-110 duration-300">
-          <Link href="/">
-            <SubmitButton type="button" className="bg-emerald-300 text-gray-600">
-              Wyloguj się
-            </SubmitButton>
-          </Link>
+          <button 
+            onClick={handleLogout} 
+            type="button" 
+            className="bg-emerald-300 text-gray-600"
+          >
+            Wyloguj się
+          </button>
         </div>
       </div>
     </nav>

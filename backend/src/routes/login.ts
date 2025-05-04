@@ -11,6 +11,7 @@ const generateToken = (user: { userId: string, email: string }) => {
     const options: jwt.SignOptions = {
       expiresIn: '1h', // Token expires in 1 hour
     };
+    return jwt.sign(user, JWT_SECRET, options);
 }
 router.post('/', async (req: Request, res: Response) => {
   const { email, password } = req.body;
@@ -37,14 +38,16 @@ router.post('/', async (req: Request, res: Response) => {
         console.log('password error')
       return res.status(401).json({ error: 'Invalid email or password' });
     }
-    const user = { userId: account.accountId, email: email };
+    const user = { userId: account.id_account, email: email };
     const token = generateToken(user);
     res.cookie('token', token, {
-        httpOnly: true, // Prevents access to cookie from JavaScript
-        secure: process.env.NODE_ENV === 'production', // Only set cookie over HTTPS in production
-        maxAge: 3600000, // Cookie expiry time (1 hour in this case)
-      });
-    res.status(200).json({ message: 'Login successful' });
+      httpOnly: true,
+      secure: false, // Set to true if you use HTTPS
+      sameSite: 'lax', // or 'none' if different domains
+      maxAge: 3600 * 1000, // 1h
+      path: '/',
+    });
+    res.json({ message: "Logged in" });
     console.log('login success')
   } catch (err) {
     console.error('Login error:', err);

@@ -1,27 +1,33 @@
 import express from 'express';
 import cors from 'cors';
-import bodyParser from 'body-parser';
-import userRoutes from './routes/user'; // Make sure you are correctly importing the userRoutes
+import userRoutes from './routes/user'; 
 import loginRoutes from './routes/login';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
+import mainPageRoute from './routes/MainPage';
+import logoutRoute from './routes/logout';
+import foodSearch from './routes/fatSecret/search'
 
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors());
-app.use(bodyParser.json());  // Make sure the body parser middleware is correctly in place
+app.use(cors({
+  origin: 'http://localhost:3000', 
+  credentials: true 
+}));
 
-// Register /api/users route with the userRoutes from user.ts
-app.use('/api/users', userRoutes);  // The '/api/users' endpoint will be handled by the userRoutes
+app.use(express.json());
+app.use(cookieParser());
+
+
+
+app.use('/api/users', userRoutes);  
 app.use('/api/login', loginRoutes);
-// Test route
-app.get('/test', (req, res) => {
-  res.send('Test route is working!');
-});
+app.use('/mainPage', mainPageRoute);
+app.use('/api/logout', logoutRoute);
+app.use('/foodSecret/search', foodSearch);
 
-// Start the server
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });

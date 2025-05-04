@@ -1,6 +1,8 @@
 "use client"
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from 'next/navigation';
+import axios from 'axios';
 import SubmitButton from 'components/SubmitButton';
 import Navbar from "components/Navbar";
 import Footer from "components/Footer";
@@ -13,10 +15,33 @@ const MainPage: React.FC = () => {
     "Kurczak w sosie curry",
   ]);
   const [quote, setQuote] = useState("Gotowanie to sztuka, którą każdy może opanować!");
+  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+
 
   useEffect(() => {
-    // Symulacja pobierania danych z backendu/API
-  }, []);
+    const checkAuth = async () => {
+      try {
+        await axios.get('http://localhost:3000/mainPage', {
+          withCredentials: true, 
+        });
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Not authenticated, redirecting to login');
+        router.push('/login'); 
+      }
+    };
+
+    checkAuth();
+  }, [router]);
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div>Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 font-sans">
