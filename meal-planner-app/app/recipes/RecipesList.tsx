@@ -4,144 +4,23 @@ import React, { useState, useEffect } from "react";
 import { HeartIcon, HomeIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import axios from "axios";
+import Navbar from "../components/Navbar";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { registerLocale } from "react-datepicker";
+import pl from "date-fns/locale/pl";
+import Footer from "../components/Footer";
 
-// Interfejs dla przepisu
+registerLocale("pl", pl);
+
 interface Recipe {
   id: number;
   name: string;
   description: string;
   ingredients?: string[];
-  instructions? : string;
+  instructions?: string;
   image?: string;
 }
-
-// Mockowe dane przepisów
-const mockRecipes: Recipe[] = [
-  {
-    id: 1,
-    name: "Spaghetti Bolognese",
-    description: "Klasyczne włoskie danie z makaronem i sosem mięsnym.",
-    ingredients: ["makaron spaghetti", "mięso mielone", "pomidory", "cebula", "czosnek"],
-    instructions: "1. Ugotuj makaron. 2. Podsmaż mięso z cebulą i czosnkiem. 3. Dodaj pomidory i gotuj sos. 4. Połącz makaron z sosem.",
-    image: "/spaghetti.jpg",
-  },
-  {
-    id: 2,
-    name: "Sałatka Cezar",
-    description: "Świeża sałatka z kurczakiem, grzankami i sosem Cezar.",
-    ingredients: ["sałata rzymska", "kurczak", "grzanki", "parmezan", "sos Cezar"],
-    instructions: "1. Ugrilluj kurczaka. 2. Pokrój sałatę. 3. Dodaj grzanki i parmezan. 4. Polej sosem.",
-    image: "/cezar.webp",
-  },
-  {
-    id: 3,
-    name: "Pancakes",
-    description: "Puszyste naleśniki na śniadanie.",
-    ingredients: ["mąka", "mleko", "jajka", "cukier", "proszek do pieczenia"],
-    instructions: "1. Wymieszaj składniki. 2. Smaż na patelni. 3. Podawaj z syropem klonowym.",
-    image: "/images/pancakes.jpg",
-  },
-  {
-    id: 4,
-    name: "Zupa Pomidorowa",
-    description: "Klasyczna zupa pomidorowa z makaronem.",
-    ingredients: ["pomidory", "makaron", "cebula", "czosnek", "bulion"],
-    instructions: "1. Podsmaż cebulę i czosnek. 2. Dodaj pomidory i bulion. 3. Gotuj, dodaj makaron.",
-    image: "/images/tomato-soup.jpg",
-  },
-  {
-    id: 5,
-    name: "Kurczak Curry",
-    description: "Aromatyczne danie z kurczakiem i curry.",
-    ingredients: ["kurczak", "mleko kokosowe", "curry", "ryż", "cebula"],
-    instructions: "1. Podsmaż kurczaka z cebulą. 2. Dodaj curry i mleko kokosowe. 3. Podawaj z ryżem.",
-    image: "/images/chicken-curry.jpg",
-  },
-  {
-    id: 6,
-    name: "Tiramisu",
-    description: "Włoski deser z mascarpone i kawą.",
-    ingredients: ["mascarpone", "kawa", "biszkopty", "kakao", "cukier"],
-    instructions: "1. Ubij mascarpone z cukrem. 2. Namocz biszkopty w kawie. 3. Ułóż warstwy i posyp kakao.",
-    image: "/images/tiramisu.jpg",
-  },
-  {
-    id: 7,
-    name: "Pizza Margherita",
-    description: "Klasyczna pizza z pomidorami i mozzarellą.",
-    ingredients: ["ciasto na pizzę", "pomidory", "mozzarella", "bazylia", "oliwa"],
-    instructions: "1. Rozwałkuj ciasto. 2. Dodaj pomidory, mozzarellę i bazylię. 3. Piecz w 220°C.",
-    image: "/images/pizza.jpg",
-  },
-  {
-    id: 8,
-    name: "Guacamole",
-    description: "Meksykańska pasta z awokado.",
-    ingredients: ["awokado", "pomidor", "cebula", "limonka", "kolendra"],
-    instructions: "1. Rozgnieć awokado. 2. Dodaj pokrojony pomidor, cebulę i sok z limonki. 3. Wymieszaj.",
-    image: "/images/guacamole.jpg",
-  },
-  {
-    id: 9,
-    name: "Lasagne",
-    description: "Włoska zapiekanka z mięsem i beszamelem.",
-    ingredients: ["makaron lasagne", "mięso mielone", "pomidory", "beszamel", "parmezan"],
-    instructions: "1. Przygotuj sos mięsny. 2. Ułóż warstwy makaronu, sosu i beszamelu. 3. Piecz.",
-    image: "/images/lasagne.jpg",
-  },
-  {
-    id: 10,
-    name: "Sushi",
-    description: "Japońskie rolki z ryżem i łososiem.",
-    ingredients: ["ryż do sushi", "łosoś", "nori", "awokado", "soja"],
-    instructions: "1. Ugotuj ryż. 2. Zawiń składniki w nori. 3. Pokrój na kawałki.",
-    image: "/images/sushi.jpg",
-  },
-  {
-    id: 11,
-    name: "Tacos",
-    description: "Meksykańskie tacos z wołowiną.",
-    ingredients: ["tortille", "wołowina", "salsa", "sałata", "ser"],
-    instructions: "1. Podsmaż wołowinę. 2. Przygotuj salsę. 3. Napełnij tortille.",
-    image: "/images/tacos.jpg",
-  },
-  {
-    id: 12,
-    name: "Brownie",
-    description: "Czekoladowe ciasto brownie.",
-    ingredients: ["czekolada", "masło", "cukier", "jajka", "mąka"],
-    instructions: "1. Rozpuść czekoladę z masłem. 2. Wymieszaj z resztą składników. 3. Piecz.",
-    image: "/images/brownie.jpg",
-  },
-  {
-    id: 13,
-    name: "Pad Thai",
-    description: "Tajskie danie z makaronem ryżowym.",
-    ingredients: ["makaron ryżowy", "krewetki", "orzechy", "limonka", "sos sojowy"],
-    instructions: "1. Podsmaż krewetki. 2. Dodaj makaron i sos. 3. Posyp orzechami.",
-    image: "/images/pad-thai.jpg",
-  },
-  {
-    id: 14,
-    name: "Hummus",
-    description: "Pasta z ciecierzycy.",
-    ingredients: ["ciecierzyca", "tahini", "cytryna", "czosnek", "oliwa"],
-    instructions: "1. Zmiksuj ciecierzycę z tahini. 2. Dodaj cytrynę i czosnek. 3. Polej oliwą.",
-    image: "/images/hummus.jpg",
-  },
-];
-
-// Dni tygodnia i typy posiłków
-const daysOfWeek = [
-  "Poniedziałek",
-  "Wtorek",
-  "Środa",
-  "Czwartek",
-  "Piątek",
-  "Sobota",
-  "Niedziela",
-] as const;
-type DayOfWeek = typeof daysOfWeek[number];
 
 const mealTypes = [
   { key: "breakfast", label: "Śniadanie" },
@@ -152,30 +31,20 @@ const mealTypes = [
 ] as const;
 type MealType = typeof mealTypes[number]["key"];
 
-// Struktura jadłospisu
 type MealPlan = {
   [key in MealType]: Recipe | null;
 };
 
-type MealPlans = {
-  [key in DayOfWeek]: MealPlan;
+const formatDate = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 };
 
-// Inicjalizacja pustych jadłospisów
-const initializeMealPlans = (): MealPlans => {
-  return daysOfWeek.reduce((acc, day) => {
-    acc[day] = mealTypes.reduce((mealAcc, meal) => {
-      mealAcc[meal.key] = null;
-      return mealAcc;
-    }, {} as MealPlan);
-    return acc;
-  }, {} as MealPlans);
-};
-
-// Komponent Sidebar
 const Sidebar: React.FC = () => {
   return (
-    <div className="w-64 h-148 bg-gray-800 shadow-md p-4">
+    <div className="w-64 h-147 bg-gray-800 shadow-md p-4">
       <h2 className="text-lg font-semibold mb-4 mt-10 text-white">Filtry</h2>
       <input
         type="text"
@@ -204,7 +73,6 @@ const Sidebar: React.FC = () => {
   );
 };
 
-// Komponent RecipeTile
 interface RecipeTileProps {
   recipe: Recipe;
   onSelect: (recipe: Recipe) => void;
@@ -224,13 +92,13 @@ const RecipeTile: React.FC<RecipeTileProps> = ({ recipe, onSelect }) => {
 
   return (
     <div
-      className="bg-gray-700 shadow-md rounded-lg overflow-hidden transform transition-transform hover:scale-105 duration-300 cursor-pointer"
+      className="bg-gray-700 shadow-md rounded-lg  overflow-hidden transform transition-transform hover:scale-105 duration-300 cursor-pointer"
       onClick={() => onSelect(recipe)}
     >
       <img
         src={recipe.image || "/placeholder.jpg"}
         alt={recipe.name}
-        className="w-full h-24.5 object-cover"
+        className="w-full h-20.5 object-cover"
       />
       <div className="p-4 flex justify-between items-center text-white">
         <h3 className="text-lg font-semibold">{recipe.name}</h3>
@@ -242,26 +110,43 @@ const RecipeTile: React.FC<RecipeTileProps> = ({ recipe, onSelect }) => {
   );
 };
 
-// Komponent RecipeModal
 interface RecipeModalProps {
   recipe: Recipe;
   onClose: () => void;
 }
 
 const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose }) => {
-  const [selectedDay, setSelectedDay] = useState<DayOfWeek>(daysOfWeek[0]);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedMeal, setSelectedMeal] = useState<MealType>(mealTypes[0].key);
   const [message, setMessage] = useState<string | null>(null);
 
   const handleAddToMealPlan = () => {
-    const stored = localStorage.getItem("mealPlans");
-    let mealPlans: MealPlans = stored ? JSON.parse(stored) : initializeMealPlans();
+    if (!selectedDate) {
+      setMessage("Proszę wybrać datę.");
+      return;
+    }
 
-    mealPlans[selectedDay][selectedMeal] = recipe;
+    const dateKey = formatDate(selectedDate);
+
+    const stored = localStorage.getItem("mealPlans");
+    let mealPlans: { [date: string]: MealPlan } = stored ? JSON.parse(stored) : {};
+
+    if (!mealPlans[dateKey]) {
+      mealPlans[dateKey] = mealTypes.reduce((acc, meal) => {
+        acc[meal.key] = null;
+        return acc;
+      }, {} as MealPlan);
+    }
+
+    mealPlans[dateKey][selectedMeal] = recipe;
 
     localStorage.setItem("mealPlans", JSON.stringify(mealPlans));
-    onClose();
-    window.location.href = "/menu";
+    setMessage("Dodano przepis do jadłospisu!");
+    setTimeout(() => {
+      setMessage(null);
+      onClose();
+      window.location.href = "/menu";
+    }, 2000);
   };
 
   const handleAddToFavorites = (recipe: Recipe) => {
@@ -275,40 +160,48 @@ const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose }) => {
     }
   };
 
+  const maxDate = new Date();
+  maxDate.setFullYear(maxDate.getFullYear() + 1);
+
   return (
     <div
       className="fixed inset-0 flex items-center justify-center z-50"
       style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}
     >
-      <div className="bg-gray-800 p-6 rounded-lg max-w-lg w-full shadow-xl text-white">
-        <h2 className="text-2xl font-bold mb-4">{recipe.name}</h2>
-        <p className="mb-4">{recipe.description}</p>
-        <h3 className="text-xl font-semibold mb-2">Składniki:</h3>
-        <ul className="list-disc list-inside mb-4">
-          {recipe.ingredients.map((ingredient, index) => (
-            <li key={index}>{ingredient}</li>
+      <div className="bg-gray-800 p-4 rounded-lg max-w-250 w-full shadow-xl text-white overflow-y-auto">
+        <h2 className="text-2xl font-bold mb-2">{recipe.name}</h2>
+        <p className="mb-2 text-sm">{recipe.description}</p>
+        <h3 className="text-lg font-semibold mb-1">Składniki:</h3>
+        <div className="grid grid-cols-2 gap-x-4 mb-2 text-sm">
+          {recipe.ingredients?.map((ingredient, index) => (
+            <div key={index} className="flex">
+              <span className="mr-2">•</span>
+              <span>{ingredient}</span>
+            </div>
           ))}
-        </ul>
-        <h3 className="text-xl font-semibold mb-2">Instrukcje:</h3>
-        <p className="mb-4">{recipe.instructions}</p>
-        <div className="mb-4">
-          <label className="block mb-2">Wybierz dzień:</label>
-          <select
-            value={selectedDay}
-            onChange={(e) => setSelectedDay(e.target.value as DayOfWeek)}
-            className="w-full p-2 border rounded bg-gray-700 text-white mb-2"
-          >
-            {daysOfWeek.map((day) => (
-              <option key={day} value={day}>
-                {day}
-              </option>
-            ))}
-          </select>
-          <label className="block mb-2">Wybierz posiłek:</label>
+        </div>
+        <h3 className="text-lg font-semibold mb-1">Instrukcje:</h3>
+        <p className="mb-2 text-sm">{recipe.instructions}</p>
+        <div className="mb-2">
+          <label className="block mb-1 text-sm">Wybierz datę:</label>
+          <DatePicker
+            selected={selectedDate}
+            onChange={(date: Date | null) => setSelectedDate(date)}
+            dateFormat="dd.MM.yyyy"
+            className="w-full p-1 border rounded bg-gray-700 text-white mb-1 text-sm"
+            placeholderText="Wybierz datę"
+            minDate={new Date()}
+            maxDate={maxDate}
+            locale="pl"
+          />
+          {selectedDate && (
+            <p className="text-sm mb-1">Wybrana data: {selectedDate.toLocaleDateString("pl-PL")}</p>
+          )}
+          <label className="block mb-1 text-sm">Wybierz posiłek:</label>
           <select
             value={selectedMeal}
             onChange={(e) => setSelectedMeal(e.target.value as MealType)}
-            className="w-full p-2 border rounded bg-gray-700 text-white mb-2"
+            className="w-full p-1 border rounded bg-gray-700 text-white mb-1 text-sm"
           >
             {mealTypes.map((meal) => (
               <option key={meal.key} value={meal.key}>
@@ -317,22 +210,22 @@ const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose }) => {
             ))}
           </select>
         </div>
-        <div className="flex justify-between mb-4">
+        <div className="flex justify-between mb-2">
           <button
             onClick={handleAddToMealPlan}
-            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+            className="bg-green-500 text-white px-2 py-1 rounded text-sm hover:bg-green-600"
           >
             Dodaj do jadłospisu
           </button>
           <button
             onClick={() => handleAddToFavorites(recipe)}
-            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+            className="bg-red-500 text-white px-2 py-1 rounded text-sm hover:bg-red-600"
           >
             Dodaj do ulubionych
           </button>
         </div>
-        {message && <p className="text-green-400 mb-4">{message}</p>}
-        <button className="text-blue-500 hover:underline" onClick={onClose}>
+        {message && <p className="text-green-400 mb-2 text-sm">{message}</p>}
+        <button className="text-blue-500 hover:underline text-sm" onClick={onClose}>
           Zamknij
         </button>
       </div>
@@ -340,7 +233,6 @@ const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose }) => {
   );
 };
 
-// Komponent Pagination
 interface PaginationProps {
   currentPage: number;
   totalPages: number;
@@ -377,7 +269,7 @@ const Pagination: React.FC<PaginationProps> = ({
         )
       )}
       <button
-        className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50 text-white"
+        className="px-3  bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50 text-white"
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
       >
@@ -387,7 +279,6 @@ const Pagination: React.FC<PaginationProps> = ({
   );
 };
 
-// Główny komponent RecipesList
 const RecipesList: React.FC = () => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
@@ -425,27 +316,11 @@ const RecipesList: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col w-full bg-gray-900 font-sans text-white">
-      <div className="bg-gray-800 py-4 shadow-md">
-        <div className="max-w-7xl mx-auto flex justify-between items-center px-6">
-          <Link href="/mainPage" className="text-white hover:text-gray-300">
-            <HomeIcon className="h-6 w-6" />
-          </Link>
-          <Link href="/recipes" className="text-white hover:text-gray-300">
-            Przepisy
-          </Link>
-          <Link href="/favorites" className="text-white hover:text-gray-300">
-            Ulubione przepisy
-          </Link>
-          <Link href="/menu" className="text-white hover:text-gray-300">
-            Jadłospisy
-          </Link>
-          <button className="text-white hover:text-gray-300">Wyloguj się</button>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gray-900 text-white font-sans">
+      <Navbar />
       <div className="flex flex-1">
         <Sidebar />
-        <div className="flex-1 p-4">
+        <div className="flex-1 p-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             {currentRecipes.map((recipe) => (
               <RecipeTile
@@ -468,8 +343,8 @@ const RecipesList: React.FC = () => {
           onClose={() => setSelectedRecipe(null)}
         />
       )}
-      <div className="bg-gray-800 py-4 text-center">
-        <p className="text-white">@MNIAMPLAN</p>
+      <div className="bg-gray-800 text-center">
+        <Footer/>
       </div>
     </div>
   );

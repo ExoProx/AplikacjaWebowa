@@ -5,11 +5,11 @@ import MainPage from './MainPage'
 
 export default async function Page() {
   const cookieStore = await cookies()
-  const token = cookieStore.get('token')?.value
+  //const token = cookieStore.get('token')?.value
 
-  if (!token) {
-    redirect('/login')
-  }
+  //if (!token) {
+   // redirect('/login')
+ // }
 
   return (
     <div

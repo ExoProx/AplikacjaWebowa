@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { HeartIcon, HomeIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
+import Footer from "../components/Footer";
 
 // Interfejs dla przepisu
 interface Recipe {
@@ -17,7 +18,7 @@ interface Recipe {
 // Komponent Sidebar
 const Sidebar: React.FC = () => {
   return (
-    <div className="w-64 h-148 bg-gray-800 shadow-md  p-4">
+    <div className="w-64 h-147 bg-gray-800 shadow-md  p-4">
       <h2 className="text-lg font-semibold mb-4 mt-10 text-white">Filtry</h2>
       <input
         type="text"
@@ -77,15 +78,16 @@ const RecipeTile: React.FC<RecipeTileProps> = ({ recipe, onSelect }) => {
 interface RecipeModalProps {
   recipe: Recipe;
   onClose: () => void;
+  onRemove: (recipe: Recipe) => void;
 }
 
-const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose }) => {
+const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose, onRemove }) => {
   return (
     <div
       className="fixed inset-0 flex items-center justify-center z-50"
       style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}
     >
-      <div className="bg-gray-800 p-6 rounded-lg max-w-lg w-full shadow-xl text-white">
+      <div className="bg-gray-800 p-6 rounded-lg max-w-250 w-full shadow-xl text-white">
         <h2 className="text-2xl font-bold mb-4">{recipe.name}</h2>
         <p className="mb-4">{recipe.description}</p>
         <h3 className="text-xl font-semibold mb-2">Składniki:</h3>
@@ -96,9 +98,17 @@ const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose }) => {
         </ul>
         <h3 className="text-xl font-semibold mb-2">Instrukcje:</h3>
         <p className="mb-4">{recipe.instructions}</p>
-        <button className="text-blue-500 hover:underline" onClick={onClose}>
-          Zamknij
-        </button>
+        <div className="flex justify-between mb-4">
+          <button
+            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+            onClick={() => onRemove(recipe)}
+          >
+            Usuń z ulubionych
+          </button>
+          <button className="text-blue-500 hover:underline" onClick={onClose}>
+            Zamknij
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -118,6 +128,13 @@ const FavoriteRecipes: React.FC = () => {
 
   const handleSelectRecipe = (recipe: Recipe) => {
     setSelectedRecipe(recipe);
+  };
+
+  const handleRemoveFromFavorites = (recipeToRemove: Recipe) => {
+    const updatedFavorites = favoriteRecipes.filter((recipe) => recipe.id !== recipeToRemove.id);
+    setFavoriteRecipes(updatedFavorites);
+    localStorage.setItem("favoriteRecipes", JSON.stringify(updatedFavorites));
+    setSelectedRecipe(null); // Zamknij modal po usunięciu
   };
 
   return (
@@ -161,10 +178,11 @@ const FavoriteRecipes: React.FC = () => {
         <RecipeModal
           recipe={selectedRecipe}
           onClose={() => setSelectedRecipe(null)}
+          onRemove={handleRemoveFromFavorites}
         />
       )}
-      <div className="bg-gray-800 py-4 text-center">
-        <p className="text-white">@MNIAMPLAN</p>
+      <div className="bg-gray-800 text-center">
+        <Footer/>
       </div>
     </div>
   );

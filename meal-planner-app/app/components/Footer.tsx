@@ -4,8 +4,8 @@ import React from "react";
 
 const Footer: React.FC = () => {
     return (
-      <footer className="w-full text-center py-4 bg-emerald-300">
-        <p className="text-green-600">&copy; 2025 mniamPlan</p>
+      <footer className="bg-gray-800 py-4 shadow-md">
+        <p className="text-white text-center">&copy; 2025 mniamPlan</p>
       </footer>
   );
 };
