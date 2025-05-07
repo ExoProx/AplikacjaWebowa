@@ -18,7 +18,7 @@ interface Recipe {
 // Komponent Sidebar
 const Sidebar: React.FC = () => {
   return (
-    <div className="w-64 h-147 bg-gray-800 shadow-md  p-4">
+    <div className="w-64 h-auto bg-gray-800 shadow-md p-4">
       <h2 className="text-lg font-semibold mb-4 mt-10 text-white">Filtry</h2>
       <input
         type="text"
@@ -138,7 +138,7 @@ const FavoriteRecipes: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col w-full bg-gray-900 font-sans text-white">
+    <div className="min-h-screen flex flex-col bg-gray-900 font-sans text-white">
       <div className="bg-gray-800 py-4 shadow-md">
         <div className="max-w-7xl mx-auto flex justify-between items-center px-6">
           <Link href="/mainPage" className="text-white hover:text-gray-300">
@@ -158,7 +158,7 @@ const FavoriteRecipes: React.FC = () => {
       </div>
       <div className="flex flex-1">
         <Sidebar />
-        <div className="flex-1 p-4">
+        <div className="flex-1 p-4 overflow-auto">
           {favoriteRecipes.length === 0 ? (
             <p className="text-center text-gray-400">Brak ulubionych przepisów</p>
           ) : (
@@ -181,9 +181,7 @@ const FavoriteRecipes: React.FC = () => {
           onRemove={handleRemoveFromFavorites}
         />
       )}
-      <div className="bg-gray-800 text-center">
-        <Footer/>
-      </div>
+      <Footer />
     </div>
   );
 };

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { HeartIcon } from "@heroicons/react/24/outline";
+import { HeartIcon, HomeIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import axios from "axios";
 import Navbar from "../components/Navbar";
@@ -18,8 +18,8 @@ interface Recipe {
 
 const Sidebar: React.FC = () => {
   return (
-    <div className="w-64 h-auto bg-gray-800 shadow-md p-4">
-      <h2 className="text-lg font-semibold mb-4 mt-10 text-white">Filtry</h2>
+    <div className="w-64 min-h-screen-40 bg-gray-800 shadow-md p-4">
+      <h2 className="text-lg font-semibold mb-4  text-white">Filtry</h2>
       <input
         type="text"
         placeholder="Szukaj przepisów"
@@ -139,6 +139,52 @@ const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose }) => {
   );
 };
 
+interface PaginationProps {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}
+
+const Pagination: React.FC<PaginationProps> = ({
+  currentPage,
+  totalPages,
+  onPageChange,
+}) => {
+  return (
+    <div className="flex justify-center mt-2 mb-2">
+      <button
+        className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50 text-white"
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+      >
+        {"<"}
+      </button>
+      {Array.from({ length: totalPages }, (_, index) => index + 1).map(
+        (page) => (
+          <button
+            key={page}
+            className={`px-3 py-1 rounded mx-1 ${
+              currentPage === page
+                ? "bg-blue-500 text-white"
+                : "bg-gray-700 hover:bg-gray-600 text-white"
+            }`}
+            onClick={() => onPageChange(page)}
+          >
+            {page}
+          </button>
+        )
+      )}
+      <button
+        className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50 text-white"
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+      >
+        {">"}
+      </button>
+    </div>
+  );
+};
+
 const RecipesList: React.FC = () => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
@@ -176,51 +222,29 @@ const RecipesList: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-900 text-white font-sans">
+    <div className="flex flex-col min-h-screen bg-gray-900 text-white font-sans">
       <Navbar />
-      <div className="flex flex-1">
-        <Sidebar/>
-        <div className="flex-1 p-2 overflow-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            {currentRecipes.map((recipe) => (
-              <RecipeTile
-                key={recipe.id}
-                recipe={recipe}
-                onSelect={handleSelectRecipe}
-              />
-            ))}
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar />
+        <div className="flex-1 flex flex-col">
+          <div className="flex-1 p-2 overflow-y-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              {currentRecipes.map((recipe) => (
+                <RecipeTile
+                  key={recipe.id}
+                  recipe={recipe}
+                  onSelect={handleSelectRecipe}
+                />
+              ))}
+            </div>
           </div>
-          <div className="flex justify-center mt-4">
-            <button
-              className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50 text-white"
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-            >
-              {"<"}
-            </button>
-            {Array.from({ length: totalPages }, (_, index) => index + 1).map(
-              (page) => (
-                <button
-                  key={page}
-                  className={`px-3 py-1 rounded mx-1 ${
-                    currentPage === page
-                      ? "bg-blue-500 text-white"
-                      : "bg-gray-700 hover:bg-gray-600 text-white"
-                  }`}
-                  onClick={() => handlePageChange(page)}
-                >
-                  {page}
-                </button>
-              )
-            )}
-            <button
-              className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50 text-white"
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-            >
-              {">"}
-            </button>
-          </div>
+          
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+            />
+          
         </div>
       </div>
       {selectedRecipe && (
@@ -229,7 +253,7 @@ const RecipesList: React.FC = () => {
           onClose={() => setSelectedRecipe(null)}
         />
       )}
-      <Footer />
+      <Footer className="w-full bg-gray-800 p-4 text-white" />
     </div>
   );
 };
