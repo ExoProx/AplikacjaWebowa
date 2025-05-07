@@ -72,9 +72,9 @@ const RecipeTile: React.FC<RecipeTileProps> = ({ recipe, onSelect }) => {
       <img
         src={recipe.image || "/placeholder.jpg"}
         alt={recipe.name}
-        className="w-full h-25 object-cover"
+        className="w-full h-30 object-cover"
       />
-      <div className="p-4 flex justify-between items-center text-white">
+      <div className="p-2 flex justify-between items-center text-white">
         <h3 className="text-lg font-semibold truncate">{recipe.name}</h3>
         <button className={isFavorite ? "text-red-500" : "text-gray-500 hover:text-red-500"}>
           <HeartIcon className={`w-6 h-6 ${isFavorite ? "fill-current" : ""}`} />
