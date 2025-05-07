@@ -5,13 +5,8 @@ import { HeartIcon, HomeIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import axios from "axios";
 import Navbar from "../components/Navbar";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
-import { registerLocale } from "react-datepicker";
-import pl from "date-fns/locale/pl";
 import Footer from "../components/Footer";
 
-registerLocale("pl", pl);
 
 interface Recipe {
   id: number;
@@ -22,29 +17,9 @@ interface Recipe {
   image?: string;
 }
 
-const mealTypes = [
-  { key: "breakfast", label: "Śniadanie" },
-  { key: "secondBreakfast", label: "II Śniadanie" },
-  { key: "lunch", label: "Obiad" },
-  { key: "afternoonSnack", label: "Podwieczorek" },
-  { key: "dinner", label: "Kolacja" },
-] as const;
-type MealType = typeof mealTypes[number]["key"];
-
-type MealPlan = {
-  [key in MealType]: Recipe | null;
-};
-
-const formatDate = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
-
 const Sidebar: React.FC = () => {
   return (
-    <div className="w-64 h-147 bg-gray-800 shadow-md p-4">
+    <div className="w-64 min-h-screen bg-gray-800 shadow-md p-4">
       <h2 className="text-lg font-semibold mb-4 mt-10 text-white">Filtry</h2>
       <input
         type="text"
@@ -92,7 +67,7 @@ const RecipeTile: React.FC<RecipeTileProps> = ({ recipe, onSelect }) => {
 
   return (
     <div
-      className="bg-gray-700 shadow-md rounded-lg  overflow-hidden transform transition-transform hover:scale-105 duration-300 cursor-pointer"
+      className="bg-gray-700 shadow-md rounded-lg overflow-hidden transform transition-transform hover:scale-105 duration-300 cursor-pointer"
       onClick={() => onSelect(recipe)}
     >
       <img
@@ -101,7 +76,7 @@ const RecipeTile: React.FC<RecipeTileProps> = ({ recipe, onSelect }) => {
         className="w-full h-20.5 object-cover"
       />
       <div className="p-4 flex justify-between items-center text-white">
-        <h3 className="text-lg font-semibold">{recipe.name}</h3>
+        <h3 className="text-lg font-semibold truncate">{recipe.name}</h3>
         <button className={isFavorite ? "text-red-500" : "text-gray-500 hover:text-red-500"}>
           <HeartIcon className={`w-6 h-6 ${isFavorite ? "fill-current" : ""}`} />
         </button>
@@ -116,38 +91,7 @@ interface RecipeModalProps {
 }
 
 const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose }) => {
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [selectedMeal, setSelectedMeal] = useState<MealType>(mealTypes[0].key);
   const [message, setMessage] = useState<string | null>(null);
-
-  const handleAddToMealPlan = () => {
-    if (!selectedDate) {
-      setMessage("Proszę wybrać datę.");
-      return;
-    }
-
-    const dateKey = formatDate(selectedDate);
-
-    const stored = localStorage.getItem("mealPlans");
-    let mealPlans: { [date: string]: MealPlan } = stored ? JSON.parse(stored) : {};
-
-    if (!mealPlans[dateKey]) {
-      mealPlans[dateKey] = mealTypes.reduce((acc, meal) => {
-        acc[meal.key] = null;
-        return acc;
-      }, {} as MealPlan);
-    }
-
-    mealPlans[dateKey][selectedMeal] = recipe;
-
-    localStorage.setItem("mealPlans", JSON.stringify(mealPlans));
-    setMessage("Dodano przepis do jadłospisu!");
-    setTimeout(() => {
-      setMessage(null);
-      onClose();
-      window.location.href = "/menu";
-    }, 2000);
-  };
 
   const handleAddToFavorites = (recipe: Recipe) => {
     const storedFavorites = localStorage.getItem("favoriteRecipes");
@@ -159,9 +103,6 @@ const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose }) => {
       setTimeout(() => setMessage(null), 2000);
     }
   };
-
-  const maxDate = new Date();
-  maxDate.setFullYear(maxDate.getFullYear() + 1);
 
   return (
     <div
@@ -182,41 +123,7 @@ const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose }) => {
         </div>
         <h3 className="text-lg font-semibold mb-1">Instrukcje:</h3>
         <p className="mb-2 text-sm">{recipe.instructions}</p>
-        <div className="mb-2">
-          <label className="block mb-1 text-sm">Wybierz datę:</label>
-          <DatePicker
-            selected={selectedDate}
-            onChange={(date: Date | null) => setSelectedDate(date)}
-            dateFormat="dd.MM.yyyy"
-            className="w-full p-1 border rounded bg-gray-700 text-white mb-1 text-sm"
-            placeholderText="Wybierz datę"
-            minDate={new Date()}
-            maxDate={maxDate}
-            locale="pl"
-          />
-          {selectedDate && (
-            <p className="text-sm mb-1">Wybrana data: {selectedDate.toLocaleDateString("pl-PL")}</p>
-          )}
-          <label className="block mb-1 text-sm">Wybierz posiłek:</label>
-          <select
-            value={selectedMeal}
-            onChange={(e) => setSelectedMeal(e.target.value as MealType)}
-            className="w-full p-1 border rounded bg-gray-700 text-white mb-1 text-sm"
-          >
-            {mealTypes.map((meal) => (
-              <option key={meal.key} value={meal.key}>
-                {meal.label}
-              </option>
-            ))}
-          </select>
-        </div>
         <div className="flex justify-between mb-2">
-          <button
-            onClick={handleAddToMealPlan}
-            className="bg-green-500 text-white px-2 py-1 rounded text-sm hover:bg-green-600"
-          >
-            Dodaj do jadłospisu
-          </button>
           <button
             onClick={() => handleAddToFavorites(recipe)}
             className="bg-red-500 text-white px-2 py-1 rounded text-sm hover:bg-red-600"
@@ -269,7 +176,7 @@ const Pagination: React.FC<PaginationProps> = ({
         )
       )}
       <button
-        className="px-3  bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50 text-white"
+        className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50 text-white"
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
       >
@@ -316,7 +223,7 @@ const RecipesList: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white font-sans">
+    <div className="flex flex-col min-h-screen bg-gray-900 text-white font-sans">
       <Navbar />
       <div className="flex flex-1">
         <Sidebar />
@@ -343,9 +250,7 @@ const RecipesList: React.FC = () => {
           onClose={() => setSelectedRecipe(null)}
         />
       )}
-      <div className="bg-gray-800 text-center">
-        <Footer/>
-      </div>
+      <Footer />
     </div>
   );
 };
