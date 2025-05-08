@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { HeartIcon, HomeIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
+import Navbar from "../components/Navbar"; 
 import Footer from "../components/Footer";
 
 // Interfejs dla przepisu
@@ -18,7 +19,7 @@ interface Recipe {
 // Komponent Sidebar
 const Sidebar: React.FC = () => {
   return (
-    <div className="w-64 h-auto bg-gray-800 shadow-md p-4">
+    <div className="w-64 bg-gray-800 shadow-md p-4">
       <h2 className="text-lg font-semibold mb-4 mt-10 text-white">Filtry</h2>
       <input
         type="text"
@@ -54,20 +55,33 @@ interface RecipeTileProps {
 }
 
 const RecipeTile: React.FC<RecipeTileProps> = ({ recipe, onSelect }) => {
+  const [favoriteRecipes, setFavoriteRecipes] = useState<Recipe[]>([]);
+
+  useEffect(() => {
+    const storedFavorites = localStorage.getItem("favoriteRecipes");
+    if (storedFavorites) {
+      setFavoriteRecipes(JSON.parse(storedFavorites));
+    }
+  }, []);
+
+  const isFavorite = favoriteRecipes.some((fav) => fav.id === recipe.id);
+
   return (
     <div
-      className="bg-gray-700 shadow-md rounded-lg overflow-hidden transform transition-transform hover:scale-105 duration-300 cursor-pointer"
+      className="flex flex-col bg-gray-700 shadow-md rounded-lg overflow-hidden transform transition-transform hover:scale-105 duration-300 cursor-pointer h-full"
       onClick={() => onSelect(recipe)}
     >
-      <img
-        src={recipe.image || "/placeholder.jpg"}
-        alt={recipe.name}
-        className="w-full h-24.5 object-cover"
-      />
-      <div className="p-4 flex justify-between items-center text-white">
-        <h3 className="text-lg font-semibold">{recipe.name}</h3>
-        <button className="text-red-500">
-          <HeartIcon className="w-6 h-6 fill-current" />
+      <div className="flex-grow overflow-hidden">
+        <img
+          src={recipe.image || "/placeholder.jpg"}
+          alt={recipe.name}
+          className="w-full h-full object-cover"
+        />
+      </div>
+      <div className="flex-shrink-0 p-2 flex justify-between items-center text-white min-h-[48px]">
+        <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold truncate">{recipe.name}</h3>
+        <button className={isFavorite ? "text-red-500" : "text-gray-500 hover:text-red-500"}>
+          <HeartIcon className={`w-6 h-6 ${isFavorite ? "fill-current" : ""}`} />
         </button>
       </div>
     </div>
@@ -87,27 +101,31 @@ const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose, onRemove }) 
       className="fixed inset-0 flex items-center justify-center z-50"
       style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}
     >
-      <div className="bg-gray-800 p-6 rounded-lg max-w-250 w-full shadow-xl text-white">
-        <h2 className="text-2xl font-bold mb-4">{recipe.name}</h2>
-        <p className="mb-4">{recipe.description}</p>
-        <h3 className="text-xl font-semibold mb-2">Składniki:</h3>
-        <ul className="list-disc list-inside mb-4">
-          {recipe.ingredients.map((ingredient, index) => (
-            <li key={index}>{ingredient}</li>
+      <div className="bg-gray-800 p-4 rounded-lg max-w-250 w-full shadow-xl text-white overflow-y-auto">
+        <h2 className="text-2xl font-bold mb-2">{recipe.name}</h2>
+        <p className="mb-2 text-sm">{recipe.description}</p>
+        <h3 className="text-lg font-semibold mb-1">Składniki:</h3>
+        <div className="grid grid-cols-2 gap-x-4 mb-2 text-sm">
+          {recipe.ingredients?.map((ingredient, index) => (
+            <div key={index} className="flex">
+              <span className="mr-2">•</span>
+              <span>{ingredient}</span>
+            </div>
           ))}
-        </ul>
-        <h3 className="text-xl font-semibold mb-2">Instrukcje:</h3>
-        <p className="mb-4">{recipe.instructions}</p>
-        <div className="flex justify-between mb-4">
+        </div>
+        <h3 className="text-lg font-semibold mb-1">Instrukcje:</h3>
+        <p className="mb-2 text-sm">{recipe.instructions}</p>
+        <div className="flex justify-between mb-2">
+          <button className="text-blue-500 hover:underline text-sm" onClick={onClose}>
+            Zamknij
+          </button>
           <button
             className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
             onClick={() => onRemove(recipe)}
           >
             Usuń z ulubionych
           </button>
-          <button className="text-blue-500 hover:underline" onClick={onClose}>
-            Zamknij
-          </button>
+          
         </div>
       </div>
     </div>
@@ -138,31 +156,15 @@ const FavoriteRecipes: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-900 font-sans text-white">
-      <div className="bg-gray-800 py-4 shadow-md">
-        <div className="max-w-7xl mx-auto flex justify-between items-center px-6">
-          <Link href="/mainPage" className="text-white hover:text-gray-300">
-            <HomeIcon className="h-6 w-6" />
-          </Link>
-          <Link href="/recipes" className="text-white hover:text-gray-300">
-            Przepisy
-          </Link>
-          <Link href="/favorites" className="text-white hover:text-gray-300">
-            Ulubione przepisy
-          </Link>
-          <Link href="/menu" className="text-white hover:text-gray-300">
-            Jadłospisy
-          </Link>
-          <button className="text-white hover:text-gray-300">Wyloguj się</button>
-        </div>
-      </div>
-      <div className="flex flex-1">
+    <div className="flex flex-col h-screen bg-gray-900 text-white font-sans">
+      <Navbar />
+      <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <div className="flex-1 p-4 overflow-auto">
+        <div className="flex-1 p-2 overflow-hidden">
           {favoriteRecipes.length === 0 ? (
             <p className="text-center text-gray-400">Brak ulubionych przepisów</p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 h-full">
               {favoriteRecipes.map((recipe) => (
                 <RecipeTile
                   key={recipe.id}
@@ -181,7 +183,7 @@ const FavoriteRecipes: React.FC = () => {
           onRemove={handleRemoveFromFavorites}
         />
       )}
-      <Footer />
+      <Footer className="w-full bg-gray-800 p-4 text-white" />
     </div>
   );
 };

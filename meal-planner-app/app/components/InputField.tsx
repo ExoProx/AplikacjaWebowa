@@ -1,4 +1,3 @@
-// components/InputField.tsx
 import React from "react";
 import {
   User,
@@ -12,13 +11,14 @@ import {
 interface InputFieldProps {
   label: string;
   type: string;
-  field: string; //name == id
+  field: string; // name == id
   value: string;
   placeholder: string;
   icon?: React.ReactNode;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   maxLength?: number;
   required?: boolean;
+  className?: string; // Dodano className jako opcjonalny prop
 }
 
 // Mapa domyślnych ikon dla konkretnych pól:
@@ -41,6 +41,7 @@ const InputField: React.FC<InputFieldProps> = ({
   onChange,
   maxLength = 30,
   required = true,
+  className = "", // Domyślna wartość dla className
 }) => {
   const usedIcon = icon || defaultIcons[field];
   return (
@@ -57,7 +58,7 @@ const InputField: React.FC<InputFieldProps> = ({
           value={value}
           onChange={onChange}
           placeholder={placeholder}
-          className="w-full p-2 bg-transparent placeholder-gray-500 focus:outline-none transition duration-300 ease-in-out"
+          className={`w-full p-2 bg-transparent placeholder-gray-500 focus:outline-none transition duration-300 ease-in-out ${className}`} // Dodano className do input
           maxLength={maxLength}
           required={required}
         />

@@ -124,17 +124,18 @@ const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose }) => {
         <h3 className="text-lg font-semibold mb-1">Instrukcje:</h3>
         <p className="mb-2 text-sm">{recipe.instructions}</p>
         <div className="flex justify-between mb-2">
+          <button className="text-blue-500 hover:underline text-sm" onClick={onClose}>
+            Zamknij
+          </button>
+          {message && <p className="text-green-400 mb-2 text-sm">{message}</p>}
           <button
             onClick={() => handleAddToFavorites(recipe)}
-            className="bg-red-500 text-white px-2 py-1 rounded text-sm hover:bg-red-600"
+            className="bg-red-500 text-white px-20 py-1 rounded text-sm hover:bg-red-600"
           >
             Dodaj do ulubionych
           </button>
         </div>
-        {message && <p className="text-green-400 mb-2 text-sm">{message}</p>}
-        <button className="text-blue-500 hover:underline text-sm" onClick={onClose}>
-          Zamknij
-        </button>
+        
       </div>
     </div>
   );

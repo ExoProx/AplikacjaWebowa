@@ -4,15 +4,10 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-import SubmitButton from "components/SubmitButton";
 import Navbar from "components/Navbar";
 import Footer from "components/Footer";
-import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { registerLocale } from "react-datepicker";
-import pl from "date-fns/locale/pl";
-
-registerLocale("pl", pl);
+import { ShareIcon } from "@heroicons/react/24/outline";
 
 // Lista cytatów
 const quotes = [
@@ -42,16 +37,6 @@ const tips = [
   "Zawsze myj ręce przed gotowania.",
 ];
 
-// Typy posiłków
-const mealTypes = [
-  { key: "breakfast", label: "Śniadanie" },
-  { key: "secondBreakfast", label: "II Śniadanie" },
-  { key: "lunch", label: "Obiad" },
-  { key: "afternoonSnack", label: "Podwieczorek" },
-  { key: "dinner", label: "Kolacja" },
-] as const;
-type MealType = typeof mealTypes[number]["key"];
-
 // Interfejs dla przepisu
 interface Recipe {
   id: number;
@@ -61,25 +46,6 @@ interface Recipe {
   instructions: string;
   image?: string;
 }
-
-// Struktura jadłospisu dla konkretnej daty
-type DailyMealPlan = {
-  [key in MealType]: Recipe | null;
-};
-
-// Funkcja do formatowania dzisiejszej daty w formacie YYYY-MM-DD
-const getTodayDate = (): string => {
-  const today = new Date();
-  return today.toISOString().split("T")[0];
-};
-
-// Funkcja do formatowania daty w formacie YYYY-MM-DD
-const formatDate = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
 
 // Funkcja do losowego tasowania tablicy (Fisher-Yates shuffle)
 const getRandomRecipes = (array: Recipe[], count: number): Recipe[] => {
@@ -95,21 +61,12 @@ const MainPage: React.FC = () => {
   const [userName, setUserName] = useState("Jan");
   const [quote, setQuote] = useState("");
   const [tip, setTip] = useState("");
-  const [todayPlan, setTodayPlan] = useState<DailyMealPlan | null>(null);
   const [favoriteRecipes, setFavoriteRecipes] = useState<Recipe[]>([]);
   const [recommendedRecipe, setRecommendedRecipe] = useState<Recipe | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [selectedMeal, setSelectedMeal] = useState<MealType>(mealTypes[0].key);
   const [message, setMessage] = useState<string | null>(null);
   const router = useRouter();
-
-  // Pobranie aktualnego dnia
-  const todayIndex = (new Date().getDay() + 6) % 7; // Poniedziałek=0, ..., Niedziela=6
-  const daysOfWeek = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"];
-  const today = daysOfWeek[todayIndex];
-  const todayDate = getTodayDate();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -132,19 +89,10 @@ const MainPage: React.FC = () => {
     setQuote(quotes[Math.floor(Math.random() * quotes.length)]);
     setTip(tips[Math.floor(Math.random() * tips.length)]);
 
-    // Pobranie mealPlans z localStorage w formacie używanym przez Menu
-    const storedMealPlans = localStorage.getItem("mealPlans");
-    const mealPlans: { [date: string]: DailyMealPlan } = storedMealPlans ? JSON.parse(storedMealPlans) : {};
-    const dailyPlan = mealPlans[todayDate] || mealTypes.reduce((acc, meal) => {
-      acc[meal.key] = null;
-      return acc;
-    }, {} as DailyMealPlan);
-    setTodayPlan(dailyPlan);
-
-    // Pobranie favoriteRecipes z localStorage i losowe wybranie 2 przepisów
+    // Pobranie favoriteRecipes z localStorage i losowe wybranie 4 przepisów
     const storedFavorites = localStorage.getItem("favoriteRecipes");
     const favorites: Recipe[] = storedFavorites ? JSON.parse(storedFavorites) : [];
-    const randomFavorites = getRandomRecipes(favorites, 2);
+    const randomFavorites = getRandomRecipes(favorites, 4);
     setFavoriteRecipes(randomFavorites);
 
     // Pobranie losowego przepisu z API
@@ -162,7 +110,7 @@ const MainPage: React.FC = () => {
     };
 
     fetchRecommendedRecipe();
-  }, [todayDate]);
+  }, []);
 
   // Funkcja do otwierania modalu
   const openModal = (recipe: Recipe) => {
@@ -173,35 +121,6 @@ const MainPage: React.FC = () => {
   const closeModal = () => {
     setSelectedRecipe(null);
     setMessage(null);
-    setSelectedDate(null);
-  };
-
-  // Funkcja do dodawania do jadłospisu
-  const handleAddToMealPlan = () => {
-    if (!selectedRecipe || !selectedDate) {
-      setMessage("Proszę wybrać datę.");
-      return;
-    }
-
-    const dateKey = formatDate(selectedDate);
-    const stored = localStorage.getItem("mealPlans");
-    let mealPlans: { [date: string]: DailyMealPlan } = stored ? JSON.parse(stored) : {};
-
-    if (!mealPlans[dateKey]) {
-      mealPlans[dateKey] = mealTypes.reduce((acc, meal) => {
-        acc[meal.key] = null;
-        return acc;
-      }, {} as DailyMealPlan);
-    }
-
-    mealPlans[dateKey][selectedMeal] = selectedRecipe;
-
-    localStorage.setItem("mealPlans", JSON.stringify(mealPlans));
-    setMessage("Dodano przepis do jadłospisu!");
-    setTimeout(() => {
-      setMessage(null);
-      router.push("/menu");
-    }, 2000);
   };
 
   // Funkcja do dodawania do ulubionych
@@ -211,7 +130,7 @@ const MainPage: React.FC = () => {
     if (!currentFavorites.some((fav) => fav.id === recipe.id)) {
       const updatedFavorites = [...currentFavorites, recipe];
       localStorage.setItem("favoriteRecipes", JSON.stringify(updatedFavorites));
-      setFavoriteRecipes(getRandomRecipes(updatedFavorites, 2));
+      setFavoriteRecipes(getRandomRecipes(updatedFavorites, 4));
       setMessage("Dodano przepis do ulubionych!");
       setTimeout(() => setMessage(null), 2000);
     } else {
@@ -220,116 +139,136 @@ const MainPage: React.FC = () => {
     }
   };
 
-  const maxDate = new Date();
-  maxDate.setFullYear(maxDate.getFullYear() + 1);
-
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-900 text-white">
+      <div className="flex justify-center items-center h-screen bg-gray-900 text-white">
         <div>Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white font-sans">
+    <div className="flex flex-col h-screen bg-gray-900 text-white font-sans">
       {/* Pasek nawigacji - pełna szerokość */}
-      <Navbar />
+      <Navbar className="h-[7%]" />
 
-      {/* Sekcja powitalna (ograniczona szerokość) */}
-      <section className="max-w-276 max-h regl-1 text-center mx-auto py-1 bg-gray-800 shadow-md mt-4 mb-3.5 rounded-lg">
-        <h1 className="text-3xl font-bold text-white">Witaj, {userName}!</h1>
-        <p className="text-gray-300 mt-2">
-          Planuj swoje posiłki i odkrywaj nowe smaki każdego dnia.
-        </p>
-      </section>
+      {/* Główna zawartość */}
+      <div className="flex flex-col mt-8 h-[85%] max-w-7xl mx-auto w-full px-2 sm:px-4 overflow-hidden">
+        {/* Sekcja powitalna */}
+        <section className="text-center py-1 sm:py-2 bg-gray-800 shadow-md my-1 sm:my-2 rounded-lg w-full h-[15%] transform transition-transform hover:scale-105 duration-300">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Witaj, {userName}!</h1>
+          <p className="text-gray-300 mt-1 text-xs sm:text-sm md:text-base">
+            Planuj swoje posiłki i odkrywaj nowe smaki każdego dnia.
+          </p>
+        </section>
 
-      {/* Pozostała główna zawartość */}
-      <div className="max-w-280 mx-auto grid grid-cols-1 md:grid-cols-4 gap-6 p-2">
-        {/* Jadłospis na dziś */}
-        <section className="bg-gray-800 p-6 rounded-lg shadow-md md:col-span-1 hover:scale-105 transition-transform">
-          <h2 className="text-xl font-semibold mb-4 text-center text-white">Jadłospis na dziś: {today}</h2>
-          {todayPlan && Object.values(todayPlan).some((recipe) => recipe !== null) ? (
-            <ul className="space-y-2">
-              {mealTypes.map((meal) => (
-                <li key={meal.key} className="flex justify-between items-center">
-                  <span>
-                    <strong>{meal.label}:</strong>{" "}
-                    {todayPlan[meal.key] ? todayPlan[meal.key]!.name : "Brak przepisu"}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div>
-              <p className="text-gray-400">Nie masz jeszcze jadłospisu na dziś.</p>
-              <SubmitButton type="submit">Ułóż jadłospis</SubmitButton>
-            </div>
-          )}
-          <div>
-            <Link href="/shareMenu" className="text-blue-400 text-center mt-4 block hover:underline">
-              Udostępnij jadłospis
+        {/* Kafelki */}
+        <div className="grid grid-cols-3 gap-6 sm:gap-5 w-full h-[60%]">
+          {/* Ulubione przepisy */}
+          <section className="flex flex-col bg-gray-700 shadow-md rounded-lg overflow-hidden transform transition-transform hover:scale-105 duration-300 h-full">
+            <h2 className="text-xs sm:text-sm md:text-base font-semibold p-1 sm:p-2 text-center text-white">
+              Ulubione przepisy
+            </h2>
+            {favoriteRecipes.length > 0 ? (
+              <div className="grid grid-cols-2 gap-4 p-2 flex-grow">
+                {favoriteRecipes.slice(0, 4).map((recipe, index) => (
+                  <div key={index} className="relative group flex flex-col h-full">
+                    <img
+                      src={recipe.image || "/placeholder.jpg"}
+                      alt={recipe.name}
+                      className="w-full h-20 object-cover rounded cursor-pointer group-hover:scale-105 transition-transform"
+                      onClick={() => openModal(recipe)}
+                    />
+                    <p className="text-center mt-2 text-xs sm:text-sm truncate">{recipe.name}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-400 flex-1 flex items-center justify-center text-xs sm:text-sm">
+                Brak ulubionych przepisów
+              </p>
+            )}
+            <Link href="/favorites" className="text-blue-400 text-center p-1 block hover:underline text-xs sm:text-sm">
+              Zobacz wszystkie ulubione
             </Link>
-          </div>
-        </section>
+          </section>
 
-        {/* Ulubione przepisy */}
-        <section className="bg-gray-800 p-6 rounded-lg shadow-md md:col-span-2 hover:scale-105 transition-transform">
-          <h2 className="text-xl font-semibold mb-4 text-center text-white">Ulubione przepisy</h2>
-          {favoriteRecipes.length > 0 ? (
-            <div className="grid grid-cols-2 gap-4">
-              {favoriteRecipes.map((recipe, index) => (
-                <div key={index} className="relative group">
-                  <img
-                    src={recipe.image || "/placeholder.jpg"}
-                    alt={recipe.name}
-                    className="w-full h-32 object-cover rounded cursor-pointer group-hover:scale-105 transition-transform"
-                    onClick={() => openModal(recipe)}
-                  />
-                  <p className="text-center mt-2">{recipe.name}</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-400">Brak ulubionych przepisów</p>
-          )}
-          <Link href="/favorites" className="text-blue-400 text-center mt-4 block hover:underline">
-            Zobacz wszystkie ulubione
-          </Link>
-        </section>
-
-        {/* Polecany przepis */}
-        <section className="bg-gray-800 p-6 rounded-lg shadow-md md:col-span-1 hover:scale-105 transition-transform">
-          <h2 className="text-xl font-semibold mb-4 text-center text-white">Polecany przepis</h2>
-          {recommendedRecipe ? (
-            <div className="relative group">
-              <img
-                src={recommendedRecipe.image || "/placeholder.jpg"}
-                alt={recommendedRecipe.name}
-                className="w-full h-32 object-cover rounded cursor-pointer group-hover:scale-105 transition-transform"
-                onClick={() => openModal(recommendedRecipe)}
+          {/* Utwórz nowy jadłospis */}
+          <Link
+            href="/menu"
+            className="flex flex-col bg-gray-700 shadow-md rounded-lg overflow-hidden transform transition-transform hover:scale-105 duration-300 cursor-pointer h-full"
+          >
+            <div className="flex-grow flex flex-col items-center justify-center p-1 sm:p-2">
+              <svg
+                className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-blue-500 mb-1"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <h2 className="text-xs mb-5 sm:text-sm md:text-base font-semibold text-center text-white">
+                Utwórz nowy jadłospis
+              </h2>
+              <h2 className="text-xs mb-5 sm:text-md md:text-xl font-bold text-center text-blue-600">
+                lub
+              </h2>
+              <ShareIcon
+                className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-blue-500 mb-1"
               />
-              <p className="text-center mt-2">{recommendedRecipe.name}</p>
+              <h2 className="text-xs sm:text-sm md:text-base font-semibold text-center text-white">
+                Udostępnij swój jadłospis
+              </h2>
             </div>
-          ) : (
-            <p className="text-gray-400">Ładowanie przepisu...</p>
-          )}
-        </section>
-      </div>
+          </Link>
 
-      {/* Dodatkowe elementy */}
-      <div className="max-w-280 mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 p-2">
-        {/* Cytat dnia */}
-        <section className="bg-gray-800 p-6 rounded-lg shadow-md hover:scale-105 transition-transform">
-          <h2 className="text-xl font-semibold mb-4 text-white">Cytat dnia</h2>
-          <p className="text-gray-300 italic">"{quote}"</p>
-        </section>
+          {/* Polecany przepis */}
+          <section className="flex flex-col bg-gray-700 shadow-md rounded-lg overflow-hidden transform transition-transform hover:scale-105 duration-300 h-full">
+            <h2 className="text-xs sm:text-sm md:text-base font-semibold p-1 mt-10 sm:p-2 text-center text-white">
+              Polecany przepis
+            </h2>
+            {recommendedRecipe ? (
+              <div className="flex-grow items-center flex flex-col overflow-hidden shadow-md rounded-lg  transform transition-transform hover:scale-105 duration-300">
+                <img
+                  src={recommendedRecipe.image || "/placeholder.jpg"}
+                  alt={recommendedRecipe.name}
+                  className="w-[70%] h-[70%] object-cover rounded-t cursor-pointer"
+                  onClick={() => openModal(recommendedRecipe)}
+                />
+                <p className="text-center p-1 text-xs sm:text-sm truncate">
+                  {recommendedRecipe.name}
+                </p>
+              </div>
+            ) : (
+              <p className="text-gray-400 flex-1 flex items-center justify-center text-xs sm:text-sm">
+                Ładowanie przepisu...
+              </p>
+            )}
+          </section>
+        </div>
 
-        {/* Porada kulinarna */}
-        <section className="bg-gray-800 p-6 rounded-lg shadow-md hover:scale-105 transition-transform">
-          <h2 className="text-xl font-semibold mb-4 text-white">Porada kulinarna</h2>
-          <p className="text-gray-300">{tip}</p>
-        </section>
+        {/* Cytat i porada */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-5 py-1 sm:py-2 w-full h-[17%]">
+          {/* Cytat dnia */}
+          <section className="flex flex-col bg-gray-700 shadow-md rounded-lg transform transition-transform hover:scale-105 duration-300 p-2 sm:p-3 overflow-hidden">
+            <h2 className="text-xs sm:text-sm md:text-base font-semibold mb-1 text-white">
+              Cytat dnia
+            </h2>
+            <p className="text-gray-300 italic text-xs sm:text-sm overflow-hidden text-ellipsis">
+              "{quote}"
+            </p>
+          </section>
+
+          {/* Porada kulinarna */}
+          <section className="flex flex-col bg-gray-700 shadow-md rounded-lg transform transition-transform hover:scale-105 duration-300 p-2 sm:p-3 overflow-hidden">
+            <h2 className="text-xs sm:text-sm md:text-base font-semibold mb-1 text-white">
+              Porada kulinarna
+            </h2>
+            <p className="text-gray-300 text-xs sm:text-sm overflow-hidden text-ellipsis">
+              {tip}
+            </p>
+          </section>
+        </div>
       </div>
 
       {/* Modal dla przepisu */}
@@ -340,9 +279,7 @@ const MainPage: React.FC = () => {
           onClick={closeModal}
         >
           <div
-            className={`bg-gray-800 p-4 w-250 rounded-lg ${
-              selectedRecipe.id === recommendedRecipe?.id ? "w-200" : "max-w-lg"
-            } text-white relative overflow-y-auto max-h-[90vh]`}
+            className="bg-gray-800 p-4 rounded-lg max-w-lg w-full text-white relative overflow-y-auto max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -351,10 +288,12 @@ const MainPage: React.FC = () => {
             >
               ✕
             </button>
-            <h3 className="text-2xl font-bold mb-2">{selectedRecipe.name}</h3>
-            <p className="mb-4">{selectedRecipe.description}</p>
-            <h4 className="text-xl font-semibold mb-2">Składniki:</h4>
-            <div className="grid grid-cols-2 gap-x-4 mb-2 text-sm">
+            <h3 className="text-lg sm:text-xl md:text-2xl font-bold mb-2">
+              {selectedRecipe.name}
+            </h3>
+            <p className="mb-4 text-xs sm:text-sm md:text-base">{selectedRecipe.description}</p>
+            <h4 className="text-sm sm:text-base md:text-lg font-semibold mb-2">Składniki:</h4>
+            <div className="grid grid-cols-2 gap-x-4 mb-2 text-xs sm:text-sm">
               {selectedRecipe.ingredients?.map((ingredient: string, index: number) => (
                 <div key={index} className="flex">
                   <span className="mr-2">•</span>
@@ -362,51 +301,19 @@ const MainPage: React.FC = () => {
                 </div>
               ))}
             </div>
-            <h4 className="text-xl font-semibold mb-2">Instrukcje:</h4>
-            <p className="mb-4">{selectedRecipe.instructions}</p>
+            <h4 className="text-sm sm:text-base md:text-lg font-semibold mb-2">Instrukcje:</h4>
+            <p className="mb-4 text-xs sm:text-sm md:text-base">{selectedRecipe.instructions}</p>
             {selectedRecipe.id === recommendedRecipe?.id && (
               <div className="mb-4">
-                <label className="block mb-1 text-sm">Wybierz datę:</label>
-                <DatePicker
-                  selected={selectedDate}
-                  onChange={(date: Date | null) => setSelectedDate(date)}
-                  dateFormat="dd.MM.yyyy"
-                  className="w-full p-1 border rounded bg-gray-700 text-white mb-1 text-sm"
-                  placeholderText="Wybierz datę"
-                  minDate={new Date()}
-                  maxDate={maxDate}
-                  locale="pl"
-                />
-                {selectedDate && (
-                  <p className="text-sm mb-1">Wybrana data: {selectedDate.toLocaleDateString("pl-PL")}</p>
-                )}
-                <label className="block mb-1 text-sm">Wybierz posiłek:</label>
-                <select
-                  value={selectedMeal}
-                  onChange={(e) => setSelectedMeal(e.target.value as MealType)}
-                  className="w-full p-1 border rounded bg-gray-700 text-white mb-1 text-sm"
-                >
-                  {mealTypes.map((meal) => (
-                    <option key={meal.key} value={meal.key}>
-                      {meal.label}
-                    </option>
-                  ))}
-                </select>
                 <div className="flex justify-between mt-2">
                   <button
-                    onClick={handleAddToMealPlan}
-                    className="bg-green-500 text-white px-2 py-1 rounded text-sm hover:bg-green-600"
-                  >
-                    Dodaj do jadłospisu
-                  </button>
-                  <button
                     onClick={() => handleAddToFavorites(selectedRecipe)}
-                    className="bg-red-500 text-white px-2 py-1 rounded text-sm hover:bg-red-600"
+                    className="bg-red-500 text-white px-2 py-1 rounded text-xs sm:text-sm hover:bg-red-600"
                   >
                     Dodaj do ulubionych
                   </button>
                 </div>
-                {message && <p className="text-green-400 mt-2 text-sm">{message}</p>}
+                {message && <p className="text-green-400 mt-2 text-xs sm:text-sm">{message}</p>}
               </div>
             )}
           </div>
@@ -414,9 +321,8 @@ const MainPage: React.FC = () => {
       )}
 
       {/* Stopka - pełna szerokość */}
-      <Footer />
+      <Footer className="h-[8%] w-full bg-gray-800 p-4 text-white" />
     </div>
   );
 };
-
 export default MainPage;
