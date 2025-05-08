@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { HeartIcon, HomeIcon } from "@heroicons/react/24/outline";
-import Link from "next/link";
+import { HeartIcon } from "@heroicons/react/24/outline";
 import axios from "axios";
-import Navbar from "../components/Navbar";
+import Navbar from "../components/Navbar"; 
 import Footer from "../components/Footer";
 
 interface Recipe {
@@ -18,8 +17,8 @@ interface Recipe {
 
 const Sidebar: React.FC = () => {
   return (
-    <div className="w-64 min-h-screen-40 bg-gray-800 shadow-md p-4">
-      <h2 className="text-lg font-semibold mb-4  text-white">Filtry</h2>
+    <div className="w-64 bg-gray-800 shadow-md p-4">
+      <h2 className="text-lg font-semibold mb-4 text-white">Filtry</h2>
       <input
         type="text"
         placeholder="Szukaj przepisów"
@@ -66,16 +65,18 @@ const RecipeTile: React.FC<RecipeTileProps> = ({ recipe, onSelect }) => {
 
   return (
     <div
-      className="bg-gray-700 shadow-md rounded-lg overflow-hidden transform transition-transform hover:scale-105 duration-300 cursor-pointer"
+      className="flex flex-col bg-gray-700 shadow-md rounded-lg overflow-hidden transform transition-transform hover:scale-105 duration-300 cursor-pointer h-full"
       onClick={() => onSelect(recipe)}
     >
-      <img
-        src={recipe.image || "/placeholder.jpg"}
-        alt={recipe.name}
-        className="w-full h-30 object-cover"
-      />
-      <div className="p-2 flex justify-between items-center text-white">
-        <h3 className="text-lg font-semibold truncate">{recipe.name}</h3>
+      <div className="flex-grow overflow-hidden">
+        <img
+          src={recipe.image || "/placeholder.jpg"}
+          alt={recipe.name}
+          className="w-full h-full object-cover"
+        />
+      </div>
+      <div className="flex-shrink-0 p-2 flex justify-between items-center text-white min-h-1/5">
+        <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold truncate">{recipe.name}</h3>
         <button className={isFavorite ? "text-red-500" : "text-gray-500 hover:text-red-500"}>
           <HeartIcon className={`w-6 h-6 ${isFavorite ? "fill-current" : ""}`} />
         </button>
@@ -151,7 +152,7 @@ const Pagination: React.FC<PaginationProps> = ({
   onPageChange,
 }) => {
   return (
-    <div className="flex justify-center mt-2 mb-2">
+    <div className="flex justify-center py-2">
       <button
         className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50 text-white"
         onClick={() => onPageChange(currentPage - 1)}
@@ -191,7 +192,7 @@ const RecipesList: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
 
-  const recipesPerPage = 12;
+  const recipesPerPage = 12; // Możesz to dostosować
   const totalPages = Math.ceil(recipes.length / recipesPerPage);
   const currentRecipes = recipes.slice(
     (currentPage - 1) * recipesPerPage,
@@ -222,13 +223,13 @@ const RecipesList: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-900 text-white font-sans">
+    <div className="flex flex-col h-screen bg-gray-900 text-white font-sans">
       <Navbar />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         <div className="flex-1 flex flex-col">
-          <div className="flex-1 p-2 overflow-y-auto">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="flex-1 p-2 overflow-hidden">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 h-full">
               {currentRecipes.map((recipe) => (
                 <RecipeTile
                   key={recipe.id}
@@ -238,13 +239,11 @@ const RecipesList: React.FC = () => {
               ))}
             </div>
           </div>
-          
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-            />
-          
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+          />
         </div>
       </div>
       {selectedRecipe && (
