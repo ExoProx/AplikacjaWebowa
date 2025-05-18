@@ -62,7 +62,7 @@ const LoginForm: React.FC = () => {
             onChange={handleChange}
             placeholder="Wpisz swój e-mail"
             icon={<MailCheck className="text-gray-800" size={20} />}
-            className="bg-gray-200 border border-gray-300 rounded-md p-2 w-full text-gray"
+            
           />
           <InputField
             label="Hasło"
@@ -72,7 +72,7 @@ const LoginForm: React.FC = () => {
             onChange={handleChange}
             placeholder="Wpisz hasło"
             icon={<FileLockIcon className="text-gray-800" size={20} />}
-            className="bg-gray-200 border border-gray-300 rounded-md p-2 w-full text-gray"
+            
           />
           <div className="transform transition-transform hover:scale-110 duration-300">
             <SubmitButton type="submit" className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-md">

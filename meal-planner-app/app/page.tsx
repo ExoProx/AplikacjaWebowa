@@ -125,16 +125,13 @@ const HomePage = () => {
       {/* Belka u góry -, przyciski po prawej */}
       <div className="absolute top-0 left-0 w-full z-20 bg-transparent py-4 shadow-md">
         <div className="max-w-7xl mx-auto flex justify-between items-center px-6">
-          <h1 className="text-xl font-bold text-white">Nasza Aplikacja</h1>
+          <h1 className="text-2xl font-bold text-white">mniamPlan</h1>
           <div className="flex space-x-6">
             <Link href="/login" className="hover:text-gray-300">
               Zaloguj się
             </Link>
             <Link href="/register" className="hover:text-gray-300">
               Zarejestruj się
-            </Link>
-            <Link href="/recipes" className="hover:text-gray-300">
-              Przepisy
             </Link>
             <button onClick={scrollToPoznajNas} className="hover:text-gray-300">
               O nas
@@ -272,7 +269,7 @@ const HomePage = () => {
             {[
               { src: "/ewelina.jpg", name: "Ewelina", desc: "nasza mistrzyni interfejsu. Tworzy dla Was intuicyjne i piękne strony aplikacji." },
               { src: "/przemek.jpg", name: "Przemysław", desc: "król backendu. Zapewnia stabilność i moc naszej aplikacji od kuchni." },
-              { src: "/Dawid.jpg", name: "Dawid", desc: "kreatywny front-endowiec. Jego kod ożywia naszą aplikację." },
+              { src: "/dawid.jpg", name: "Dawid", desc: "kreatywny front-endowiec. Jego kod ożywia naszą aplikację." },
               { src: "/dominik.jpg", name: "Dominik", desc: "nasz niezawodny back-endowiec. Zapewnia solidne fundamenty naszej aplikacji." }
             ].map(({ src, name, desc }, i) => (
               <div key={i} className="text-center relative group">
@@ -300,7 +297,7 @@ const HomePage = () => {
       <div className="bg-gray-700 py-6 text-center">
         <h2 className="text-2xl font-bold mb-4">Kontakt</h2>
         <p>Adres: ul. Wrocławska 12, 50-200 Wrocław</p>
-        <p>Email: kontakt@naszaaplikacja.pl</p>
+        <p>Email: contact@mniamplan.org</p>
         <p>Telefon: +48 123 456 789</p>
       </div>
     </div>

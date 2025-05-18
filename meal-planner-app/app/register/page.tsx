@@ -13,18 +13,10 @@ const RegisterPage = () => {
         backgroundRepeat: "no-repeat",
       }}
     >
-      <header className="mb-8">
-        <h1 className="text-4xl text-white font-bold">Rejestracja</h1>
-      </header>
-      <main className="bg-gray-700 p-8 rounded-lg shadow-xl">
-        {/* The interactive registration form is rendered on the client */}
+
+      <main className="bg-gray-700 p-3 rounded-lg shadow-xl">
         <RegisterForm />
       </main>
-      <footer className="mt-8">
-        <Link href="/" className="text-gray-300 hover:text-white">
-         Powrót do strony głównej
-        </Link>
-      </footer>
     </div>
   );
 };

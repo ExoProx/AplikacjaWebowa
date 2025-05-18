@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Mealio",
+  title: "mniamPlan",
   icons: {
     icon: {
       url: "/logo.svg",

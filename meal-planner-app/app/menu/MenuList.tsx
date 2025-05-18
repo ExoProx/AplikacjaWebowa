@@ -4,8 +4,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import Link from "next/link";
-import { ShareIcon } from "@heroicons/react/24/outline";
+import { ShareIcon, StarIcon } from "@heroicons/react/24/outline";
 
 interface Recipe {
   id: number;
@@ -37,7 +36,7 @@ const Pagination: React.FC<PaginationProps> = ({
   return (
     <div className="flex justify-center py-2">
       <button
-        className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50 text-white"
+        className="px-3 py-1 bg-gray-800 rounded hover:bg-gray-700 disabled:opacity-50 text-white"
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
       >
@@ -50,7 +49,7 @@ const Pagination: React.FC<PaginationProps> = ({
             className={`px-3 py-1 rounded mx-1 ${
               currentPage === page
                 ? "bg-blue-500 text-white"
-                : "bg-gray-700 hover:bg-gray-600 text-white"
+                : "bg-gray-800 hover:bg-gray-700 text-white"
             }`}
             onClick={() => onPageChange(page)}
           >
@@ -59,7 +58,7 @@ const Pagination: React.FC<PaginationProps> = ({
         )
       )}
       <button
-        className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50 text-white"
+        className="px-3 py-1 bg-gray-800 rounded hover:bg-gray-700 disabled:opacity-50 text-white"
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
       >
@@ -69,25 +68,45 @@ const Pagination: React.FC<PaginationProps> = ({
   );
 };
 
-const Sidebar: React.FC<{ onCreateMenu: () => void; onBack?: () => void; selectedMenuName?: string }> = ({ onCreateMenu, onBack, selectedMenuName }) => (
+const Sidebar: React.FC<{ 
+  onCreateMenu: () => void; 
+  onBack?: () => void; 
+  selectedMenu?: Menu | null; 
+  onShare: (menu: Menu) => void;
+}> = ({ onCreateMenu, onBack, selectedMenu, onShare }) => (
   <div className="w-64 bg-gray-800 shadow-md p-4 flex flex-col gap-4 text-white">
     <h2 className="text-lg text-center mt-40 font-semibold">
-      {selectedMenuName || "Jadłospisy"}
+      {selectedMenu ? selectedMenu.name : "Jadłospisy"}
     </h2>
-    {onBack && (
+    {selectedMenu ? (
+      <>
+        <button 
+          onClick={() => onShare(selectedMenu)} 
+          className="bg-blue-500 hover:bg-blue-600 p-2 rounded text-sm text-white border-none cursor-pointer"
+        >
+          Udostępnij jadłospis
+        </button>
+        <button 
+          className="bg-blue-500 hover:bg-blue-600 p-2 rounded text-sm text-white border-none cursor-pointer"
+          disabled
+        >
+          Zakończ udostępnianie
+        </button>
+        <button 
+          onClick={onBack} 
+          className="bg-gray-600 hover:bg-gray-700 p-2 rounded text-sm text-white border-none cursor-pointer"
+        >
+          Powrót
+        </button>
+      </>
+    ) : (
       <button 
-        onClick={onBack} 
-        className="bg-gray-600 hover:bg-gray-700 p-2 rounded text-sm text-white border-none cursor-pointer"
+        onClick={onCreateMenu} 
+        className="bg-blue-500 hover:bg-blue-600 p-2 rounded text-sm text-white border-none cursor-pointer"
       >
-        Powrót
+        Utwórz jadłospis
       </button>
     )}
-    <button 
-      onClick={onCreateMenu} 
-      className="bg-blue-500 hover:bg-blue-600 p-2 rounded text-sm text-white border-none cursor-pointer"
-    >
-      Utwórz jadłospis
-    </button>
   </div>
 );
 
@@ -119,22 +138,52 @@ const CreateMenuModal: React.FC<{
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Nazwa jadłospisu"
-          className="w-full p-2 mb-4 bg-gray-700 rounded text-white border-none"
+          className="w-full p-2 mb-4 bg-gray-800 rounded text-white border-none"
         />
         <input
           type="number"
           value={days}
-          onChange={(e) => setDays(Math.min(31, Math.max(1, parseInt(e.target.value))))}
+          onChange={(e) => setDays(Math.min(31, Math.max(1, parseInt(e.target.value || "1"))))}
           min="1"
           max="31"
           placeholder="Liczba dni (1-31)"
-          className="w-full p-2 mb-4 bg-gray-700 rounded text-white border-none"
+          className="w-full p-2 mb-4 bg-gray-800 rounded text-white border-none"
         />
         <div className="flex justify-between">
           <button onClick={onClose} className="text-blue-500 hover:underline">Anuluj</button>
-          <button onClick={handleCreate} className="bg-green-500 hover:bg-green-600 p-2 rounded text-white border-none">
+          <button onClick={handleCreate} className="bg-blue-500 hover:bg-blue-600 p-2 rounded text-white border-none">
             Utwórz
           </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ShareModal: React.FC<{ isOpen: boolean; onClose: () => void; menuId: number }> = ({ isOpen, onClose, menuId }) => {
+  const [link, setLink] = useState("");
+
+  const handleGenerateLink = () => {
+    setLink(`http://localhost:3000/share/${menuId}`);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}>
+      <div className="bg-gray-800 p-6 rounded-lg w-96 text-white">
+        <input
+          type="text"
+          value={link}
+          readOnly
+          placeholder="Wygeneruj link, aby uzyskać adres"
+          className="w-full p-2 mb-4 bg-gray-800 rounded text-white border-none"
+        />
+        <div className="flex justify-between">
+          <button onClick={handleGenerateLink} className="bg-blue-500 hover:bg-blue-600 p-2 rounded text-white border-none">
+            Wygeneruj link
+          </button>
+          <button onClick={onClose} className="text-blue-500 hover:underline">Powrót</button>
         </div>
       </div>
     </div>
@@ -145,19 +194,21 @@ const MenuTile: React.FC<{
   menu: Menu;
   onSelect: (menu: Menu) => void;
   onDelete: (id: number) => void;
-}> = ({ menu, onSelect, onDelete }) => (
+  onShare: (menu: Menu) => void;
+}> = ({ menu, onSelect, onDelete, onShare }) => (
   <div
-    className="bg-gray-700 rounded-lg shadow-md p-4 flex flex-col items-center justify-center cursor-pointer relative transition-transform duration-200 hover:bg-gray-600 hover:scale-105"
+    className="bg-slate-800 rounded-lg shadow-md p-4 flex flex-col items-center justify-center cursor-pointer relative transition-transform duration-300 hover:bg-gray-700 hover:scale-105"
     onClick={() => onSelect(menu)}
   >
-    {/* Ikona udostępniania w lewym górnym rogu */}
-    <Link
-      href={`/share/${menu.id}`}
+    <button
       className="absolute top-2 left-2 text-blue-500 hover:text-blue-700 border-none cursor-pointer"
-      onClick={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+        onShare(menu);
+      }}
     >
       <ShareIcon className="w-7 h-7" />
-    </Link>
+    </button>
     <img src="/ikona_jadlospis.svg" alt="Ikona jadłospisu" className="w-16 h-16 mb-2" />
     <p className="text-white text-center text-sm">{menu.name}</p>
     <button
@@ -213,13 +264,13 @@ const RecipeModal: React.FC<{
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}>
-      <div className="bg-gray-800 p-6 rounded-lg max-w-7xl w-full text-white max-h-[100vh] overflow-y-auto">
+      <div className="bg-gray-900 p-6 rounded-lg max-w-7xl w-full text-white max-h-[100vh] overflow-y-auto">
         <h2 className="text-xl font-bold mb-4">Wybierz przepis</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
           {currentRecipes.map((recipe) => (
             <div
               key={recipe.id}
-              className="bg-gray-700 p-4 rounded cursor-pointer hover:bg-gray-600 flex flex-col items-center"
+              className="bg-gray-800 p-4 rounded cursor-pointer hover:bg-gray-700 hover:scale-105 duration-300 flex flex-col items-center "
               onClick={() => onSelect(recipe)}
             >
               <img src={recipe.image || "/placeholder.jpg"} alt={recipe.name} className="w-16 h-16 object-cover mb-2" />
@@ -238,15 +289,74 @@ const RecipeModal: React.FC<{
   );
 };
 
+// Komponent StarRating do oceniania
+interface StarRatingProps {
+  rating: number;
+  onRatingChange: (rating: number) => void;
+}
+
+const StarRating: React.FC<StarRatingProps> = ({ rating, onRatingChange }) => {
+  const [hoverRating, setHoverRating] = useState(0);
+
+  const handleMouseEnter = (index: number) => {
+    setHoverRating(index);
+  };
+
+  const handleMouseLeave = () => {
+    setHoverRating(0);
+  };
+
+  const handleClick = (index: number) => {
+    onRatingChange(index);
+  };
+
+  return (
+    <div className="flex">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <StarIcon
+          key={star}
+          className={`w-6 h-6 cursor-pointer ${
+            star <= (hoverRating || rating) ? "text-yellow-500 fill-current" : "text-gray-400"
+          }`}
+          onMouseEnter={() => handleMouseEnter(star)}
+          onMouseLeave={handleMouseLeave}
+          onClick={() => handleClick(star)}
+        />
+      ))}
+    </div>
+  );
+};
+
 const RecipeDetailsModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
   recipe: Recipe;
 }> = ({ isOpen, onClose, recipe }) => {
+  const [ratings, setRatings] = useState<{ [key: number]: number }>({});
+
+  useEffect(() => {
+    const storedRatings = localStorage.getItem("recipeRatings");
+    if (storedRatings) {
+      setRatings(JSON.parse(storedRatings));
+    }
+  }, []);
+
+  const handleRatingChange = (newRating: number) => {
+    const updatedRatings = { ...ratings, [recipe.id]: newRating };
+    setRatings(updatedRatings);
+    localStorage.setItem("recipeRatings", JSON.stringify(updatedRatings));
+  };
+
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}>
-      <div className="bg-gray-800 p-4 rounded-lg max-w-2xl w-full shadow-xl text-white overflow-y-auto max-h-[90vh]">
+      <div className="bg-gray-800 p-4 rounded-lg max-w-2xl w-full shadow-xl text-white overflow-y-auto max-h-[90vh] relative">
+        {ratings[recipe.id] > 0 && (
+          <div className="absolute top-2 right-2 flex items-center bg-gray-800 px-2 py-1 rounded">
+            <span className="text-yellow-500 text-sm">{ratings[recipe.id]}</span>
+            <StarIcon className="w-4 h-4 text-yellow-500 fill-current ml-1" />
+          </div>
+        )}
         <h2 className="text-2xl font-bold mb-2">{recipe.name}</h2>
         <p className="mb-2 text-sm">{recipe.description}</p>
         <h3 className="text-lg font-semibold mb-1">Składniki:</h3>
@@ -260,10 +370,17 @@ const RecipeDetailsModal: React.FC<{
         </div>
         <h3 className="text-lg font-semibold mb-1">Instrukcje:</h3>
         <p className="mb-2 text-sm">{recipe.instructions}</p>
-        <div className="flex justify-end">
+        <div className="flex justify-between items-center">
           <button className="text-blue-500 hover:underline text-sm" onClick={onClose}>
             Zamknij
           </button>
+          <div className="flex flex-col items-center">
+            <h3 className="text-sm font-semibold mb-1">Oceń przepis</h3>
+            <StarRating
+              rating={ratings[recipe.id] || 0}
+              onRatingChange={handleRatingChange}
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -284,6 +401,7 @@ const MenuComponent: React.FC = () => {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [editCell, setEditCell] = useState<{ dayIndex: number; mealType: string } | null>(null);
   const [currentMenuPage, setCurrentMenuPage] = useState(1);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const mealTypes = ["I Śniadanie", "II Śniadanie", "Obiad", "Podwieczorek", "Kolacja"];
   const menusPerPage = 18;
@@ -355,6 +473,11 @@ const MenuComponent: React.FC = () => {
     setIsDetailsModalOpen(true);
   };
 
+  const handleShareMenu = (menu: Menu) => {
+    setSelectedMenu(menu);
+    setIsShareModalOpen(true);
+  };
+
   const truncateText = (text: string, maxLength: number) => {
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + "...";
@@ -367,7 +490,7 @@ const MenuComponent: React.FC = () => {
         <div className="flex-1 overflow-x-auto overflow-y-hidden">
           <table className="w-full h-full border-collapse text-white">
             <thead>
-              <tr className="bg-gray-700">
+              <tr className="bg-gray-800">
                 <th className="text-left px-1 text-small min-w-[120px]">Posiłek</th>
                 {Array.from({ length: selectedMenu.days }, (_, i) => (
                   <th key={i} className="text-center text-sm min-w-[150px]">Dzień {i + 1}</th>
@@ -385,7 +508,7 @@ const MenuComponent: React.FC = () => {
                         onClick={() => day[meal] && handleShowDetails(day[meal]!)}
                       >
                         {day[meal] ? (
-                          <div className="flex flex-col items-center p-2 rounded hover:bg-gray-600 overflow-hidden w-full relative">
+                          <div className="flex flex-col items-center p-2 rounded hover:bg-gray-700 transition-transform duration-300 hover:scale-105 overflow-hidden w-full relative">
                             <img src={day[meal]!.image || "/placeholder.jpg"} alt={day[meal]!.name} className="w-12 h-12 object-cover mb-2" />
                             <p className="text-center text-sm w-full">{truncateText(day[meal]!.name, 13)}</p>
                             <button
@@ -413,7 +536,7 @@ const MenuComponent: React.FC = () => {
                           </div>
                         ) : (
                           <div
-                            className="bg-gray-700 p-2 rounded hover:bg-gray-600 text-center text-sm"
+                            className="bg-gray-800 p-2 rounded hover:bg-gray-700 text-center text-sm"
                             onClick={() => handleEditMeal(dayIndex, meal)}
                           >
                             Edytuj posiłek
@@ -438,7 +561,8 @@ const MenuComponent: React.FC = () => {
         <Sidebar 
           onCreateMenu={() => setIsCreateModalOpen(true)} 
           onBack={selectedMenu ? () => setSelectedMenu(null) : undefined} 
-          selectedMenuName={selectedMenu?.name}
+          selectedMenu={selectedMenu}
+          onShare={handleShareMenu}
         />
         <div className="flex-1 flex flex-col p-1 overflow-hidden">
           {!selectedMenu ? (
@@ -450,6 +574,7 @@ const MenuComponent: React.FC = () => {
                     menu={menu}
                     onSelect={setSelectedMenu}
                     onDelete={() => setDeleteId(menu.id)}
+                    onShare={handleShareMenu}
                   />
                 ))}
               </div>
@@ -485,6 +610,13 @@ const MenuComponent: React.FC = () => {
         onClose={() => setIsDetailsModalOpen(false)}
         recipe={selectedRecipe!}
       />
+      {selectedMenu && (
+        <ShareModal
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          menuId={selectedMenu.id}
+        />
+      )}
       <Footer />
     </div>
   );

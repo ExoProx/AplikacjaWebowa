@@ -141,21 +141,30 @@ const MainPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-screen bg-gray-900 text-white">
+      <div className="flex justify-center items-center h-screen bg-gray-900 text-">
         <div>Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900 text-white font-sans">
+    <div className="relative flex flex-col h-screen text-white font-sans">
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage: 'url("/jedzenie.jpg")',
+          backgroundSize: "cover",
+          filter: "brightness(0.54)",
+          zIndex: -1,
+        }}
+      ></div>
       {/* Pasek nawigacji - pełna szerokość */}
       <Navbar className="h-[7%]" />
 
       {/* Główna zawartość */}
       <div className="flex flex-col mt-8 h-[85%] max-w-7xl mx-auto w-full px-2 sm:px-4 overflow-hidden">
         {/* Sekcja powitalna */}
-        <section className="text-center py-1 sm:py-2 bg-gray-800 shadow-md my-1 sm:my-2 rounded-lg w-full h-[15%] transform transition-transform hover:scale-105 duration-300">
+        <section className="text-center py-1 sm:py-2 bg-gray-800 shadow-4xl my-1 sm:my-2 rounded-lg w-full h-[15%] transform transition-transform hover:scale-103 duration-300">
           <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Witaj, {userName}!</h1>
           <p className="text-gray-300 mt-1 text-xs sm:text-sm md:text-base">
             Planuj swoje posiłki i odkrywaj nowe smaki każdego dnia.
@@ -165,7 +174,7 @@ const MainPage: React.FC = () => {
         {/* Kafelki */}
         <div className="grid grid-cols-3 gap-6 sm:gap-5 w-full h-[60%]">
           {/* Ulubione przepisy */}
-          <section className="flex flex-col bg-gray-700 shadow-md rounded-lg overflow-hidden transform transition-transform hover:scale-105 duration-300 h-full">
+          <section className="flex flex-col bg-gray-800 shadow-4xl rounded-xl overflow-hidden transform transition-transform hover:scale-103 duration-300 h-full">
             <h2 className="text-xs sm:text-sm md:text-base font-semibold p-1 sm:p-2 text-center text-white">
               Ulubione przepisy
             </h2>
@@ -176,7 +185,7 @@ const MainPage: React.FC = () => {
                     <img
                       src={recipe.image || "/placeholder.jpg"}
                       alt={recipe.name}
-                      className="w-full h-20 object-cover rounded cursor-pointer group-hover:scale-105 transition-transform"
+                      className="w-full h-20 object-cover rounded cursor-pointer group-hover:scale-103 transition-transform"
                       onClick={() => openModal(recipe)}
                     />
                     <p className="text-center mt-2 text-xs sm:text-sm truncate">{recipe.name}</p>
@@ -196,7 +205,7 @@ const MainPage: React.FC = () => {
           {/* Utwórz nowy jadłospis */}
           <Link
             href="/menu"
-            className="flex flex-col bg-gray-700 shadow-md rounded-lg overflow-hidden transform transition-transform hover:scale-105 duration-300 cursor-pointer h-full"
+            className="flex flex-col bg-gray-800 shadow-4xl rounded-lg overflow-hidden transform transition-transform hover:scale-103 duration-300 cursor-pointer h-full"
           >
             <div className="flex-grow flex flex-col items-center justify-center p-1 sm:p-2">
               <svg
@@ -210,7 +219,7 @@ const MainPage: React.FC = () => {
               <h2 className="text-xs mb-5 sm:text-sm md:text-base font-semibold text-center text-white">
                 Utwórz nowy jadłospis
               </h2>
-              <h2 className="text-xs mb-5 sm:text-md md:text-xl font-bold text-center text-blue-600">
+              <h2 className="text-xs mb-5 sm:text-md md:text-xl font-bold text-center text-blue-500">
                 lub
               </h2>
               <ShareIcon
@@ -223,16 +232,16 @@ const MainPage: React.FC = () => {
           </Link>
 
           {/* Polecany przepis */}
-          <section className="flex flex-col bg-gray-700 shadow-md rounded-lg overflow-hidden transform transition-transform hover:scale-105 duration-300 h-full">
+          <section className="flex flex-col bg-gray-800 shadow-4xl rounded-lg overflow-hidden transform transition-transform hover:scale-103 duration-300 h-full">
             <h2 className="text-xs sm:text-sm md:text-base font-semibold p-1 mt-10 sm:p-2 text-center text-white">
               Polecany przepis
             </h2>
             {recommendedRecipe ? (
-              <div className="flex-grow items-center flex flex-col overflow-hidden shadow-md rounded-lg  transform transition-transform hover:scale-105 duration-300">
+              <div className="flex-grow items-center flex flex-col overflow-hidden shadow-md rounded-xl  transform transition-transform hover:scale-103 duration-300">
                 <img
                   src={recommendedRecipe.image || "/placeholder.jpg"}
                   alt={recommendedRecipe.name}
-                  className="w-[70%] h-[70%] object-cover rounded-t cursor-pointer"
+                  className="w-[70%] h-[70%] object-cover rounded-xl cursor-pointer"
                   onClick={() => openModal(recommendedRecipe)}
                 />
                 <p className="text-center p-1 text-xs sm:text-sm truncate">
@@ -250,7 +259,7 @@ const MainPage: React.FC = () => {
         {/* Cytat i porada */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-5 py-1 sm:py-2 w-full h-[17%]">
           {/* Cytat dnia */}
-          <section className="flex flex-col bg-gray-700 shadow-md rounded-lg transform transition-transform hover:scale-105 duration-300 p-2 sm:p-3 overflow-hidden">
+          <section className="flex flex-col bg-gray-800 shadow-4xl rounded-lg transform transition-transform hover:scale-103 duration-300 p-2 sm:p-3 overflow-hidden">
             <h2 className="text-xs sm:text-sm md:text-base font-semibold mb-1 text-white">
               Cytat dnia
             </h2>
@@ -260,7 +269,7 @@ const MainPage: React.FC = () => {
           </section>
 
           {/* Porada kulinarna */}
-          <section className="flex flex-col bg-gray-700 shadow-md rounded-lg transform transition-transform hover:scale-105 duration-300 p-2 sm:p-3 overflow-hidden">
+          <section className="flex flex-col bg-gray-800 shadow-4xl rounded-lg transform transition-transform hover:scale-103 duration-300 p-2 sm:p-3 overflow-hidden">
             <h2 className="text-xs sm:text-sm md:text-base font-semibold mb-1 text-white">
               Porada kulinarna
             </h2>
@@ -279,7 +288,7 @@ const MainPage: React.FC = () => {
           onClick={closeModal}
         >
           <div
-            className="bg-gray-800 p-4 rounded-lg max-w-lg w-full text-white relative overflow-y-auto max-h-[90vh]"
+            className="bg-gray-800 p-4 rounded-xl max-w-lg w-full text-white relative overflow-y-auto max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -305,10 +314,10 @@ const MainPage: React.FC = () => {
             <p className="mb-4 text-xs sm:text-sm md:text-base">{selectedRecipe.instructions}</p>
             {selectedRecipe.id === recommendedRecipe?.id && (
               <div className="mb-4">
-                <div className="flex justify-between mt-2">
+                <div className="flex justify-center mt-2">
                   <button
                     onClick={() => handleAddToFavorites(selectedRecipe)}
-                    className="bg-red-500 text-white px-2 py-1 rounded text-xs sm:text-sm hover:bg-red-600"
+                    className="bg-red-500 text-center text-white px-2 py-1 rounded text-xs sm:text-sm hover:bg-red-600"
                   >
                     Dodaj do ulubionych
                   </button>
