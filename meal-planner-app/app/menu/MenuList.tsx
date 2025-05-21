@@ -5,6 +5,7 @@ import axios from "axios";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { ShareIcon, StarIcon } from "@heroicons/react/24/outline";
+import { useSearch } from "@/src/SearchContext";
 
 interface Recipe {
   id: number;
@@ -388,10 +389,14 @@ const RecipeDetailsModal: React.FC<{
 };
 
 const MenuComponent: React.FC = () => {
-  const [menus, setMenus] = useState<Menu[]>(() => {
+  const [menus, setMenus] = useState<Menu[]>([]);
+
+  useEffect(() => {
     const stored = localStorage.getItem("menus");
-    return stored ? JSON.parse(stored) : [];
-  });
+    if (stored) {
+      setMenus(JSON.parse(stored));
+    }
+  }, []);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedMenu, setSelectedMenu] = useState<Menu | null>(null);
@@ -402,6 +407,8 @@ const MenuComponent: React.FC = () => {
   const [editCell, setEditCell] = useState<{ dayIndex: number; mealType: string } | null>(null);
   const [currentMenuPage, setCurrentMenuPage] = useState(1);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  
 
   const mealTypes = ["I Śniadanie", "II Śniadanie", "Obiad", "Podwieczorek", "Kolacja"];
   const menusPerPage = 18;
@@ -414,18 +421,34 @@ const MenuComponent: React.FC = () => {
   useEffect(() => {
     localStorage.setItem("menus", JSON.stringify(menus));
   }, [menus]);
+  useEffect(() => {
+    const stored = localStorage.getItem("menus");
+    if (stored) {
+      setMenus(JSON.parse(stored));
+    }
+  }, []);
+
+  const { query } = useSearch();
 
   useEffect(() => {
+    if (!query) return;
+
     const fetchRecipes = async () => {
+      setLoading(true);
       try {
-        const response = await axios.get('http://localhost:5000/foodSecret/search?query=a');
+        const response = await axios.get(`http://localhost:5000/foodSecret/search?query=${query}`, {
+          withCredentials: true,
+        });
         setRecipes(response.data);
-      } catch (error) {
-        console.error('Error fetching recipes:', error);
+      } catch (err) {
+        console.error("Fetch failed", err);
+      } finally {
+        setLoading(false);
       }
     };
+
     fetchRecipes();
-  }, []);
+  }, [query]);
 
   const handleCreateMenu = ({ name, days }: { name: string; days: number }) => {
     const newMenu: Menu = {

@@ -6,6 +6,7 @@ import axios from "axios";
 import Navbar from "../components/Navbar"; 
 import Footer from "../components/Footer";
 import Sidebar from "../components/Sidebar";
+import { useSearch } from "../../src/SearchContext"
 
 interface Recipe {
   id: number;
@@ -216,23 +217,27 @@ const RecipesList: React.FC = () => {
     currentPage * recipesPerPage
   );
 
+  const { query } = useSearch();
+
   useEffect(() => {
+    if (!query) return;
+
     const fetchRecipes = async () => {
+      setLoading(true);
       try {
-        const response = await axios.get('http://localhost:5000/foodSecret/search?query=a');
+        const response = await axios.get(`http://localhost:5000/foodSecret/search?query=${query}`, {
+          withCredentials: true,
+        });
         setRecipes(response.data);
-      } catch (error) {
-        console.error('Error fetching recipes:', error);
+      } catch (err) {
+        console.error("Fetch failed", err);
       } finally {
         setLoading(false);
       }
     };
 
-    const storedRatings = localStorage.getItem("recipeRatings");
-    if (storedRatings) setRatings(JSON.parse(storedRatings));
-
     fetchRecipes();
-  }, []);
+  }, [query]);
 
   const handleRatingChange = (recipeId: number, rating: number) => {
     const updatedRatings = { ...ratings, [recipeId]: rating };

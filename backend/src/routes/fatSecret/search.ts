@@ -11,20 +11,25 @@ interface Recipe {
     image?: string;
 }
 export default async function handler(req: Request, res: Response) {
-  const { query } = req.query;
+  const { query, max_results, page_number } = req.query;
 
   if (!query || typeof query !== 'string') {
     return res.status(400).json({ error: 'Missing or invalid query parameter' });
   }
 
+  const maxResultsNum = max_results && !Array.isArray(max_results) ? Number(max_results) : 50;
+  const pageNumberNum = page_number && !Array.isArray(page_number) ? Number(page_number) : 0;
+
   try {
     const token = await getAccessToken();
 
     const searchParams = new URLSearchParams();
-    searchParams.append('method', 'recipes.search.v3');
+      searchParams.append('method', 'recipes.search.v3');
     searchParams.append('search_expression', query);
     searchParams.append('format', 'json');
     searchParams.append('must_have_images', 'true');
+    searchParams.append('max_results', maxResultsNum.toString());
+    searchParams.append('page_number', pageNumberNum.toString());
     
 
     const searchResponse = await axios.post(
