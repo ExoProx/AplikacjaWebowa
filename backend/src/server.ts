@@ -4,7 +4,6 @@ import userRoutes from './routes/user';
 import loginRoutes from './routes/login';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
-import mainPageRoute from './routes/MainPage';
 import logoutRoute from './routes/logout';
 import foodSearch from './routes/fatSecret/search';
 import rateLimit from 'express-rate-limit';
