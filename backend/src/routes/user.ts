@@ -12,9 +12,6 @@ const userSchema = z.object({
   phoneNumber: z.string().regex(/^\d{9,15}$/), // only digits, 9-15 chars
 });
 // POST request to create a new user
-router.get('/', (req, res) => {
-  res.send('Test route is working!');
-});
 router.post('/', async (req: Request, res: Response) => {
   const parseResult = userSchema.safeParse(req.body);
   if (!parseResult.success) {
@@ -67,6 +64,28 @@ router.post('/', async (req: Request, res: Response) => {
 
     console.error("Transaction error:", err);
     res.status(500).json({ error: "Internal server error" });
+  } finally {
+    client.release();
+  }
+});
+
+router.get('/', async (req: Request, res: Response) => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(`
+      SELECT 
+        u.id_user AS id, 
+        u.name || ' ' || u.lastname AS name,
+        a.email 
+      FROM users u
+      JOIN accounts a ON u.id_account = a.id_account
+    `);
+
+    res.status(200).json(result.rows);
+    console.log(result.rows);
+  } catch (err) {
+    console.error('Error fetching users:', err);
+    res.status(500).json({ error: 'Internal server error' });
   } finally {
     client.release();
   }
