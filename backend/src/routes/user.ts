@@ -4,14 +4,27 @@ import bcrypt from 'bcrypt';
 import { z } from 'zod';
 
 const router = express.Router();
+//Walidacja danych biblitoeką zod
 const userSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(6),
+  password: z.string()
+   .min(8, { message: 'Password must be at least 8 characters long' })
+   .min(8, { message: 'Password must be at least 8 characters long' })
+    .refine((val) => {
+    return val.split('').some(char => char >= 'A' && char <= 'Z');
+    }, { message: 'Password must contain at least one uppercase letter' })
+    .refine((val) => {
+    return val.split('').some(char => char >= '0' && char <= '9');
+  }, { message: 'Password must contain at least one number' })
+  .refine((val) => {
+    const specialChars = '!@#$%^&*()_+';
+    return val.split('').some(char => specialChars.includes(char));
+  }, { message: 'Password must contain at least one special character' }),
   firstName: z.string().min(1),
   lastName: z.string().min(1),
-  phoneNumber: z.string().regex(/^\d{9,15}$/), // only digits, 9-15 chars
+  phoneNumber: z.string().regex(/^\d{9,11}$/), 
 });
-// POST request to create a new user
+//Dodanie nowego użytkownika do bazy danych
 router.post('/', async (req: Request, res: Response) => {
   const parseResult = userSchema.safeParse(req.body);
   if (!parseResult.success) {
@@ -25,7 +38,6 @@ router.post('/', async (req: Request, res: Response) => {
   const client = await db.connect();
 
   try {
-    console.log("Processing request...");
     await client.query("BEGIN");
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -49,7 +61,7 @@ router.post('/', async (req: Request, res: Response) => {
   } catch (err) {
     await client.query("ROLLBACK");
 
-    // Custom database constraint errors
+
     if (typeof err === "object" && err !== null && "code" in err) {
       const pgError = err as { code: string; detail?: string };
       if (pgError.code === "23505") {
@@ -91,5 +103,4 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-// Export the router so it can be used in server.ts
 export default router;

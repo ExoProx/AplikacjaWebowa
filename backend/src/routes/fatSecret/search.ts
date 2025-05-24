@@ -1,7 +1,10 @@
-
+import passport from 'passport';
 import express, { Request, Response } from 'express';
 import { getAccessToken } from '../../utils/fatSecretAuth'
 import axios from 'axios';
+
+const router = express.Router();
+//Scieżka API do wykonywania wyszukiwań w api FatSecret, najpierw pobiera przepisy, a później pobiera szczegółowe dane o instrukcjach w danych przepisach
 interface Recipe {
     id: number;
     name: string;
@@ -10,7 +13,10 @@ interface Recipe {
     instructions?: string;
     image?: string;
 }
-export default async function handler(req: Request, res: Response) {
+router.get(
+  '/',
+  passport.authenticate('jwt', { session: false }),
+  async (req: Request, res: Response) => {
   const { query, max_results, page_number } = req.query;
 
   if (!query || typeof query !== 'string') {
@@ -24,7 +30,7 @@ export default async function handler(req: Request, res: Response) {
     const token = await getAccessToken();
 
     const searchParams = new URLSearchParams();
-      searchParams.append('method', 'recipes.search.v3');
+    searchParams.append('method', 'recipes.search.v3');
     searchParams.append('search_expression', query);
     searchParams.append('format', 'json');
     searchParams.append('must_have_images', 'true');
@@ -54,7 +60,7 @@ export default async function handler(req: Request, res: Response) {
         detailParams.append('method', 'recipe.get.v2');
         detailParams.append('recipe_id', item.recipe_id);
         detailParams.append('format', 'json');
-        detailParams.append('max_results', '50'); // Optional: limits the number of results
+        detailParams.append('max_results', '50');
         detailParams.append('page_number', '0');
 
         const detailResponse = await axios.post(
@@ -89,4 +95,6 @@ export default async function handler(req: Request, res: Response) {
     console.error('Error fetching data from FatSecret API:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
-}
+});
+
+export default router;

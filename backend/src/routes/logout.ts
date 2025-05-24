@@ -1,9 +1,9 @@
 
 import { Router, Request, Response } from 'express';
-import { authenticateToken } from '../middlewares/authMiddleware';
+
+//ścieżka do wylogowania użytkownika
 
 const router = Router();
-
 router.post('/', (req: Request, res: Response) => {
     res.clearCookie('token', {
       path: '/',
