@@ -18,7 +18,6 @@ router.post(
 
     const { name, number } = req.body;
 
-    // Basic validation
     if (
       typeof name !== 'string' || 
       !name.trim() || 
@@ -49,7 +48,34 @@ router.post(
     }
   }
 );
+router.get(
+  '/',
+  passport.authenticate('jwt', { session: false }),
+  async (req: Request, res: Response) => {
+    console.log('req.user:', req.user);
 
-
+    const user = req.user as { userId: string; email: string };
+    if (!user || !user.userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const userId = user.userId;
+    const client = await db.connect();
+    try {
+      await client.query("BEGIN");
+      const result = await client.query(
+        `SELECT id_meal_plans AS id, name, day_count AS days FROM meal_plans WHERE id_user = $1`,
+        [user.userId]
+      );
+      await client.query("COMMIT");
+      return res.status(200).json(result.rows);
+    } catch (err) {
+      await client.query("ROLLBACK");
+      console.error('DB Select Error:', err);
+      return res.status(500).json({ error: "Internal server error" }); 
+    } finally {
+      client.release();
+    }
+  }
+);
 export default router;
 

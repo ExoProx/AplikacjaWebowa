@@ -10,190 +10,12 @@ import RecipeDetailsModal from "./RecipeDetailsModal";
 import Pagination from "../components/Pagination";
 import DeleteConfirmModal from "./DeleteConfirmModal";
 import MenuTile from "./MenuTile";
-
-interface Recipe {
-  id: number;
-  name: string;
-  description: string;
-  ingredients?: string[];
-  instructions?: string;
-  image?: string;
-}
-
-interface Menu {
-  id: number;
-  name: string;
-  days: number;
-  plan: { [meal: string]: Recipe | null }[];
-}
-
-
-
-const Sidebar: React.FC<{ 
-  onCreateMenu: () => void; 
-  onBack?: () => void; 
-  selectedMenu?: Menu | null; 
-  onShare: (menu: Menu) => void;
-}> = ({ onCreateMenu, onBack, selectedMenu, onShare }) => (
-  <div className="w-64 bg-gray-800 shadow-md p-4 flex flex-col gap-4 text-white">
-    <h2 className="text-lg text-center mt-40 font-semibold">
-      {selectedMenu ? selectedMenu.name : "Jadłospisy"}
-    </h2>
-    {selectedMenu ? (
-      <>
-        <button 
-          onClick={() => onShare(selectedMenu)} 
-          className="bg-blue-500 hover:bg-blue-600 p-2 rounded text-sm text-white border-none cursor-pointer"
-        >
-          Udostępnij jadłospis
-        </button>
-        <button 
-          className="bg-blue-500 hover:bg-blue-600 p-2 rounded text-sm text-white border-none cursor-pointer"
-          disabled
-        >
-          Zakończ udostępnianie
-        </button>
-        <button 
-          onClick={onBack} 
-          className="bg-gray-600 hover:bg-gray-700 p-2 rounded text-sm text-white border-none cursor-pointer"
-        >
-          Powrót
-        </button>
-      </>
-    ) : (
-      <button 
-        onClick={onCreateMenu} 
-        className="bg-blue-500 hover:bg-blue-600 p-2 rounded text-sm text-white border-none cursor-pointer"
-      >
-        Utwórz jadłospis
-      </button>
-    )}
-  </div>
-);
-
-const CreateMenuModal: React.FC<{
-  isOpen: boolean;
-  onClose: () => void;
-}> = ({ isOpen, onClose }) => {
-  const [name, setName] = useState("");
-  const [days, setDays] = useState(1);
-  const [message, setMessage] = useState("");
-
-  if (!isOpen) return null;
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    if (!name || days < 1 || days > 31) {
-      setMessage("Proszę podać poprawną nazwę i liczbę dni (1-31).");
-      return;
-    }
-
-    try {
-      await axios.post(
-        "http://localhost:5000/api/menuList",
-        { name, number: days }, // number = days according to your backend
-        {
-          headers: { "Content-Type": "application/json" },
-          withCredentials: true,
-        }
-      );
-        onClose();
-       } catch (err: any) {
-      console.error("Error during submission:", err);
-      if (err.response?.data?.error) {
-        setMessage(err.response.data.error);
-      } else {
-        setMessage("Coś poszło nie tak. Spróbuj ponownie.");
-      }
-    }
-  };
-
-
-  return (
-    <div
-      className="fixed inset-0 flex items-center justify-center z-50"
-      style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}
-      onClick={onClose} // close on clicking outside modal box
-    >
-      <form
-        onSubmit={handleSubmit}
-        className="bg-gray-800 p-6 rounded-lg w-96 text-white"
-        onClick={(e) => e.stopPropagation()} // prevent closing when clicking inside
-      >
-        <h2 className="text-xl font-bold mb-4">Utwórz jadłospis</h2>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Nazwa jadłospisu"
-          className="w-full p-2 mb-4 bg-gray-800 rounded text-white border-none"
-        />
-        <input
-          type="number"
-          value={days}
-          onChange={(e) =>
-            setDays(Math.min(31, Math.max(1, parseInt(e.target.value || "1"))))
-          }
-          min={1}
-          max={31}
-          placeholder="Liczba dni (1-31)"
-          className="w-full p-2 mb-4 bg-gray-800 rounded text-white border-none"
-        />
-
-        {message && (
-          <p className="mb-4 text-red-400 text-center">{message}</p>
-        )}
-
-        <div className="flex justify-between">
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-blue-500 hover:underline"
-          >
-            Anuluj
-          </button>
-          <button
-            type="submit"
-            className="bg-blue-500 hover:bg-blue-600 p-2 rounded text-white border-none"
-          >
-            Utwórz
-          </button>
-        </div>
-      </form>
-    </div>
-  );
-};
-
-const ShareModal: React.FC<{ isOpen: boolean; onClose: () => void; menuId: number }> = ({ isOpen, onClose, menuId }) => {
-  const [link, setLink] = useState("");
-
-  const handleGenerateLink = () => {
-    setLink(`http://localhost:3000/share/${menuId}`);
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}>
-      <div className="bg-gray-800 p-6 rounded-lg w-96 text-white">
-        <input
-          type="text"
-          value={link}
-          readOnly
-          placeholder="Wygeneruj link, aby uzyskać adres"
-          className="w-full p-2 mb-4 bg-gray-800 rounded text-white border-none"
-        />
-        <div className="flex justify-between">
-          <button onClick={handleGenerateLink} className="bg-blue-500 hover:bg-blue-600 p-2 rounded text-white border-none">
-            Wygeneruj link
-          </button>
-          <button onClick={onClose} className="text-blue-500 hover:underline">Powrót</button>
-        </div>
-      </div>
-    </div>
-  );
-};
+import { Menu } from "../types/Menu";
+import { Recipe } from "../types/Recipe";
+import { Meal } from "../types/Meal";
+import Sidebar from "./Sidebar";
+import CreateMenuModal from "./CreateMenuModal";
+import ShareModal from "./ShareModal";
 
 const RecipeModal: React.FC<{
   isOpen: boolean;
@@ -238,61 +60,65 @@ const RecipeModal: React.FC<{
 };
 
 
+const mealTypes = ["I Śniadanie", "II Śniadanie", "Obiad", "Podwieczorek", "Kolacja"];
 
 const MenuComponent: React.FC = () => {
   const [menus, setMenus] = useState<Menu[]>([]);
-
-  useEffect(() => {
-    const stored = localStorage.getItem("menus");
-    if (stored) {
-      setMenus(JSON.parse(stored));
-    }
-  }, []);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [selectedMenu, setSelectedMenu] = useState<Menu | null>(null);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [selectedMenu, setSelectedMenu] = useState<Menu & { plan: Record<string, Recipe | null>[] } | null>(null);
+  const [editCell, setEditCell] = useState<{ dayIndex: number; mealType: string } | null>(null);
+  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [isRecipeModalOpen, setIsRecipeModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
-  const [editCell, setEditCell] = useState<{ dayIndex: number; mealType: string } | null>(null);
-  const [currentMenuPage, setCurrentMenuPage] = useState(1);
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [currentMenuPage, setCurrentMenuPage] = useState(1);
+  const itemsPerPage = 6;
 
-  const mealTypes = ["I Śniadanie", "II Śniadanie", "Obiad", "Podwieczorek", "Kolacja"];
-  const menusPerPage = 18;
-  const totalMenuPages = Math.ceil(menus.length / menusPerPage);
   const currentMenus = menus.slice(
-    (currentMenuPage - 1) * menusPerPage,
-    currentMenuPage * menusPerPage
-  );
+  (currentMenuPage - 1) * itemsPerPage,
+  currentMenuPage * itemsPerPage
+) ;
 
-  useEffect(() => {
-    localStorage.setItem("menus", JSON.stringify(menus));
-  }, [menus]);
-  useEffect(() => {
-    const stored = localStorage.getItem("menus");
-    if (stored) {
-      setMenus(JSON.parse(stored));
-    }
-  }, []);
+const totalMenuPages = Math.ceil(menus.length / itemsPerPage);
 
   const { query } = useSearch();
 
+  useEffect(() => {
+    const storedMenus = localStorage.getItem("menus");
+    if (storedMenus) {
+      setMenus(JSON.parse(storedMenus));
+    }
+
+    const fetchMenus = async () => {
+      try {
+        const res = await axios.get("http://localhost:5000/api/menuList/", { withCredentials: true });
+        setMenus(res.data);
+      console.log("Menus set:", res.data);
+        localStorage.setItem("menus", JSON.stringify(res.data));
+      } catch (err) {
+        console.error("Error fetching menus", err);
+      }
+    };
+
+    fetchMenus();
+  }, []);
+  
+  // Recipe search
   useEffect(() => {
     if (!query) return;
 
     const fetchRecipes = async () => {
       setLoading(true);
       try {
-        const response = await axios.get(`http://localhost:5000/foodSecret/search?query=${query}`, {
+        const res = await axios.get(`http://localhost:5000/foodSecret/search?query=${query}`, {
           withCredentials: true,
         });
-        setRecipes(response.data);
+        setRecipes(res.data);
       } catch (err) {
-        console.error("Fetch failed", err);
+        console.error("Search fetch failed", err);
       } finally {
         setLoading(false);
       }
@@ -301,45 +127,69 @@ const MenuComponent: React.FC = () => {
     fetchRecipes();
   }, [query]);
 
-  const handleCreateMenu = ({ name, days }: { name: string; days: number }) => {
-    const newMenu: Menu = {
-      id: Date.now(),
-      name,
-      days,
-      plan: Array(days).fill(null).map(() => mealTypes.reduce((acc, meal) => ({ ...acc, [meal]: null }), {})),
-    };
-    setMenus((prev) => [...prev, newMenu]);
-  };
+  const handleSelectMenu = async (menu: Menu) => {
+    try {
+      const mealRes = await axios.get(`http://localhost:5000/api/meals/fetch?menuId=${menu.id}`, {
+        withCredentials: true,
+      });
+      const relatedMeals: Meal[] = mealRes.data;
 
-  const handleDeleteMenu = (id: number) => {
-    setMenus((prev) => prev.filter((menu) => menu.id !== id));
-    setDeleteId(null);
-    setSelectedMenu(null);
+      const recipeIds = [...new Set(relatedMeals.map((m) => m.recipeId))];
+
+      const recipeResponses = await Promise.all(
+        recipeIds.map((id) => axios.get(`http://localhost:5000/foodSecret/details?id=${id}`))
+      );
+      const recipeMap: Record<string, Recipe> = Object.fromEntries(
+        recipeResponses.map((res) => [res.data.id, res.data])
+      );
+
+      type DayPlan = Record<string, Recipe | null>;
+
+      const plan: DayPlan[] = Array(menu.days).fill(null).map(() =>
+        mealTypes.reduce((acc, type) => ({ ...acc, [type]: null }), {} as DayPlan)
+      );
+
+      relatedMeals.forEach((meal) => {
+        if (plan[meal.dayIndex]) {
+          plan[meal.dayIndex][meal.mealType] = recipeMap[meal.recipeId];
+        }
+      });
+
+      setSelectedMenu({ ...menu, plan });
+    } catch (err) {
+      console.error("Error fetching meals or recipes", err);
+    }
   };
 
   const handleEditMeal = (dayIndex: number, mealType: string) => {
     setEditCell({ dayIndex, mealType });
     setIsRecipeModalOpen(true);
   };
+  const handleDeleteMenu = async (id: number) => {
+    try {
+      await axios.delete(`http://localhost:5000/api/menuList/delete/${id}`, { withCredentials: true });
+      setMenus((prevMenus) => prevMenus.filter(menu => menu.id !== id));
+      setDeleteId(null);  
+      if (selectedMenu?.id === id) setSelectedMenu(null);
+    } catch (error) {
+      console.error("Failed to delete menu", error);
+   }
+};
 
   const handleSelectRecipe = (recipe: Recipe) => {
-    if (editCell && selectedMenu) {
-      const updatedPlan = [...selectedMenu.plan];
-      updatedPlan[editCell.dayIndex][editCell.mealType] = recipe;
-      setSelectedMenu({ ...selectedMenu, plan: updatedPlan });
-      setMenus((prev) => prev.map((m) => (m.id === selectedMenu.id ? { ...m, plan: updatedPlan } : m)));
-    }
+    if (!selectedMenu || !editCell) return;
+    const updatedPlan = [...selectedMenu.plan];
+    updatedPlan[editCell.dayIndex][editCell.mealType] = recipe;
+    setSelectedMenu({ ...selectedMenu, plan: updatedPlan });
     setIsRecipeModalOpen(false);
     setEditCell(null);
   };
 
   const handleRemoveRecipe = (dayIndex: number, mealType: string) => {
-    if (selectedMenu) {
-      const updatedPlan = [...selectedMenu.plan];
-      updatedPlan[dayIndex][mealType] = null;
-      setSelectedMenu({ ...selectedMenu, plan: updatedPlan });
-      setMenus((prev) => prev.map((m) => (m.id === selectedMenu.id ? { ...m, plan: updatedPlan } : m)));
-    }
+    if (!selectedMenu) return;
+    const updatedPlan = [...selectedMenu.plan];
+    updatedPlan[dayIndex][mealType] = null;
+    setSelectedMenu({ ...selectedMenu, plan: updatedPlan });
   };
 
   const handleShowDetails = (recipe: Recipe) => {
@@ -347,15 +197,8 @@ const MenuComponent: React.FC = () => {
     setIsDetailsModalOpen(true);
   };
 
-  const handleShareMenu = (menu: Menu) => {
-    setSelectedMenu(menu);
-    setIsShareModalOpen(true);
-  };
-
-  const truncateText = (text: string, maxLength: number) => {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + "...";
-  };
+  const truncateText = (text: string, maxLength: number) =>
+    text.length <= maxLength ? text : text.substring(0, maxLength) + "...";
 
   const renderMenuView = () => {
     if (!selectedMenu) return null;
@@ -436,7 +279,7 @@ const MenuComponent: React.FC = () => {
           onCreateMenu={() => setIsCreateModalOpen(true)} 
           onBack={selectedMenu ? () => setSelectedMenu(null) : undefined} 
           selectedMenu={selectedMenu}
-          onShare={handleShareMenu}
+          onShare={() => setIsShareModalOpen(true)}
         />
         <div className="flex-1 flex flex-col p-1 overflow-hidden">
           {!selectedMenu ? (
@@ -446,9 +289,9 @@ const MenuComponent: React.FC = () => {
                   <MenuTile
                     key={menu.id}
                     menu={menu}
-                    onSelect={setSelectedMenu}
+                    onSelect={handleSelectMenu}
                     onDelete={() => setDeleteId(menu.id)}
-                    onShare={handleShareMenu}
+                    onShare={() => setIsShareModalOpen(true)}
                   />
                 ))}
               </div>
