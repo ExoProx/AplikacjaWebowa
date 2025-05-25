@@ -4,8 +4,12 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { ShareIcon, StarIcon } from "@heroicons/react/24/outline";
+import { ShareIcon } from "@heroicons/react/24/outline";
 import { useSearch } from "@/src/SearchContext";
+import RecipeDetailsModal from "./RecipeDetailsModal";
+import Pagination from "../components/Pagination";
+import DeleteConfirmModal from "./DeleteConfirmModal";
+import MenuTile from "./MenuTile";
 
 interface Recipe {
   id: number;
@@ -23,51 +27,7 @@ interface Menu {
   plan: { [meal: string]: Recipe | null }[];
 }
 
-interface PaginationProps {
-  currentPage: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
-}
 
-const Pagination: React.FC<PaginationProps> = ({
-  currentPage,
-  totalPages,
-  onPageChange,
-}) => {
-  return (
-    <div className="flex justify-center py-2">
-      <button
-        className="px-3 py-1 bg-gray-800 rounded hover:bg-gray-700 disabled:opacity-50 text-white"
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage === 1}
-      >
-        {"<"}
-      </button>
-      {Array.from({ length: totalPages }, (_, index) => index + 1).map(
-        (page) => (
-          <button
-            key={page}
-            className={`px-3 py-1 rounded mx-1 ${
-              currentPage === page
-                ? "bg-blue-500 text-white"
-                : "bg-gray-800 hover:bg-gray-700 text-white"
-            }`}
-            onClick={() => onPageChange(page)}
-          >
-            {page}
-          </button>
-        )
-      )}
-      <button
-        className="px-3 py-1 bg-gray-800 rounded hover:bg-gray-700 disabled:opacity-50 text-white"
-        onClick={() => onPageChange(currentPage + 1)}
-        disabled={currentPage === totalPages}
-      >
-        {">"}
-      </button>
-    </div>
-  );
-};
 
 const Sidebar: React.FC<{ 
   onCreateMenu: () => void; 
@@ -235,63 +195,6 @@ const ShareModal: React.FC<{ isOpen: boolean; onClose: () => void; menuId: numbe
   );
 };
 
-const MenuTile: React.FC<{
-  menu: Menu;
-  onSelect: (menu: Menu) => void;
-  onDelete: (id: number) => void;
-  onShare: (menu: Menu) => void;
-}> = ({ menu, onSelect, onDelete, onShare }) => (
-  <div
-    className="bg-slate-800 rounded-lg shadow-md p-4 flex flex-col items-center justify-center cursor-pointer relative transition-transform duration-300 hover:bg-gray-700 hover:scale-105"
-    onClick={() => onSelect(menu)}
-  >
-    <button
-      className="absolute top-2 left-2 text-blue-500 hover:text-blue-700 border-none cursor-pointer"
-      onClick={(e) => {
-        e.stopPropagation();
-        onShare(menu);
-      }}
-    >
-      <ShareIcon className="w-7 h-7" />
-    </button>
-    <img src="/ikona_jadlospis.svg" alt="Ikona jadłospisu" className="w-16 h-16 mb-2" />
-    <p className="text-white text-center text-sm">{menu.name}</p>
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        onDelete(menu.id);
-      }}
-      className="absolute top-2 right-2 text-red-500 hover:text-red-700 border-none cursor-pointer"
-    >
-      <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-      </svg>
-    </button>
-  </div>
-);
-
-const DeleteConfirmModal: React.FC<{
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-}> = ({ isOpen, onClose, onConfirm }) => {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}>
-      <div className="bg-gray-800 p-6 rounded-lg w-96 text-white">
-        <h2 className="text-xl font-bold mb-4">Potwierdź usunięcie</h2>
-        <p>Czy na pewno chcesz usunąć ten jadłospis?</p>
-        <div className="flex justify-between mt-4">
-          <button onClick={onClose} className="text-blue-500 hover:underline">Anuluj</button>
-          <button onClick={onConfirm} className="bg-red-500 hover:bg-red-600 p-2 rounded text-white border-none">
-            Usuń
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const RecipeModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -334,103 +237,7 @@ const RecipeModal: React.FC<{
   );
 };
 
-// Komponent StarRating do oceniania
-interface StarRatingProps {
-  rating: number;
-  onRatingChange: (rating: number) => void;
-}
 
-const StarRating: React.FC<StarRatingProps> = ({ rating, onRatingChange }) => {
-  const [hoverRating, setHoverRating] = useState(0);
-
-  const handleMouseEnter = (index: number) => {
-    setHoverRating(index);
-  };
-
-  const handleMouseLeave = () => {
-    setHoverRating(0);
-  };
-
-  const handleClick = (index: number) => {
-    onRatingChange(index);
-  };
-
-  return (
-    <div className="flex">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <StarIcon
-          key={star}
-          className={`w-6 h-6 cursor-pointer ${
-            star <= (hoverRating || rating) ? "text-yellow-500 fill-current" : "text-gray-400"
-          }`}
-          onMouseEnter={() => handleMouseEnter(star)}
-          onMouseLeave={handleMouseLeave}
-          onClick={() => handleClick(star)}
-        />
-      ))}
-    </div>
-  );
-};
-
-const RecipeDetailsModal: React.FC<{
-  isOpen: boolean;
-  onClose: () => void;
-  recipe: Recipe;
-}> = ({ isOpen, onClose, recipe }) => {
-  const [ratings, setRatings] = useState<{ [key: number]: number }>({});
-
-  useEffect(() => {
-    const storedRatings = localStorage.getItem("recipeRatings");
-    if (storedRatings) {
-      setRatings(JSON.parse(storedRatings));
-    }
-  }, []);
-
-  const handleRatingChange = (newRating: number) => {
-    const updatedRatings = { ...ratings, [recipe.id]: newRating };
-    setRatings(updatedRatings);
-    localStorage.setItem("recipeRatings", JSON.stringify(updatedRatings));
-  };
-
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}>
-      <div className="bg-gray-800 p-4 rounded-lg max-w-2xl w-full shadow-xl text-white overflow-y-auto max-h-[90vh] relative">
-        {ratings[recipe.id] > 0 && (
-          <div className="absolute top-2 right-2 flex items-center bg-gray-800 px-2 py-1 rounded">
-            <span className="text-yellow-500 text-sm">{ratings[recipe.id]}</span>
-            <StarIcon className="w-4 h-4 text-yellow-500 fill-current ml-1" />
-          </div>
-        )}
-        <h2 className="text-2xl font-bold mb-2">{recipe.name}</h2>
-        <p className="mb-2 text-sm">{recipe.description}</p>
-        <h3 className="text-lg font-semibold mb-1">Składniki:</h3>
-        <div className="grid grid-cols-2 gap-x-4 mb-2 text-sm">
-          {recipe.ingredients?.map((ingredient, index) => (
-            <div key={index} className="flex">
-              <span className="mr-2">•</span>
-              <span>{ingredient}</span>
-            </div>
-          ))}
-        </div>
-        <h3 className="text-lg font-semibold mb-1">Instrukcje:</h3>
-        <p className="mb-2 text-sm">{recipe.instructions}</p>
-        <div className="flex justify-between items-center">
-          <button className="text-blue-500 hover:underline text-sm" onClick={onClose}>
-            Zamknij
-          </button>
-          <div className="flex flex-col items-center">
-            <h3 className="text-sm font-semibold mb-1">Oceń przepis</h3>
-            <StarRating
-              rating={ratings[recipe.id] || 0}
-              onRatingChange={handleRatingChange}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const MenuComponent: React.FC = () => {
   const [menus, setMenus] = useState<Menu[]>([]);
