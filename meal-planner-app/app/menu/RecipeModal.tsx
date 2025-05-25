@@ -8,6 +8,7 @@ interface RecipeModalProps {
   onClose: () => void;
   onSelect: (recipe: Recipe) => void;
   initialRecipes: Recipe[];
+  onSearch: (query: string) => Promise<void>;
 }
 
 const RecipeModal: React.FC<RecipeModalProps> = ({ isOpen, onClose, onSelect, initialRecipes }) => {
