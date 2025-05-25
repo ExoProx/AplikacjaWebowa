@@ -3,5 +3,4 @@ export interface Meal {
   menuId: number;
   dayIndex: number;
   mealType: string;
-  recipeId: string;
 }

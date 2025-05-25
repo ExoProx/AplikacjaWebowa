@@ -97,4 +97,63 @@ router.get(
   }
 });
 
+router.get(
+  '/recipes',
+  passport.authenticate('jwt', { session: false }),
+  async (req: Request, res: Response) => {
+    const idsParam = req.query.ids;
+    if (!idsParam || typeof idsParam !== 'string') {
+      return res.status(400).json({ error: 'Missing or invalid "ids" parameter' });
+    }
+
+    const ids = idsParam.split(',').map(id => id.trim()).filter(id => /^\d+$/.test(id));
+    if (ids.length === 0) {
+      return res.status(400).json({ error: 'No valid recipe IDs provided' });
+    }
+
+    try {
+      const token = await getAccessToken();
+
+      const detailedRecipes: Recipe[] = await Promise.all(
+        ids.map(async (id) => {
+          const detailParams = new URLSearchParams();
+          detailParams.append('method', 'recipe.get.v2');
+          detailParams.append('recipe_id', id);
+          detailParams.append('format', 'json');
+
+          const detailResponse = await axios.post(
+            'https://platform.fatsecret.com/rest/server.api',
+            detailParams,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/x-www-form-urlencoded',
+              },
+            }
+          );
+
+          const details = detailResponse.data.recipe;
+
+          return {
+            id: parseInt(details.recipe_id),
+            name: details.recipe_name,
+            description: details.recipe_description,
+            ingredients: details.ingredients?.ingredient?.map((ing: any) => ing.ingredient_description) || [],
+            instructions:
+              details.directions?.direction
+                ?.map((dir: any) => dir.direction_description)
+                .join(' ') || 'Brak instrukcji.',
+            image: details.recipe_images?.recipe_image?.[0] || null,
+          };
+        })
+      );
+
+      return res.status(200).json(detailedRecipes);
+    } catch (error) {
+      console.error('Error fetching multiple recipe details:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+);
+
 export default router;

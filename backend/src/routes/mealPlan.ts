@@ -58,7 +58,6 @@ router.get(
     if (!user || !user.userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    const userId = user.userId;
     const client = await db.connect();
     try {
       await client.query("BEGIN");
@@ -77,5 +76,40 @@ router.get(
     }
   }
 );
+router.get(
+  '/fetch',
+  passport.authenticate('jwt', { session: false }),
+  async (req: Request, res: Response) => {
+    console.log('req.user:', req.user);
+
+    const user = req.user as { userId: string };
+
+    const menuId = Number(req.query.menuId);
+    if (isNaN(menuId)) {
+    return res.status(400).json({ error: 'Invalid menuId' });
+    }
+    if (!menuId || Array.isArray(menuId)) {
+      return res.status(400).json({ error: 'Missing or invalid menuId' });
+    }
+    const client = await db.connect();
+    try {
+      await client.query("BEGIN");
+      const result = await client.query(
+        `SELECT id_recipe as id, meal_plans_recipes.id_meal_plans as menuId, dayindex as dayIndex, meal_type as mealType FROM meal_plans_recipes WHERE 
+        meal_plans_recipes.id_meal_plans = $1`,
+        [menuId]
+      )
+       await client.query('COMMIT');
+
+      return res.status(200).json(result.rows);
+    } catch (err) {
+      console.error("Error fetching meals:", err);
+      res.status(500).json({ error: "Failed to fetch meals" });
+    } finally {
+      client.release();
+    }
+  }
+);
+
 export default router;
 

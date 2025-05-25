@@ -16,51 +16,12 @@ import { Meal } from "../types/Meal";
 import Sidebar from "./Sidebar";
 import CreateMenuModal from "./CreateMenuModal";
 import ShareModal from "./ShareModal";
-
-const RecipeModal: React.FC<{
-  isOpen: boolean;
-  onClose: () => void;
-  onSelect: (recipe: Recipe) => void;
-  recipes: Recipe[];
-}> = ({ isOpen, onClose, onSelect, recipes }) => {
-  const [currentRecipePage, setCurrentRecipePage] = useState(1);
-  const recipesPerPage = 12;
-  const totalRecipePages = Math.ceil(recipes.length / recipesPerPage);
-  const currentRecipes = recipes.slice(
-    (currentRecipePage - 1) * recipesPerPage,
-    currentRecipePage * recipesPerPage
-  );
-
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}>
-      <div className="bg-gray-900 p-6 rounded-lg max-w-7xl w-full text-white max-h-[100vh] overflow-y-auto">
-        <h2 className="text-xl font-bold mb-4">Wybierz przepis</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          {currentRecipes.map((recipe) => (
-            <div
-              key={recipe.id}
-              className="bg-gray-800 p-4 rounded cursor-pointer hover:bg-gray-700 hover:scale-105 duration-300 flex flex-col items-center "
-              onClick={() => onSelect(recipe)}
-            >
-              <img src={recipe.image || "/placeholder.jpg"} alt={recipe.name} className="w-16 h-16 object-cover mb-2" />
-              <p className="text-center">{recipe.name}</p>
-            </div>
-          ))}
-        </div>
-        <Pagination
-          currentPage={currentRecipePage}
-          totalPages={totalRecipePages}
-          onPageChange={setCurrentRecipePage}
-        />
-        <button onClick={onClose} className="text-blue-500 hover:underline">Zamknij</button>
-      </div>
-    </div>
-  );
-};
+import RecipeModal from "./RecipeModal";
 
 
-const mealTypes = ["I Śniadanie", "II Śniadanie", "Obiad", "Podwieczorek", "Kolacja"];
+
+
+const mealTypes = ["Breakfast", "Second Breakfast", "Lunch", "Snack", "Dinner"];
 
 const MenuComponent: React.FC = () => {
   const [menus, setMenus] = useState<Menu[]>([]);
@@ -84,8 +45,6 @@ const MenuComponent: React.FC = () => {
 
 const totalMenuPages = Math.ceil(menus.length / itemsPerPage);
 
-  const { query } = useSearch();
-
   useEffect(() => {
     const storedMenus = localStorage.getItem("menus");
     if (storedMenus) {
@@ -106,19 +65,20 @@ const totalMenuPages = Math.ceil(menus.length / itemsPerPage);
     fetchMenus();
   }, []);
   
-  // Recipe search
+  const { query } = useSearch();
+  //Wyszukiwanie przepisów
   useEffect(() => {
     if (!query) return;
 
     const fetchRecipes = async () => {
       setLoading(true);
       try {
-        const res = await axios.get(`http://localhost:5000/foodSecret/search?query=${query}`, {
+        const response = await axios.get(`http://localhost:5000/foodSecret/search?query=${query}`, {
           withCredentials: true,
         });
-        setRecipes(res.data);
+        setRecipes(response.data);
       } catch (err) {
-        console.error("Search fetch failed", err);
+        console.error("Fetch failed", err);
       } finally {
         setLoading(false);
       }
@@ -128,38 +88,44 @@ const totalMenuPages = Math.ceil(menus.length / itemsPerPage);
   }, [query]);
 
   const handleSelectMenu = async (menu: Menu) => {
-    try {
-      const mealRes = await axios.get(`http://localhost:5000/api/meals/fetch?menuId=${menu.id}`, {
-        withCredentials: true,
-      });
-      const relatedMeals: Meal[] = mealRes.data;
+  try {
+    const mealRes = await axios.get(`http://localhost:5000/api/menuList/fetch?menuId=${menu.id}`, {
+      withCredentials: true,
+    });
+    const relatedMeals: Meal[] = mealRes.data;
 
-      const recipeIds = [...new Set(relatedMeals.map((m) => m.recipeId))];
+    const recipeIds = [...new Set(relatedMeals.map((m) => m.id))];
 
-      const recipeResponses = await Promise.all(
-        recipeIds.map((id) => axios.get(`http://localhost:5000/foodSecret/details?id=${id}`))
-      );
-      const recipeMap: Record<string, Recipe> = Object.fromEntries(
-        recipeResponses.map((res) => [res.data.id, res.data])
-      );
+    const recipeResponses = await Promise.all(
+      recipeIds.map((id) =>
+      axios.get(`http://localhost:5000/foodSecret/search/recipes?ids=${id}`, {
+      withCredentials: true,
+    })
+  )
+);
+    const recipeMap: Record<string, Recipe> = Object.fromEntries(
+      recipeResponses.map((res) => [res.data.id, res.data])
+    );
 
-      type DayPlan = Record<string, Recipe | null>;
+    type DayPlan = Record<string, Recipe | null>;
 
-      const plan: DayPlan[] = Array(menu.days).fill(null).map(() =>
-        mealTypes.reduce((acc, type) => ({ ...acc, [type]: null }), {} as DayPlan)
-      );
+    const plan: DayPlan[] = Array(menu.days).fill(null).map(() =>
+      mealTypes.reduce((acc, type) => ({ ...acc, [type]: null }), {} as DayPlan)
+    );
 
-      relatedMeals.forEach((meal) => {
-        if (plan[meal.dayIndex]) {
-          plan[meal.dayIndex][meal.mealType] = recipeMap[meal.recipeId];
-        }
-      });
+    relatedMeals.forEach((meal) => {
+      if (plan[meal.dayIndex]) {
+        plan[meal.dayIndex][meal.mealType] = recipeMap[meal.id] ?? null;
+      }
+    });
 
-      setSelectedMenu({ ...menu, plan });
-    } catch (err) {
-      console.error("Error fetching meals or recipes", err);
-    }
-  };
+    // ✅ Always set selectedMenu even if relatedMeals is empty
+    setSelectedMenu({ ...menu, plan });
+  } catch (err) {
+    console.error("Error fetching meals or recipes", err);
+  }
+};
+
 
   const handleEditMeal = (dayIndex: number, mealType: string) => {
     setEditCell({ dayIndex, mealType });
@@ -196,146 +162,198 @@ const totalMenuPages = Math.ceil(menus.length / itemsPerPage);
     setSelectedRecipe(recipe);
     setIsDetailsModalOpen(true);
   };
+ const handleRecipeSearch = async (query: string) => {
+  try {
+    const res = await axios.get(`http://localhost:5000/foodSecret/search?query=${query}`, {
+      withCredentials: true,
+    });
+    setRecipes(res.data.recipes); // update recipes list
+    // Remove setRecipePage(1); since it doesn't exist
+  } catch (err) {
+    console.error("Recipe search failed", err);
+  }
+};
 
   const truncateText = (text: string, maxLength: number) =>
     text.length <= maxLength ? text : text.substring(0, maxLength) + "...";
 
   const renderMenuView = () => {
-    if (!selectedMenu) return null;
-    return (
-      <div className="flex flex-col h-full">
-        <div className="flex-1 overflow-x-auto overflow-y-hidden">
-          <table className="w-full h-full border-collapse text-white">
-            <thead>
-              <tr className="bg-gray-800">
-                <th className="text-left px-1 text-small min-w-[120px]">Posiłek</th>
-                {Array.from({ length: selectedMenu.days }, (_, i) => (
-                  <th key={i} className="text-center text-sm min-w-[150px]">Dzień {i + 1}</th>
+  if (!selectedMenu) return null;
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-1 overflow-x-auto overflow-y-hidden">
+        <table className="w-full h-full border-collapse text-white">
+          <thead>
+            <tr className="bg-gray-800">
+              <th className="text-left px-1 text-small min-w-[120px]">Posiłek</th>
+              {Array.from({ length: selectedMenu.days }, (_, i) => (
+                <th key={i} className="text-center text-sm min-w-[150px]">
+                  Dzień {i + 1}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {mealTypes.map((meal) => (
+              <tr key={meal} className="border-t border-gray-600 h-1/5">
+                <td className="p-2 font-semibold whitespace-nowrap overflow-hidden text-ellipsis">
+                  {meal}
+                </td>
+                {selectedMenu.plan.map((day, dayIndex) => (
+                  <td key={dayIndex} className="p-2 align-top">
+                    <div
+                      className="h-full flex items-center justify-center cursor-pointer relative"
+                      onClick={() => day[meal] && handleShowDetails(day[meal]!)}
+                    >
+                      {day[meal] ? (
+                        <div className="flex flex-col items-center p-2 rounded hover:bg-gray-700 transition-transform duration-300 hover:scale-105 overflow-hidden w-full relative">
+                          <img
+                            src={day[meal]!.image || "/placeholder.jpg"}
+                            alt={day[meal]!.name}
+                            className="w-12 h-12 object-cover mb-2"
+                          />
+                          <p className="text-center text-sm w-full">
+                            {truncateText(day[meal]!.name, 13)}
+                          </p>
+                          <button
+                            type="button"
+                            className="absolute top-0 left-0 text-blue-500 hover:text-blue-700"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditMeal(dayIndex, meal);
+                            }}
+                            aria-label={`Edit ${meal} for day ${dayIndex + 1}`}
+                          >
+                            <svg
+                              className="w-6 h-6"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15.828l-5.657-5.657a2 2 0 112.828-2.828l2.829 2.829"
+                              />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            className="absolute top-0 right-0 text-red-500 hover:text-red-700"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveRecipe(dayIndex, meal);
+                            }}
+                            aria-label={`Remove ${meal} for day ${dayIndex + 1}`}
+                          >
+                            <svg
+                              className="w-6 h-6"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      ) : (
+                        <div
+                          className="bg-gray-800 p-2 rounded hover:bg-gray-700 text-center text-sm"
+                          onClick={() => handleEditMeal(dayIndex, meal)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              handleEditMeal(dayIndex, meal);
+                            }
+                          }}
+                        >
+                          Edytuj posiłek
+                        </div>
+                      )}
+                    </div>
+                  </td>
                 ))}
               </tr>
-            </thead>
-            <tbody>
-              {mealTypes.map((meal) => (
-                <tr key={meal} className="border-t border-gray-600 h-1/5">
-                  <td className="p-2 font-semibold whitespace-nowrap overflow-hidden text-ellipsis">{meal}</td>
-                  {selectedMenu.plan.map((day, dayIndex) => (
-                    <td key={dayIndex} className="p-2 align-top">
-                      <div
-                        className="h-full flex items-center justify-center cursor-pointer relative"
-                        onClick={() => day[meal] && handleShowDetails(day[meal]!)}
-                      >
-                        {day[meal] ? (
-                          <div className="flex flex-col items-center p-2 rounded hover:bg-gray-700 transition-transform duration-300 hover:scale-105 overflow-hidden w-full relative">
-                            <img src={day[meal]!.image || "/placeholder.jpg"} alt={day[meal]!.name} className="w-12 h-12 object-cover mb-2" />
-                            <p className="text-center text-sm w-full">{truncateText(day[meal]!.name, 13)}</p>
-                            <button
-                              className="absolute top-0 left-0 text-blue-500 hover:text-blue-700"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditMeal(dayIndex, meal);
-                              }}
-                            >
-                              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15.828l-5.657-5.657a2 2 0 112.828-2.828l2.829 2.829" />
-                              </svg>
-                            </button>
-                            <button
-                              className="absolute top-0 right-0 text-red-500 hover:text-red-700"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRemoveRecipe(dayIndex, meal);
-                              }}
-                            >
-                              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          </div>
-                        ) : (
-                          <div
-                            className="bg-gray-800 p-2 rounded hover:bg-gray-700 text-center text-sm"
-                            onClick={() => handleEditMeal(dayIndex, meal)}
-                          >
-                            Edytuj posiłek
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       </div>
-    );
-  };
-
-  return (
-    <div className="flex flex-col h-screen bg-gray-900 text-white">
-      <Navbar />
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar 
-          onCreateMenu={() => setIsCreateModalOpen(true)} 
-          onBack={selectedMenu ? () => setSelectedMenu(null) : undefined} 
-          selectedMenu={selectedMenu}
-          onShare={() => setIsShareModalOpen(true)}
-        />
-        <div className="flex-1 flex flex-col p-1 overflow-hidden">
-          {!selectedMenu ? (
-            <div className="flex flex-col h-full">
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4 flex-1">
-                {currentMenus.map((menu) => (
-                  <MenuTile
-                    key={menu.id}
-                    menu={menu}
-                    onSelect={handleSelectMenu}
-                    onDelete={() => setDeleteId(menu.id)}
-                    onShare={() => setIsShareModalOpen(true)}
-                  />
-                ))}
-              </div>
-              <Pagination
-                currentPage={currentMenuPage}
-                totalPages={totalMenuPages}
-                onPageChange={setCurrentMenuPage}
-              />
-            </div>
-          ) : (
-            renderMenuView()
-          )}
-        </div>
-      </div>
-      <CreateMenuModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-      />
-      <DeleteConfirmModal
-        isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
-        onConfirm={() => handleDeleteMenu(deleteId!)}
-      />
-      <RecipeModal
-        isOpen={isRecipeModalOpen}
-        onClose={() => setIsRecipeModalOpen(false)}
-        onSelect={handleSelectRecipe}
-        recipes={recipes}
-      />
-      <RecipeDetailsModal
-        isOpen={isDetailsModalOpen}
-        onClose={() => setIsDetailsModalOpen(false)}
-        recipe={selectedRecipe!}
-      />
-      {selectedMenu && (
-        <ShareModal
-          isOpen={isShareModalOpen}
-          onClose={() => setIsShareModalOpen(false)}
-          menuId={selectedMenu.id}
-        />
-      )}
-      <Footer />
     </div>
   );
 };
+
+return (
+  <div className="flex flex-col h-screen bg-gray-900 text-white">
+    <Navbar />
+    <div className="flex flex-1 overflow-hidden">
+      <Sidebar
+        onCreateMenu={() => setIsCreateModalOpen(true)}
+        onBack={selectedMenu ? () => setSelectedMenu(null) : undefined}
+        selectedMenu={selectedMenu}
+        onShare={() => setIsShareModalOpen(true)}
+      />
+      <div className="flex-1 flex flex-col p-1 overflow-hidden">
+        {!selectedMenu ? (
+          <div className="flex flex-col h-full">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4 flex-1">
+              {currentMenus.map((menu) => (
+                <MenuTile
+                  key={menu.id}
+                  menu={menu}
+                  onSelect={handleSelectMenu}
+                  onDelete={() => setDeleteId(menu.id)}
+                  onShare={() => setIsShareModalOpen(true)}
+                />
+              ))}
+            </div>
+            <Pagination
+              currentPage={currentMenuPage}
+              totalPages={totalMenuPages}
+              onPageChange={setCurrentMenuPage}
+            />
+          </div>
+        ) : (
+          renderMenuView()
+        )}
+      </div>
+    </div>
+    <CreateMenuModal
+      isOpen={isCreateModalOpen}
+      onClose={() => setIsCreateModalOpen(false)}
+    />
+    <DeleteConfirmModal
+      isOpen={!!deleteId}
+      onClose={() => setDeleteId(null)}
+      onConfirm={() => handleDeleteMenu(deleteId!)}
+    />
+    <RecipeModal
+  isOpen={isRecipeModalOpen}
+  onClose={() => setIsRecipeModalOpen(false)}
+  onSelect={handleSelectRecipe}
+  initialRecipes={recipes}  // pass the full list here
+/>
+    <RecipeDetailsModal
+      isOpen={isDetailsModalOpen}
+      onClose={() => setIsDetailsModalOpen(false)}
+      recipe={selectedRecipe!}
+    />
+    {selectedMenu && (
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        menuId={selectedMenu.id}
+      />
+    )}
+    <Footer />
+  </div>
+);
+}
 
 export default MenuComponent;
