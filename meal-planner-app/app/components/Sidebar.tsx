@@ -14,10 +14,10 @@ const Sidebar: React.FC = () => {
   const { input, setInput, categories, toggleCategory, triggerSearch } = useSearch();
   return (
     <div className="w-64 bg-gray-800 shadow-md p-4">
-      <h2 className="text-lg font-semibold mb-4 text-white">Filtry</h2>
+      <h2 className="text-lg font-semibold mb-4 text-white">Filters</h2>
       <input
         type="text"
-        placeholder="Szukaj przepisów"
+        placeholder="Search recipes"
         value={input}
         onChange={e => setInput(e.target.value)}
         className="w-full p-2 mb-3 border rounded bg-gray-700 text-white"
@@ -25,15 +25,15 @@ const Sidebar: React.FC = () => {
       <button onClick={triggerSearch}
         className="w-full p-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors duration-200 mb-4"
       >
-        Wyszukaj
+        Search
       </button>
-      <h3 className="text-md font-semibold mb-2 text-white">Sortuj wg</h3>
+      <h3 className="text-md font-semibold mb-2 text-white">Sort by</h3>
       <select className="w-full p-2 mb-4 border rounded bg-gray-700 text-white">
-        <option>Nazwa</option>
-        <option>Popularność</option>
-        <option>Ocena</option>
+        <option>Name</option>
+        <option>Popularity</option>
+        <option>Rating</option>
       </select>
-      <h3 className="text-md font-semibold mb-2 text-white">Kategorie</h3>
+      <h3 className="text-md font-semibold mb-2 text-white">Categories</h3>
       <div className="space-y-2">
          {categoriesList.map(category => (
         <label key={category} className="flex items-center mb-1">

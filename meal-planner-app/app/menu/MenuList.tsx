@@ -35,7 +35,7 @@ const RecipeModal: React.FC<{
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}>
       <div className="bg-gray-900 p-6 rounded-lg max-w-7xl w-full text-white max-h-[100vh] overflow-y-auto">
-        <h2 className="text-xl font-bold mb-4">Wybierz przepis</h2>
+        <h2 className="text-xl font-bold mb-4">Select a recipe</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
           {currentRecipes.map((recipe) => (
             <div
@@ -53,14 +53,13 @@ const RecipeModal: React.FC<{
           totalPages={totalRecipePages}
           onPageChange={setCurrentRecipePage}
         />
-        <button onClick={onClose} className="text-blue-500 hover:underline">Zamknij</button>
+        <button onClick={onClose} className="text-blue-500 hover:underline">Close</button>
       </div>
     </div>
   );
 };
 
-
-const mealTypes = ["I Śniadanie", "II Śniadanie", "Obiad", "Podwieczorek", "Kolacja"];
+const mealTypes = ["Breakfast I", "Breakfast II", "Lunch", "Afternoon Snack", "Dinner"];
 
 const MenuComponent: React.FC = () => {
   const [menus, setMenus] = useState<Menu[]>([]);
@@ -78,11 +77,11 @@ const MenuComponent: React.FC = () => {
   const itemsPerPage = 6;
 
   const currentMenus = menus.slice(
-  (currentMenuPage - 1) * itemsPerPage,
-  currentMenuPage * itemsPerPage
-) ;
+    (currentMenuPage - 1) * itemsPerPage,
+    currentMenuPage * itemsPerPage
+  );
 
-const totalMenuPages = Math.ceil(menus.length / itemsPerPage);
+  const totalMenuPages = Math.ceil(menus.length / itemsPerPage);
 
   const { query } = useSearch();
 
@@ -96,7 +95,7 @@ const totalMenuPages = Math.ceil(menus.length / itemsPerPage);
       try {
         const res = await axios.get("http://localhost:5000/api/menuList/", { withCredentials: true });
         setMenus(res.data);
-      console.log("Menus set:", res.data);
+        console.log("Menus set:", res.data);
         localStorage.setItem("menus", JSON.stringify(res.data));
       } catch (err) {
         console.error("Error fetching menus", err);
@@ -105,8 +104,7 @@ const totalMenuPages = Math.ceil(menus.length / itemsPerPage);
 
     fetchMenus();
   }, []);
-  
-  // Recipe search
+
   useEffect(() => {
     if (!query) return;
 
@@ -165,16 +163,17 @@ const totalMenuPages = Math.ceil(menus.length / itemsPerPage);
     setEditCell({ dayIndex, mealType });
     setIsRecipeModalOpen(true);
   };
+
   const handleDeleteMenu = async (id: number) => {
     try {
       await axios.delete(`http://localhost:5000/api/menuList/delete/${id}`, { withCredentials: true });
       setMenus((prevMenus) => prevMenus.filter(menu => menu.id !== id));
-      setDeleteId(null);  
+      setDeleteId(null);
       if (selectedMenu?.id === id) setSelectedMenu(null);
     } catch (error) {
       console.error("Failed to delete menu", error);
-   }
-};
+    }
+  };
 
   const handleSelectRecipe = (recipe: Recipe) => {
     if (!selectedMenu || !editCell) return;
@@ -208,9 +207,9 @@ const totalMenuPages = Math.ceil(menus.length / itemsPerPage);
           <table className="w-full h-full border-collapse text-white">
             <thead>
               <tr className="bg-gray-800">
-                <th className="text-left px-1 text-small min-w-[120px]">Posiłek</th>
+                <th className="text-left px-1 text-small min-w-[120px]">Meal</th>
                 {Array.from({ length: selectedMenu.days }, (_, i) => (
-                  <th key={i} className="text-center text-sm min-w-[150px]">Dzień {i + 1}</th>
+                  <th key={i} className="text-center text-sm min-w-[150px]">Day {i + 1}</th>
                 ))}
               </tr>
             </thead>
@@ -256,7 +255,7 @@ const totalMenuPages = Math.ceil(menus.length / itemsPerPage);
                             className="bg-gray-800 p-2 rounded hover:bg-gray-700 text-center text-sm"
                             onClick={() => handleEditMeal(dayIndex, meal)}
                           >
-                            Edytuj posiłek
+                            Edit meal
                           </div>
                         )}
                       </div>

@@ -1,4 +1,3 @@
-// app/components/RegisterForm.client.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -29,7 +28,7 @@ const RegisterForm: React.FC = () => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      // For phone numbers, strip non-digits
+      // Dla numerów telefonu usuwamy znaki niebędące cyframi
       [name]: name === "phoneNumber" ? value.replace(/\D/g, "") : value,
     }));
   };
@@ -67,81 +66,91 @@ const RegisterForm: React.FC = () => {
   return (
     <div className="p-2 rounded-lg px-6 shadow-lg w-full max-w-xs bg-gray-700 text-white">
       <h1 className="text-2xl font-bold mb-2 text-center">
-        Formularz rejestracji
+        Registration Form
       </h1>
       <form onSubmit={handleSubmit}>
-      <div className="text-black">
-        <InputField
-          label="Imię:"
-          type="text"
-          field="firstName"
-          value={formData.firstName}
-          onChange={handleChange}
-          placeholder="Wpisz swoje imię"
-        />
-        <InputField
-          label="Nazwisko:"
-          type="text"
-          field="lastName"
-          value={formData.lastName}
-          onChange={handleChange}
-          placeholder="Wpisz swoje nazwisko"
-        />
-        <InputField
-          label="Adres E-mail:"
-          type="email"
-          field="email"
-          value={formData.email}
-          onChange={handleChange}
-          placeholder="Wpisz swój e-mail"
-          icon={<MailCheck className="text-gray-800" size={20} />}
-        />
-        <InputField
-          label="Numer telefonu:"
-          type="number"
-          field="phoneNumber"
-          value={formData.phoneNumber}
-          onChange={handleChange}
-          maxLength={11} // Note: For inputs of type=number maxLength doesn't work. Consider using type="text"
-          placeholder="Wpisz swój numer telefonu"
-          icon={<FileLockIcon className="text-gray-800" size={20} />}
-        />
-        <InputField
-          label="Hasło:"
-          type="password"
-          field="password"
-          value={formData.password}
-          onChange={handleChange}
-          placeholder="Wpisz hasło"
-        />
+        <div className="text-black">
+          <InputField
+            label="First Name:"
+            type="text"
+            field="firstName"
+            value={formData.firstName}
+            onChange={handleChange}
+            placeholder="Enter your first name"
+          />
+          <InputField
+            label="Last Name:"
+            type="text"
+            field="lastName"
+            value={formData.lastName}
+            onChange={handleChange}
+            placeholder="Enter your last name"
+          />
+          <InputField
+            label="Email Address:"
+            type="email"
+            field="email"
+            value={formData.email}
+            onChange={handleChange}
+            placeholder="Enter your email"
+            icon={<MailCheck className="text-gray-800" size={20} />}
+          />
+          <InputField
+            label="Phone Number:"
+            type="text" // zmieniono na "text", ponieważ maxLength nie działa z "number"
+            field="phoneNumber"
+            value={formData.phoneNumber}
+            onChange={handleChange}
+            placeholder="Enter your phone number"
+            icon={<FileLockIcon className="text-gray-800" size={20} />}
+          />
+          <InputField
+            label="Password:"
+            type="password"
+            field="password"
+            value={formData.password}
+            onChange={handleChange}
+            placeholder="Enter your password"
+          />
         </div>
 
         <div className="transform transition-transform hover:scale-110 duration-300">
-          <SubmitButton type="submit" className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-md">
-            Zarejestruj się
+          <SubmitButton
+            type="submit"
+            className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-md"
+          >
+            Register
           </SubmitButton>
         </div>
       </form>
 
       {message && (
-        <p className="mt-4 text-center text-green-600 font-semibold">{message}</p>
+        <p className="mt-4 text-center text-green-600 font-semibold">
+          {message}
+        </p>
       )}
 
       <div className="mt-2 text-center">
-        <p className="text-xs">Masz już konto?</p>
+        <p className="text-xs">Already have an account?</p>
         <div className="transform transition-transform hover:scale-110 duration-300">
           <Link href="/login">
-            <SubmitButton type="button" className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-md mt-1">
-              Zaloguj się
+            <SubmitButton
+              type="button"
+              className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-md mt-1"
+            >
+              Log in
             </SubmitButton>
           </Link>
         </div>
       </div>
 
       <div className="mt-6 transform transition-transform hover:scale-110 duration-300">
-        <Link href="/app">
-          <SubmitButton type="button" className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-md" back>
-            Powrót do strony głównej
+        <Link href="/">
+          <SubmitButton
+            type="button"
+            className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-md"
+          >
+            Back to Home
           </SubmitButton>
         </Link>
       </div>

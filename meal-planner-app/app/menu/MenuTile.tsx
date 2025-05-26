@@ -21,7 +21,7 @@ const MenuTile: React.FC<{
     >
       <ShareIcon className="w-7 h-7" />
     </button>
-    <img src="/ikona_jadlospis.svg" alt="Ikona jadłospisu" className="w-16 h-16 mb-2" />
+    <img src="/ikona_jadlospis.svg" alt="Meal plan icon" className="w-16 h-16 mb-2" />
     <p className="text-white text-center text-sm">{menu.name}</p>
     <button
       onClick={(e) => {

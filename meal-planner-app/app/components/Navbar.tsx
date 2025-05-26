@@ -37,13 +37,13 @@ const Navbar: React.FC<NavbarProps> = ({ className }) => {
           <HomeIcon className="h-6 w-6" />
         </Link>
         <Link href="/recipes" className="text-white hover:text-gray-300">
-          Przepisy
+          Recipes
         </Link>
         <Link href="/favorites" className="text-white hover:text-gray-300">
-          Ulubione przepisy
+          Favorite Recipes
         </Link>
         <Link href="/menu" className="text-white hover:text-gray-300">
-          Jadłospisy
+          Meal Plans
         </Link>
         <Link href="/userData" className="text-white hover:text-gray-300">
           <UserIcon className="h-6 w-6 text-gray-300 hover:text-white" />

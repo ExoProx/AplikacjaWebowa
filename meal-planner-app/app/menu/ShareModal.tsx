@@ -16,14 +16,14 @@ const ShareModal: React.FC<{ isOpen: boolean; onClose: () => void; menuId: numbe
           type="text"
           value={link}
           readOnly
-          placeholder="Wygeneruj link, aby uzyskać adres"
+          placeholder="Generate link to get an address"
           className="w-full p-2 mb-4 bg-gray-800 rounded text-white border-none"
         />
         <div className="flex justify-between">
           <button onClick={handleGenerateLink} className="bg-blue-500 hover:bg-blue-600 p-2 rounded text-white border-none">
-            Wygeneruj link
+            Generate Link
           </button>
-          <button onClick={onClose} className="text-blue-500 hover:underline">Powrót</button>
+          <button onClick={onClose} className="text-blue-500 hover:underline">Return</button>
         </div>
       </div>
     </div>
