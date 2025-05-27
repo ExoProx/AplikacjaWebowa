@@ -11,8 +11,8 @@ import RecipeModal from "../components/RecipeModal";
 import Loading from '../components/Loading'; // Correct import for Loading
 import { Recipe } from "../types/Recipe";
 import RecipeTile from "./RecipeTile";
-
 import { useRouter } from 'next/navigation';
+import { getFavoriteRecipes } from "../api/favorites";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
@@ -24,13 +24,26 @@ const RecipesList: React.FC = () => {
   const [isLoadingRecipes, setIsLoadingRecipes] = useState(false); // Existing state for recipe search
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [ratings, setRatings] = useState<{ [key: number]: number }>({});
+  const [favoriteRecipeIds, setFavoriteRecipeIds] = useState<string[]>([]);
 
   const recipesPerPage = 12;
   const { query } = useSearch();
   const router = useRouter();
+  const refreshFavorites = async () => {
+    try {
+      const favorites = await getFavoriteRecipes();
+      const favoritesArray = Array.from(favorites).map(id => id.toString());
+      setFavoriteRecipeIds(favoritesArray);
+    } catch (error) {
+      // Błędy obsłużone w getFavoriteRecipes
+    }
+  };
 
-  // Memoize fetchRecipes to prevent unnecessary re-creations, especially important with debounce
-  const fetchRecipes = useCallback(async () => {
+  useEffect(() => {
+    refreshFavorites();
+  }, []);
+
+  useEffect(() => {
     if (!query) {
       setRecipes([]);
       setIsLoadingRecipes(false); // Ensure loading is off if no query
@@ -75,13 +88,22 @@ const RecipesList: React.FC = () => {
         await axios.get(`${API_BASE_URL}/api/users/userdata`, {
           withCredentials: true,
         });
-        fetchRecipes();
-      } catch (error: any) {
-        console.error("Authentication failed on RecipesList:", error);
-        if (axios.isAxiosError(error) && error.response && error.response.status === 401) {
-          router.push('/login?error=auth');
+
+        setRecipes(response.data.recipes || response.data);
+        setCurrentPage(1);
+        await refreshFavorites();
+      } catch (err: any) {
+        if (axios.isAxiosError(err) && err.response) {
+          if (err.response.status === 401) {
+            setErrorMessage("Session expired or unauthorized. Please log in again.");
+            router.push('/login?error=auth');
+          } else if (err.response.status === 404) {
+            setErrorMessage("No recipes found for your search.");
+          } else {
+            setErrorMessage(`Error searching recipes: ${err.response.statusText || 'Unknown error'}`);
+          }
         } else {
-          setErrorMessage("Failed to authenticate. Please try again or log in.");
+          setErrorMessage("An unexpected error occurred while searching for recipes.");
         }
         setRecipes([]);
       } finally {
@@ -142,14 +164,13 @@ const RecipesList: React.FC = () => {
 
   // Once authenticated and page is loaded, render the content
   return (
-    <div className="flex flex-col h-screen bg-gray-900 text-white font-sans">
+    <div className="flex flex-col min-h-screen bg-gray-900 text-white font-sans">
       <Navbar />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        {/* This div is the main content area for recipes, messages, and loading */}
-        <div className="flex-1 flex flex-col p-2 relative"> {/* Needs relative for inner absolute loading */}
+        <div className="flex-1 flex flex-col p-6 overflow-hidden">
           {errorMessage && (
-            <div className="bg-red-700 text-white p-3 rounded-md mb-4 text-center">
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg mb-6 text-center backdrop-blur-sm">
               {errorMessage}
             </div>
           )}
@@ -163,29 +184,45 @@ const RecipesList: React.FC = () => {
           ) : (
             <>
               {currentRecipes.length === 0 && query ? (
-                <div className="flex-1 flex items-center justify-center text-gray-400 text-lg">
-                  No recipes found for "{query}". Try a different search!
+                <div className="flex-1 flex flex-col items-center justify-center text-gray-400 space-y-4">
+                  <div className="text-6xl">🔍</div>
+                  <p className="text-xl">No recipes found for "{query.replace('query=', '')}"</p>
+                  <p className="text-gray-500">Try a different search term!</p>
                 </div>
               ) : currentRecipes.length === 0 && !query ? (
-                <div className="flex-1 flex items-center justify-center text-gray-400 text-lg">
-                  Start by searching for recipes using the search bar!
+                <div className="flex-1 flex flex-col items-center justify-center text-gray-400 space-y-4">
+                  <div className="text-6xl">👨‍🍳</div>
+                  <p className="text-xl">Ready to find some delicious recipes?</p>
+                  <p className="text-gray-500">Start by searching using the search bar above!</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 flex-1 overflow-y-auto pb-4 w-full">
-                  {currentRecipes.map((recipe) => (
-                    <RecipeTile
-                      key={recipe.id}
-                      recipe={recipe}
-                      onSelect={handleSelectRecipe}
+                <div className="flex-1 overflow-hidden flex flex-col">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-min flex-1 overflow-y-auto pb-6 px-2">
+                    {currentRecipes.map((recipe) => {
+                      const recipeIdStr = recipe.id.toString();
+                      const isRecipeFavorite = favoriteRecipeIds.includes(recipeIdStr);
+                      const recipeRating = ratings[recipe.id] || 0;
+                      return (
+                        <RecipeTile
+                          key={recipe.id}
+                          recipe={recipe}
+                          onSelect={handleSelectRecipe}
+                          isFavorite={isRecipeFavorite}
+                          onFavoriteChange={refreshFavorites}
+                          rating={recipeRating}
+                        />
+                      );
+                    })}
+                  </div>
+                  <div className="mt-6 flex justify-center">
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={handlePageChange}
                     />
-                  ))}
+                  </div>
                 </div>
               )}
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
-              />
             </>
           )}
         </div>
@@ -199,7 +236,7 @@ const RecipesList: React.FC = () => {
           onRatingChange={(rating) => handleRatingChange(selectedRecipe.id, rating)}
         />
       )}
-      <Footer className="w-full bg-gray-800 p-4 text-white" />
+      <Footer className="w-full bg-gray-800/50 backdrop-blur-sm border-t border-gray-700/50 p-4 text-white" />
     </div>
   );
 };

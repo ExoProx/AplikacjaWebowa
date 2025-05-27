@@ -10,6 +10,7 @@ import rateLimit from 'express-rate-limit';
 import mealPlanRoute from './routes/mealPlan'
 import passport from './config/passport';
 import auth from './routes/auth';
+import favoritesRoute from './routes/favorites';
 
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, 
@@ -47,6 +48,7 @@ app.use('/api/login', loginRoutes);
 app.use('/api/logout', logoutRoute);
 app.use('/api/menuList', mealPlanRoute);
 app.use('/api/auth', auth)
+app.use('/api/favorites', favoritesRoute)
 app.use('/foodSecret/search', foodSearch);
 
 app.listen(PORT, () => {
