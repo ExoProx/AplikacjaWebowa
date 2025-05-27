@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MailCheck, FileLockIcon } from 'lucide-react';
 import InputField from 'components/InputField'; // Make sure this component exists and is correctly implemented
 import SubmitButton from 'components/SubmitButton'; // Same for this component
@@ -18,6 +18,27 @@ const LoginForm: React.FC = () => {
   const [message, setMessage] = useState<string>('');
   const router = useRouter();
 
+
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/auth/', {
+          withCredentials: true, // Important: Sends cookies
+        });
+        if (response.status === 200) {
+
+        }
+        } catch (error) {
+          if (axios.isAxiosError(error) && error.response?.status === 401) {
+          console.log("Token is invalid or expired.");
+          router.push('/login');
+      }
+    }
+  }
+  checkAuthStatus();
+}
+);
+ 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };

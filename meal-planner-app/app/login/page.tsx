@@ -5,7 +5,9 @@ import { HomeIcon } from "lucide-react";
 import React from "react";
 import LoginForm from "./LoginForm";
 
+
 const LoginPage: React.FC = () => {
+
   return (
     <div
       className="min-h-screen flex items-center justify-center relative"

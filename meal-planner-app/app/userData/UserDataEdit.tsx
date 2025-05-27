@@ -12,15 +12,17 @@ import Link from "next/link";
 
 interface ProfileData {
   name: string;
-  email: string;
+  lastname: string;
+  phone_number: number;
   password?: string;
 }
 
 const ProfileEdit: React.FC = () => {
   const [profileData, setProfileData] = useState<ProfileData>({
     name: "",
-    email: "",
-    password: "",
+    lastname: "",
+    phone_number: 0,
+    password: ""
   });
   const [message, setMessage] = useState<string>("");
   const router = useRouter();
@@ -29,12 +31,13 @@ const ProfileEdit: React.FC = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/user", {
+        const response = await axios.get("http://localhost:5000/api/users/userdata", {
           withCredentials: true,
         });
         setProfileData({
           name: response.data.name || "",
-          email: response.data.email || "",
+          lastname: response.data.lastname || "",
+          phone_number: response.data.phone_number || "",
           password: "", // Hasło nie jest pobierane ze względów bezpieczeństwa
         });
       } catch (err) {
@@ -71,13 +74,23 @@ const ProfileEdit: React.FC = () => {
               className="bg-gray-200 rounded-md p-2 w-full text-gray-800"
             />
             <InputField
-              label="E-mail"
-              type="email"
-              field="email"
-              value={profileData.email}
+              label="Nazwisko"
+              type="text"
+              field="lastname"
+              value={profileData.password || ""}
               onChange={handleChange}
-              placeholder="Wpisz swój e-mail"
-              icon={<Mail className="text-gray-800" size={20} />}
+              placeholder="Wpisz nowe nazwisko  "
+              icon={<Lock className="text-gray-800" size={20} />}
+              className="bg-gray-200 rounded-md p-2 w-full text-gray-800"
+            />
+            <InputField
+              label="Numer telefonu"
+              type="number"
+              field="phone_number"
+              value={profileData.password || ""}
+              onChange={handleChange}
+              placeholder="Wpisz nowe hasło"
+              icon={<Lock className="text-gray-800" size={20} />}
               className="bg-gray-200 rounded-md p-2 w-full text-gray-800"
             />
             <InputField

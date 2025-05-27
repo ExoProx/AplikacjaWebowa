@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import db from '../db';
 import bcrypt from 'bcrypt';
 import { z } from 'zod';
+import passport from 'passport';
 
 const router = express.Router();
 //Walidacja danych biblitoeką zod
@@ -93,6 +94,42 @@ router.get('/', async (req: Request, res: Response) => {
       JOIN accounts a ON u.id_account = a.id_account
     `);
 
+    res.status(200).json(result.rows);
+    console.log(result.rows);
+  } catch (err) {
+    console.error('Error fetching users:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    client.release();
+  }
+});
+
+router.get('/userdata',
+  passport.authenticate('jwt', { session: false }),
+  async (req: Request, res: Response) => {
+  const user = req.user as { userId: string };
+
+  const client = await db.connect();
+  try {
+    const accountResult = await client.query(`
+      SELECT 
+        id_account FROM users WHERE id_account = $1`,[user.userId]
+    );
+    if (accountResult.rows.length === 0) {
+    console.warn(`User with ID ${user.userId} not found in users table.`);
+    // Or handle this as an error if a user should always exist
+    return res.status(404).json({ error: 'User data not found.' });
+}
+    const accountId = accountResult.rows[0].id_account;
+    const result = await client.query(`
+      SELECT
+        a.email, u.name, u.lastname, u.phone_number FROM users u 
+      JOIN
+      accounts a ON u.id_account = a.id 
+      WHERE
+      u.id_account = $1; 
+      `,[accountId]);
+    await client.query("COMMIT");
     res.status(200).json(result.rows);
     console.log(result.rows);
   } catch (err) {

@@ -32,7 +32,7 @@ router.post(
     try {
       await client.query("BEGIN");
       await client.query(
-        `INSERT INTO meal_plans (name, created_at, id_user, day_count) 
+        `INSERT INTO meal_plans (name, created_at, id_account, day_count) 
          VALUES ($1, Now(), $2, $3)`,
         [name.trim(), userId, number]
       );
@@ -119,7 +119,7 @@ router.get(
     try {
       await client.query("BEGIN");
       const result = await client.query(
-        `SELECT id_meal_plans AS id, name, day_count AS days FROM meal_plans WHERE id_user = $1`,
+        `SELECT id_meal_plans AS id, name, day_count AS days FROM meal_plans WHERE id_account = $1`,
         [user.userId]
       );
       await client.query("COMMIT");
@@ -170,6 +170,78 @@ router.get(
     } catch (err: any) {
       console.error("Error fetching meals from DB:", err);
       res.status(500).json({ error: "Failed to fetch meals." });
+    } finally {
+      client.release();
+    }
+  }
+);
+
+router.delete(
+  '/delete',
+  passport.authenticate('jwt', { session: false }),
+  async (req: Request, res: Response) => {
+    const user = req.user as { userId: string };
+    const menuId = Number(req.query.menuId);
+    if (isNaN(menuId) || menuId <= 0) {
+      console.error('Validation failed for menuId. Sending 400 error.'); // Use error for clarity
+      return res.status(400).json({ error: 'Invalid or missing menuId' });
+    }
+    const client = await db.connect();
+     try {
+      await client.query("BEGIN");
+      await client.query(
+        `DELETE FROM meal_plans_recipes WHERE id_meal_plans = $1`,
+      [menuId]);
+      await client.query(
+        `DELETE FROM meal_plans WHERE id_meal_plans = $1`,
+        [menuId]);
+      await client.query("COMMIT");
+
+    return res.status(201).json({ message: "Mealplan DELETED" });
+    } catch (err) {
+      await client.query("ROLLBACK");
+      console.error('DB DELETE Error:', err);
+      return res.status(500).json({ error: "Internal server error" }); 
+    } finally {
+      client.release();
+    }
+  }
+);
+
+router.post(
+  '/deleteRecipe',
+  passport.authenticate('jwt', { session: false }),
+  async (req: Request, res: Response) => {
+    const user = req.user as { userId: string };
+    const menuId = Number(req.query.menuId);
+    const mealType = String(req.query.mealType);
+    const mealTypes = ["Breakfast", "Second Breakfast", "Lunch", "Snack", "Dinner"];
+    const dayIndex = Number(req.query.dayIndex);
+    if (isNaN(menuId) || menuId <= 0) {
+      console.error('Validation failed for menuId. Sending 400 error.'); 
+      return res.status(400).json({ error: 'Invalid or missing menuId' });
+    }
+    if (!mealTypes.includes(mealType)){
+      console.error('Validation failed for mealTypes. Sending 400 error.'); 
+      return res.status(400).json({ error: 'Invalid or missing menuId' });
+    }
+    if (isNaN(dayIndex) || dayIndex <= 0) {
+      console.error('Validation failed for menuId. Sending 400 error.'); 
+      return res.status(400).json({ error: 'Invalid or missing menuId' });
+    }
+
+    const client = await db.connect();
+     try {
+      await client.query("BEGIN");
+      await client.query(
+        `DELETE FROM meal_plans_recipes WHERE id_meal_plans = $1 AND meal_type= $2 AND day_count =$3 `,
+      [menuId]);
+      await client.query("COMIT");
+    return res.status(201).json({ message: "Recipe DELETED" });
+    } catch (err) {
+      await client.query("ROLLBACK");
+      console.error('DB DELETE Error:', err);
+      return res.status(500).json({ error: "Internal server error" }); 
     } finally {
       client.release();
     }

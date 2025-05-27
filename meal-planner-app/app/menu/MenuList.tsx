@@ -16,11 +16,12 @@ import Sidebar from "./Sidebar";
 import CreateMenuModal from "./CreateMenuModal";
 import ShareModal from "./ShareModal";
 import RecipeModal from "./RecipeModal";
-
+import { useRouter } from 'next/navigation';
+import Loading from "../components/Loading";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
 const mealTypes = ["Breakfast", "Second Breakfast", "Lunch", "Snack", "Dinner"];
-
+//Komponent tworzący stronę wyboru jadłospisów, oraz samego jadłospisu
 const MenuComponent: React.FC = () => {
   const [menus, setMenus] = useState<Menu[]>([]);
   const [selectedMenu, setSelectedMenu] = useState<Menu & { plan: Record<string, Recipe | null>[] } | null>(null);
@@ -29,50 +30,73 @@ const MenuComponent: React.FC = () => {
   const [isRecipeModalOpen, setIsRecipeModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [loading, setLoading] = useState(false); 
+  const [loading, setLoading] = useState(true); 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [currentMenuPage, setCurrentMenuPage] = useState(1);
+  const [isLoadingMain, setIsLoadingMain] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+   const [isLoadingContent, setIsLoadingContent] = useState(false);
   const itemsPerPage = 6;
-
-  const currentMenus = menus.slice(
-    (currentMenuPage - 1) * itemsPerPage,
-    currentMenuPage * itemsPerPage
-  );
-
-  const totalMenuPages = Math.ceil(menus.length / itemsPerPage);
-
+  const router = useRouter();
+  const { query } = useSearch();
   useEffect(() => {
-    const storedMenus = localStorage.getItem("menus");
-    if (storedMenus) {
-      setMenus(JSON.parse(storedMenus));
-    }
+    const loadInitialData = async () => {
+      setIsLoadingMain(true); // Start main loading
+      setErrorMessage(null); // Clear any previous errors
 
-    const fetchMenus = async () => {
       try {
+        // 1. Check Authentication Status
+        const authResponse = await axios.get(`${API_BASE_URL}/api/auth/check-auth`, {
+          withCredentials: true,
+        });
+
+        if (authResponse.status !== 200 || !authResponse.data.isAuthenticated) {
+          console.log("Not authenticated, redirecting to login.");
+          router.push('/login');
+          return; // Stop execution if not authenticated
+        }
+
+        // 2. If authenticated, fetch menus
+        // Try to load from localStorage first for a quicker initial display
+        const storedMenus = localStorage.getItem("menus");
+        if (storedMenus) {
+          setMenus(JSON.parse(storedMenus));
+        }
+
+        // Always attempt to fetch fresh menus from API in background
         const res = await axios.get(`${API_BASE_URL}/api/menuList/`, { withCredentials: true });
         setMenus(res.data);
-        console.log("Menus set:", res.data);
         localStorage.setItem("menus", JSON.stringify(res.data));
-      } catch (err) {
-        console.error("Error fetching menus", err);
+        console.log("Menus fetched and set:", res.data);
 
+      } catch (error) {
+        console.error("Error during authentication or fetching menus:", error);
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          setErrorMessage("Session expired. Please log in again.");
+          router.push('/login');
+        } else {
+          setErrorMessage("Failed to load initial data. Please try again.");
+        }
+      } finally {
+        setIsLoadingMain(false); // End main loading
       }
     };
 
-    fetchMenus();
-  }, []);
+    loadInitialData();
+  }, [router]); // Effect runs once on mount. `router` is in dependencies as good practice.
 
-  const { query } = useSearch();
+  // --- Effect for Recipe Search based on `query` ---
   useEffect(() => {
     if (!query) {
       setRecipes([]);
       return;
     }
-
+    //Obsługa pobierania przepisów w edycji jadłospisu
     const fetchRecipes = async () => {
-      setLoading(true);
+      setIsLoadingContent(true); // Set content loading for recipe search
+      setErrorMessage(null);
       try {
         const response = await axios.get(`${API_BASE_URL}/foodSecret/search?query=${query}`, {
           withCredentials: true,
@@ -93,9 +117,19 @@ const MenuComponent: React.FC = () => {
     return () => clearTimeout(debounceFetch);
   }, [query]);
 
+  const currentMenus = menus.slice(
+    (currentMenuPage - 1) * itemsPerPage,
+    currentMenuPage * itemsPerPage
+  );
+  const totalMenuPages = Math.ceil(menus.length / itemsPerPage);
+const handleCreateMenuSuccess = (newMenu: Menu) => { 
 
-  // D:\Projekty\AplikacjaWebowa\meal-planner-app\app\menu\MenuList.tsx
+    setMenus((prevMenus) => [...prevMenus, newMenu]); 
+    setIsCreateModalOpen(false); 
 
+  };
+
+  //Funkcja wyboru jadłospisu
 const handleSelectMenu = async (menu: Menu) => {
   setLoading(true);
   try {
@@ -103,7 +137,7 @@ const handleSelectMenu = async (menu: Menu) => {
     const mealRes = await axios.get(`${API_BASE_URL}/api/menuList/fetch?menuId=${menu.id}`, {
       withCredentials: true,
     });
-    const relatedMeals: Meal[] = mealRes.data; // Backend's dayindex here is now 1-based
+    const relatedMeals: Meal[] = mealRes.data;
     console.log("Fetched relatedMeals from backend:", relatedMeals);
 
     const recipeIds: string[] = [...new Set(relatedMeals.map((m) => m.id).filter(Boolean))];
@@ -130,8 +164,6 @@ const handleSelectMenu = async (menu: Menu) => {
     console.log("Constructed recipeMap:", recipeMap);
 
     type DayPlan = Record<string, Recipe | null>;
-    // Initialize plan with `menu.days + 1` length.
-    // plan[0] will be unused, plan[1] will be Day 1, plan[2] will be Day 2, etc.
     const plan: DayPlan[] = Array(menu.days + 1)
       .fill(null)
       .map(() =>
@@ -140,12 +172,12 @@ const handleSelectMenu = async (menu: Menu) => {
     console.log("Menu days:", menu.days);
 
     relatedMeals.forEach((meal) => {
-      const frontendDayIndex = meal.dayindex; // Use dayindex directly (assuming backend now sends 1-based)
-      const trimmedMealType = meal.mealtype.trim(); // Trim spaces
+      const frontendDayIndex = meal.dayindex;
+      const trimmedMealType = meal.mealtype.trim();
 
       if (plan[frontendDayIndex] && meal.id !== null) {
         const recipeForSlot = recipeMap[String(meal.id)] ?? null;
-        plan[frontendDayIndex][trimmedMealType] = recipeForSlot; // Assign to 1-based index
+        plan[frontendDayIndex][trimmedMealType] = recipeForSlot;
         console.log(`Assigned recipe to Day ${frontendDayIndex}, Meal ${trimmedMealType}:`, recipeForSlot ? recipeForSlot.name : "null");
       } else {
         console.warn(`Skipping assignment for Day ${frontendDayIndex}, Meal ${trimmedMealType}. Plan entry exists: ${!!plan[frontendDayIndex]}, Recipe ID not null: ${meal.id !== null}`);
@@ -160,49 +192,47 @@ const handleSelectMenu = async (menu: Menu) => {
     setLoading(false);
   }
 };
-
+//Edycja posiłku
   const handleEditMeal = (dayIndex: number, mealType: string) => {
   setEditCell({ dayIndex, mealType });
   setIsRecipeModalOpen(true);
 };
+  //Usuwanie jadłospisu
+  const handleDeleteMenu = async (menuIdToDelete: number) => { 
+  try {
+    await axios.delete(`${API_BASE_URL}/api/menuList/delete?menuId=${menuIdToDelete}`, { withCredentials: true });
 
-  const handleDeleteMenu = async (id: number) => {
-    try {
-      await axios.delete(`${API_BASE_URL}/api/menuList/delete/${id}`, { withCredentials: true });
-      setMenus((prevMenus) => prevMenus.filter(menu => menu.id !== id));
-      setDeleteId(null);
-      if (selectedMenu?.id === id) setSelectedMenu(null);
-      // Removed: toast.success("Meal plan deleted successfully!");
-    } catch (error) {
-      console.error("Failed to delete menu", error);
-      // Removed: toast.error("Failed to delete meal plan.");
+    setMenus((prevMenus) => prevMenus.filter(m => m.id !== menuIdToDelete));
+
+    setDeleteId(null);
+    if (selectedMenu?.id === menuIdToDelete) {
+      setSelectedMenu(null);
     }
-  };
+  } catch (error) {
+    console.error("Failed to delete menu", error);
+  }
+};
 
-  // D:\Projekty\AplikacjaWebowa\meal-planner-app\app\menu\MenuList.tsx
-
-// D:\Projekty\AplikacjaWebowa\meal-planner-app\app\menu\MenuList.tsx
-
+  //Wybór przepisu do ustawienia
 const handleSelectRecipe = async (recipe: Recipe) => {
   if (!selectedMenu || !editCell) return;
 
-  const { dayIndex, mealType } = editCell; // dayIndex is already 1-based from state
+  const { dayIndex, mealType } = editCell;
 
   try {
     await axios.put(
       `${API_BASE_URL}/api/menuList/updateMeal`,
       {
         menuId: selectedMenu.id,
-        dayIndex: dayIndex, // Send the 1-based dayIndex directly to the backend
+        dayIndex: dayIndex, 
         mealType: mealType,
         recipeId: recipe.id,
       },
       { withCredentials: true }
     );
 
-    // Update local state: The local plan is 1-based, so use dayIndex directly
     const updatedPlan = [...selectedMenu.plan];
-    updatedPlan[dayIndex][mealType] = recipe; // Use 1-based index for local state
+    updatedPlan[dayIndex][mealType] = recipe;
     setSelectedMenu({ ...selectedMenu, plan: updatedPlan });
 
     setIsRecipeModalOpen(false);
@@ -212,8 +242,8 @@ const handleSelectRecipe = async (recipe: Recipe) => {
   }
 };
 
-  // D:\Projekty\AplikacjaWebowa\meal-planner-app\app\menu\MenuList.tsx
 
+//Usunięcie przepisu
 const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
   if (!selectedMenu) return;
 
@@ -222,27 +252,27 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
       `${API_BASE_URL}/api/menuList/updateMeal`,
       {
         menuId: selectedMenu.id,
-        dayIndex: dayIndex, // Send the 1-based dayIndex directly to the backend
+        dayIndex: dayIndex, 
         mealType: mealType,
         recipeId: null,
       },
       { withCredentials: true }
     );
 
-    // Update local state: The local plan is 1-based, so use dayIndex directly
+
     const updatedPlan = [...selectedMenu.plan];
-    updatedPlan[dayIndex][mealType] = null; // Use 1-based index for local state
+    updatedPlan[dayIndex][mealType] = null;
     setSelectedMenu({ ...selectedMenu, plan: updatedPlan });
   } catch (error) {
     console.error("Failed to remove recipe from meal plan", error);
   }
 };
-
+  //Pokazanie detali przepisu
   const handleShowDetails = (recipe: Recipe) => {
     setSelectedRecipe(recipe);
     setIsDetailsModalOpen(true);
   };
-
+  //Wyszukiwanie przepisu
   const handleRecipeSearch = async (query: string) => {
     try {
       const res = await axios.get(`${API_BASE_URL}/foodSecret/search?query=${query}`, {
@@ -257,17 +287,33 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
 
   const truncateText = (text: string, maxLength: number) =>
     text.length <= maxLength ? text : text.substring(0, maxLength) + "...";
+   if (isLoadingMain) {
+    return (
+      <div className="flex flex-col h-screen bg-gray-900 text-white font-sans items-center justify-center">
+        <Loading /> {/* Your Loading component */}
+      </div>
+    );
+  }
 
+  // If we reach here, main loading is complete, user is authenticated (or redirected)
+  // If there was an error during main loading (and no redirect), display it
+  if (errorMessage && !isLoadingMain) {
+    return (
+      <div className="flex flex-col h-screen bg-gray-900 text-white font-sans items-center justify-center">
+        <p className="text-red-500 text-center text-lg">{errorMessage}</p>
+        <button
+          onClick={() => router.push('/login')} // Provide an option to retry/login
+          className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Go to Login
+        </button>
+      </div>
+    );
+  }
+  
+  //Renderowanie widoku jadłospisu
   const renderMenuView = () => {
     if (!selectedMenu) return null;
-
-    if (loading) { // Using the same 'loading' state for menu details
-      return (
-        <div className="flex justify-center items-center h-full text-white">
-          <p>Loading meal plan details...</p> {/* Simple loading indicator */}
-        </div>
-      );
-    }
 
     return (
       <div className="flex flex-col h-full">
@@ -289,10 +335,9 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
       <td className="p-2 font-semibold whitespace-nowrap overflow-hidden text-ellipsis">
         {meal}
       </td>
-      {/* Loop for the correct number of days, generating 1-based indices */}
       {Array.from({ length: selectedMenu.days }, (_, i) => {
-        const displayDayIndex = i + 1; // This is the 1-based day index (1 for Day 1, 2 for Day 2, etc.)
-        const dayPlanEntry = selectedMenu.plan[displayDayIndex]; // Access plan array using 1-based index
+        const displayDayIndex = i + 1;
+        const dayPlanEntry = selectedMenu.plan[displayDayIndex];
 
         return (
           <td key={i} className="p-2 align-top">
@@ -300,7 +345,7 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
               className="h-full flex items-center justify-center cursor-pointer relative"
               onClick={() => dayPlanEntry && dayPlanEntry[meal] && handleShowDetails(dayPlanEntry[meal]!)}
             >
-              {dayPlanEntry && dayPlanEntry[meal] ? ( // Check if the 1-based day entry and meal exist
+              {dayPlanEntry && dayPlanEntry[meal] ? ( 
                 <div className="flex flex-col items-center p-2 rounded hover:bg-gray-700 transition-transform duration-300 hover:scale-105 overflow-hidden w-full relative">
                   <img
                     src={dayPlanEntry[meal]!.image || "/placeholder.jpg"}
@@ -315,33 +360,31 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
                     className="absolute top-0 left-0 text-blue-500 hover:text-blue-700"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleEditMeal(displayDayIndex, meal); // Pass 1-based index to handler
+                      handleEditMeal(displayDayIndex, meal); 
                     }}
                     aria-label={`Edit ${meal} for day ${displayDayIndex}`}
                   >
-                    {/* ... Edit SVG ... */}
                   </button>
                   <button
                     type="button"
                     className="absolute top-0 right-0 text-red-500 hover:text-red-700"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleRemoveRecipe(displayDayIndex, meal); // Pass 1-based index to handler
+                      handleRemoveRecipe(displayDayIndex, meal); 
                     }}
                     aria-label={`Remove ${meal} for day ${displayDayIndex}`}
                   >
-                    {/* ... Remove SVG ... */}
                   </button>
                 </div>
               ) : (
                 <div
                   className="bg-gray-800 p-2 rounded hover:bg-gray-700 text-center text-sm"
-                  onClick={() => handleEditMeal(displayDayIndex, meal)} // Pass 1-based index to handler
+                  onClick={() => handleEditMeal(displayDayIndex, meal)} 
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
-                      handleEditMeal(displayDayIndex, meal); // Pass 1-based index to handler
+                      handleEditMeal(displayDayIndex, meal);
                     }
                   }}
                 >
@@ -360,7 +403,7 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
       </div>
     );
   };
-
+  //Renderowanie strony wyboru jadłospisu
   return (
     <div className="flex flex-col h-screen bg-gray-900 text-white">
       <Navbar />
@@ -380,7 +423,10 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
                     key={menu.id}
                     menu={menu}
                     onSelect={handleSelectMenu}
-                    onDelete={() => setDeleteId(menu.id)}
+                    onDelete={() => {
+    console.log("Attempting to set deleteId to:", menu.id);
+    setDeleteId(menu.id);
+  }}
                     onShare={() => setIsShareModalOpen(true)}
                   />
                 ))}
@@ -399,6 +445,7 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
       <CreateMenuModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
+        onCreateSuccess={handleCreateMenuSuccess}
       />
       <DeleteConfirmModal
         isOpen={!!deleteId}
@@ -425,7 +472,6 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
         />
       )}
       <Footer />
-      {/* Removed: ToastContainer */}
     </div>
   );
 }
