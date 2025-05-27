@@ -67,7 +67,7 @@ const Sidebar: React.FC<{
           className="w-full flex items-center justify-center gap-2 bg-blue-500/80 hover:bg-blue-600/80 px-4 py-2.5 rounded-lg text-sm font-medium text-white border border-blue-400/20 backdrop-blur-sm transition-colors duration-200"
         >
           <PlusCircle className="w-4 h-4" />
-          Create Menu
+          Create new Plan
         </button>
       )}
     </div>

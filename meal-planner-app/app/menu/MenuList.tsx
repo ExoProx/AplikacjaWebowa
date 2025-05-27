@@ -19,15 +19,12 @@ import RecipeModal from "./RecipeModal";
 import { useRouter } from 'next/navigation';
 import Loading from "../components/Loading";
 import { PlusIcon } from "lucide-react";
+import { Copy, Link2Off, Share2, Trash2 } from "lucide-react";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+
 
 const mealTypes = ["Breakfast", "Second Breakfast", "Lunch", "Snack", "Dinner"];
 //Komponent tworzący stronę wyboru jadłospisów, oraz samego jadłospisu
-
-interface MenuTileProps {
-  menu: Menu;
-  description?: string;
-}
 
 const MenuComponent: React.FC = () => {
   const [menus, setMenus] = useState<Menu[]>([]);
@@ -37,6 +34,7 @@ const MenuComponent: React.FC = () => {
   const [isRecipeModalOpen, setIsRecipeModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [loading, setLoading] = useState(true); 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -44,79 +42,128 @@ const MenuComponent: React.FC = () => {
   const [isLoadingMain, setIsLoadingMain] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoadingContent, setIsLoadingContent] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const itemsPerPage = 6;
+  const [sharingStatuses, setSharingStatuses] = useState<{[key: number]: boolean}>({});
+  const [currentMenuId, setCurrentMenuId] = useState<number | null>(null);
+  const itemsPerPage = 12;
   const router = useRouter();
   const { query } = useSearch();
   const [isExtendModalOpen, setIsExtendModalOpen] = useState(false);
   const [menuToExtend, setMenuToExtend] = useState<Menu | null>(null);
   const [daysToAdd, setDaysToAdd] = useState(1);
-  
+
+  const checkSharingStatus = async (menuId: number) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/menuList/check-share/${menuId}`, {
+        withCredentials: true
+      });
+      
+      const isShared = response.data.mealPlan && response.data.mealPlan.token && response.data.mealPlan.token.length > 0;
+      return isShared;
+    } catch (err) {
+      return false;
+    }
+  };
+
   useEffect(() => {
     const loadInitialData = async () => {
-      setIsLoadingMain(true); // Start main loading
-      setErrorMessage(null); // Clear any previous errors
+      setIsLoadingMain(true);
+      setErrorMessage(null);
 
       try {
-        // 1. Check Authentication Status
-        const authResponse = await axios.get(`${API_BASE_URL}/api/auth/check-auth`, {
-          withCredentials: true,
-        });
+        let authResponse;
+        try {
+          authResponse = await axios.get(`${API_BASE_URL}/api/auth/check-auth`, {
+            withCredentials: true,
+            timeout: 8000,
+          });
+        } catch (authError: any) {
+          if (authError.message === 'Network Error') {
+            setErrorMessage("Failed to connect to the server. Please ensure the backend server is running.");
+            setIsLoadingMain(false);
+            return;
+          }
+          
+          if (authError.code === 'ECONNABORTED') {
+            setErrorMessage("Connection timeout. Check your connection and try again.");
+            setIsLoadingMain(false);
+            return;
+          }
 
-        if (authResponse.status !== 200 || !authResponse.data.isAuthenticated) {
-          console.log("Not authenticated, redirecting to login.");
-          router.push('/login?error=auth');
+          if (authError.response?.status === 401) {
+            router.push('/login');
+            return;
+          }
+
+          setErrorMessage("Authentication check failed. Please try again.");
+          setIsLoadingMain(false);
           return;
         }
 
-        const storedMenus = localStorage.getItem("menus");
-        if (storedMenus) {
-          setMenus(JSON.parse(storedMenus));
+        if (!authResponse || authResponse.status !== 200 || !authResponse.data.isAuthenticated) {
+          router.push('/login');
+          return;
         }
 
-        const res = await axios.get(`${API_BASE_URL}/api/menuList/`, { withCredentials: true });
-        setMenus(res.data);
-        localStorage.setItem("menus", JSON.stringify(res.data));
-        console.log("Menus fetched and set:", res.data);
+        let menuResponse;
+        try {
+          menuResponse = await axios.get(`${API_BASE_URL}/api/menuList/`, { 
+            withCredentials: true,
+            timeout: 5000,
+          });
 
-      } catch (error) {
-        console.error("Error during authentication or fetching menus:", error);
-        if (axios.isAxiosError(error) && error.response?.status === 401) {
-          setErrorMessage("Session expired. Please log in again.");
-          router.push('/login?error=auth');
-        } else {
-          setErrorMessage("Failed to load initial data. Please try again.");
+          if (!Array.isArray(menuResponse.data)) {
+            throw new Error('Invalid menu data received');
+          }
+
+          setMenus(menuResponse.data);
+
+          const sharingStatusUpdates: {[key: number]: boolean} = {};
+          for (const menu of menuResponse.data) {
+            try {
+              const isShared = await checkSharingStatus(menu.id);
+              sharingStatusUpdates[menu.id] = isShared;
+            } catch (err) {
+              sharingStatusUpdates[menu.id] = false;
+            }
+          }
+          
+          setSharingStatuses(sharingStatusUpdates);
+
+        } catch (menuError: any) {
+          if (menuError.message === 'Network Error') {
+            setErrorMessage("Failed to fetch meal plans. Check your connection.");
+          } else if (menuError.code === 'ECONNABORTED') {
+            setErrorMessage("Timeout fetching meal plans. Check your connection and try again.");
+          } else {
+            setErrorMessage(menuError.response?.data?.error || "Failed to fetch meal plans.");
+          }
         }
+
+      } catch (error: any) {
+        setErrorMessage("An unexpected error occurred. Please try again later.");
       } finally {
         setIsLoadingMain(false);
       }
     };
 
     loadInitialData();
-  }, [router]); 
+  }, [router]);
 
   useEffect(() => {
     if (!query) {
       setRecipes([]);
       return;
     }
-    //Obsługa pobierania przepisów w edycji jadłospisu
+
     const fetchRecipes = async () => {
-      setIsLoadingContent(true); //
+      setIsLoadingContent(true); 
       setErrorMessage(null);
-      
       try {
         const response = await axios.get(`${API_BASE_URL}/foodSecret/search?query=${query}`, {
           withCredentials: true,
         });
         setRecipes(response.data.recipes || response.data);
       } catch (err) {
-        if (axios.isAxiosError(err) && err.response?.status === 401) {
-          setErrorMessage("Session expired. Please log in again.");
-          router.push('/login?error=auth');
-        }
-        console.error("Global recipe search failed", err);
-
       } finally {
         setLoading(false);
       }
@@ -134,48 +181,44 @@ const MenuComponent: React.FC = () => {
     currentMenuPage * itemsPerPage
   );
   const totalMenuPages = Math.ceil(menus.length / itemsPerPage);
+
 const handleCreateMenuSuccess = (newMenu: Menu) => { 
     setMenus((prevMenus) => [...prevMenus, newMenu]); 
     setIsCreateModalOpen(false); 
   };
 
-  //Funkcja wyboru jadłospisu
 const handleSelectMenu = async (menu: Menu) => {
   setLoading(true);
   try {
-    console.log("Attempting to fetch meals for menuId:", menu.id);
     const mealRes = await axios.get(`${API_BASE_URL}/api/menuList/fetch?menuId=${menu.id}`, {
       withCredentials: true,
     });
     const relatedMeals: Meal[] = mealRes.data;
-    console.log("Fetched relatedMeals from backend:", relatedMeals);
+
+    try {
+      const isShared = await checkSharingStatus(menu.id);
+      setSharingStatuses(prev => ({ ...prev, [menu.id]: isShared }));
+    } catch (shareErr) {
+      setSharingStatuses(prev => ({ ...prev, [menu.id]: false }));
+    }
 
     const recipeIds: string[] = [...new Set(relatedMeals.map((m) => m.id).filter(Boolean))];
-    console.log("Extracted recipeIds from meals:", recipeIds);
 
     const batchedRecipeIds = recipeIds.join(',');
     let fetchedRecipes: Recipe[] = [];
     if (recipeIds.length > 0) {
       try {
-        console.log("Fetching recipes from FatSecret with IDs:", batchedRecipeIds);
         const recipeFetchRes = await axios.get(`${API_BASE_URL}/foodSecret/search/recipes?ids=${batchedRecipeIds}`, {
           withCredentials: true,
         });
         fetchedRecipes = recipeFetchRes.data;
-        console.log("Fetched recipes from FatSecret:", fetchedRecipes);
       } catch (recipeErr) {
-        if (axios.isAxiosError(recipeErr) && recipeErr.response?.status === 401) {
-          setErrorMessage("Session expired. Please log in again.");
-          router.push('/login?error=auth');
-        }
-        console.error("Error fetching recipes from FatSecret API:", recipeErr);
       }
     }
 
     const recipeMap: Record<string, Recipe> = Object.fromEntries(
       fetchedRecipes.map((recipe) => [String(recipe.id), recipe])
     );
-    console.log("Constructed recipeMap:", recipeMap);
 
     type DayPlan = Record<string, Recipe | null>;
     const plan: DayPlan[] = Array(menu.days)
@@ -183,7 +226,6 @@ const handleSelectMenu = async (menu: Menu) => {
       .map(() =>
         mealTypes.reduce((acc, type) => ({ ...acc, [type]: null }), {} as DayPlan)
       );
-    console.log("Menu days:", menu.days);
 
     relatedMeals.forEach((meal) => {
       const frontendDayIndex = meal.dayindex;
@@ -192,22 +234,19 @@ const handleSelectMenu = async (menu: Menu) => {
       if (plan[frontendDayIndex] && meal.id !== null) {
         const recipeForSlot = recipeMap[String(meal.id)] ?? null;
         plan[frontendDayIndex][trimmedMealType] = recipeForSlot;
-        console.log(`Assigned recipe to Day ${frontendDayIndex}, Meal ${trimmedMealType}:`, recipeForSlot ? recipeForSlot.name : "null");
-      } else {
-        console.warn(`Skipping assignment for Day ${frontendDayIndex}, Meal ${trimmedMealType}. Plan entry exists: ${!!plan[frontendDayIndex]}, Recipe ID not null: ${meal.id !== null}`);
       }
     });
 
-    console.log("Final plan constructed:", plan);
     setSelectedMenu({ ...menu, plan });
   } catch (err) {
-    console.error("Error fetching meals or menu details", err);
+    setErrorMessage("Failed to load menu details. Please try again.");
   } finally {
     setLoading(false);
   }
 };
 //Edycja posiłku
   const handleEditMeal = (dayIndex: number, mealType: string) => {
+
   setEditCell({ dayIndex, mealType });
   setIsRecipeModalOpen(true);
 };
@@ -223,11 +262,6 @@ const handleSelectMenu = async (menu: Menu) => {
       setSelectedMenu(null);
     }
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
-          setErrorMessage("Session expired. Please log in again.");
-          router.push('/login?error=auth');
-        }else
-    console.error("Failed to delete menu", error);
   }
 };
 
@@ -256,11 +290,6 @@ const handleSelectRecipe = async (recipe: Recipe) => {
     setIsRecipeModalOpen(false);
     setEditCell(null);
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
-          setErrorMessage("Session expired. Please log in again.");
-          router.push('/login?error=auth');
-        }else
-    console.error("❌ Failed to save recipe to menu:", error);
   }
 };
 
@@ -281,16 +310,10 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
       { withCredentials: true }
     );
 
-
     const updatedPlan = [...selectedMenu.plan];
     updatedPlan[dayIndex][mealType] = null;
     setSelectedMenu({ ...selectedMenu, plan: updatedPlan });
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
-          setErrorMessage("Session expired. Please log in again.");
-          router.push('login?error=auth');
-        }else
-    console.error("Failed to remove recipe from meal plan", error);
   }
 };
   //Pokazanie detali przepisu
@@ -306,37 +329,27 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
       });
       setRecipes(res.data.recipes || res.data);
     } catch (err) {
-      console.error("Recipe search failed", err);
     }
   };
 
   const truncateText = (text: string, maxLength: number) =>
     text.length <= maxLength ? text : text.substring(0, maxLength) + "...";
    if (isLoadingMain) {
-  return (
-    <div style={{
-      position: 'fixed', // Use 'fixed' or 'absolute' depending on desired overlay behavior
-      top: 0,
-      left: 0,
-      width: '100vw',
-      height: '100vh',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: 'rgba(21, 32, 43, 0.9)', // Your original semi-transparent background
-      zIndex: 9999 // Ensure it's on top
-    }}>
-      <Loading /> {/* Now, reintroduce your Loading component here */}
-    </div>
-  );
-}
+    return (
+      <div className="flex flex-col h-screen bg-gray-900 text-white font-sans items-center justify-center">
+        <Loading /> {/* Your Loading component */}
+      </div>
+    );
+  }
 
+  // If we reach here, main loading is complete, user is authenticated (or redirected)
+  // If there was an error during main loading (and no redirect), display it
   if (errorMessage && !isLoadingMain) {
     return (
       <div className="flex flex-col h-screen bg-gray-900 text-white font-sans items-center justify-center">
         <p className="text-red-500 text-center text-lg">{errorMessage}</p>
         <button
-          onClick={() => router.push('/login?error=auth')}
+          onClick={() => router.push('/login')} // Provide an option to retry/login
           className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
         >
           Go to Login
@@ -355,7 +368,6 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
       );
     }
 
-
     if (selectedMenu) {
       return (
         <div className="flex-1 flex flex-col p-6 overflow-hidden">
@@ -365,15 +377,32 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
               <p className="text-gray-400">{selectedMenu.description}</p>
             </div>
             <div className="flex gap-3">
-              <button
-                onClick={() => setIsShareModalOpen(true)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 flex items-center gap-2"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
-                </svg>
-                Share
-              </button>
+              {sharingStatuses[selectedMenu.id] ? (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleShowShareModal(selectedMenu.id)}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 flex items-center gap-2"
+                  >
+                    <Copy className="h-5 w-5" />
+                    Copy Link
+                  </button>
+                  <button
+                    onClick={() => handleUnshare(selectedMenu.id)}
+                    className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition-colors duration-200 flex items-center gap-2"
+                  >
+                    <Link2Off className="h-5 w-5" />
+                    Stop Sharing
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => handleShare(selectedMenu.id)}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 flex items-center gap-2"
+                >
+                  <Share2 className="h-5 w-5" />
+                  Share
+                </button>
+              )}
               <button
                 onClick={() => handleExtendMenu(selectedMenu)}
                 className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors duration-200 flex items-center gap-2"
@@ -385,7 +414,7 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
                 onClick={() => setSelectedMenu(null)}
                 className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors duration-200"
               >
-                Back to Plans
+                Back
               </button>
             </div>
           </div>
@@ -457,7 +486,6 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
                       );
                     })}
                   </div>
-
                 </div>
               ))}
             </div>
@@ -475,7 +503,7 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 flex items-center gap-2"
           >
             <PlusIcon className="h-5 w-5" />
-            Create New Meal Plan
+            Create New Plan
           </button>
         </div>
 
@@ -485,18 +513,18 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6 auto-rows-fr">
           {currentMenus.map((menu) => (
             <MenuTile
               key={menu.id}
               menu={menu}
               onSelect={handleSelectMenu}
               onDelete={(id) => setDeleteId(id)}
-              onShare={() => {
-                setSelectedMenu(menu);
-                setIsShareModalOpen(true);
-              }}
+              onShare={(menu: Menu) => handleShare(menu.id)}
+              onUnshare={(menu: Menu) => handleUnshare(menu.id)}
+              onShowShareModal={(menu: Menu) => handleShowShareModal(menu.id)}
               onExtend={handleExtendMenu}
+              isShared={sharingStatuses[menu.id] || false}
             />
           ))}
         </div>
@@ -555,8 +583,54 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
       setMenuToExtend(null);
       setDaysToAdd(1);
     } catch (error) {
-      console.error('Error extending menu:', error);
     }
+  };
+
+  const handleShare = async (menuId: number) => {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/api/menuList/share`,
+        { menuId },
+        { withCredentials: true }
+      );
+      
+      if (response.data.token) {
+        setSharingStatuses(prev => ({ ...prev, [menuId]: true }));
+        setCurrentMenuId(menuId);
+        setIsShareModalOpen(true);
+      } else {
+        throw new Error('No token received from share endpoint');
+      }
+    } catch (err: any) {
+      setErrorMessage(err.response?.data?.error || "Failed to share menu");
+      setSharingStatuses(prev => ({ ...prev, [menuId]: false }));
+    }
+  };
+
+  const handleUnshare = async (menuId: number) => {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/api/menuList/unshare`,
+        { menuId },
+        { withCredentials: true }
+      );
+      
+      setSharingStatuses(prev => ({ ...prev, [menuId]: false }));
+      
+      const currentStatus = await checkSharingStatus(menuId);
+      if (currentStatus) {
+        setSharingStatuses(prev => ({ ...prev, [menuId]: true }));
+      }
+    } catch (err: any) {
+      setErrorMessage(err.response?.data?.error || "Failed to stop sharing menu");
+      const currentStatus = await checkSharingStatus(menuId);
+      setSharingStatuses(prev => ({ ...prev, [menuId]: currentStatus }));
+    }
+  };
+
+  const handleShowShareModal = (menuId: number) => {
+    setCurrentMenuId(menuId);
+    setIsShareModalOpen(true);
   };
 
   return (
@@ -567,7 +641,10 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
           onCreateMenu={() => setIsCreateModalOpen(true)}
           onBack={selectedMenu ? () => setSelectedMenu(null) : undefined}
           selectedMenu={selectedMenu}
-          onShare={() => selectedMenu && setIsShareModalOpen(true)}
+          onShare={handleShare}
+          onUnshare={handleUnshare}
+          onShowShareModal={handleShowShareModal}
+          isShared={selectedMenu ? sharingStatuses[selectedMenu.id] : false}
         />
         {renderMenuView()}
       </div>
@@ -656,15 +733,21 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
         onClose={() => setIsCreateModalOpen(false)}
         onCreateSuccess={handleCreateMenuSuccess}
       />
-      <ShareModal
-        isOpen={isShareModalOpen}
-        onClose={() => setIsShareModalOpen(false)}
-        menuId={selectedMenu?.id || 0}
-      />
       <DeleteConfirmModal
         isOpen={deleteId !== null}
         onClose={() => setDeleteId(null)}
         onConfirm={() => deleteId && handleDeleteMenu(deleteId)}
+      />
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => {
+          setIsShareModalOpen(false);
+          setCurrentMenuId(null);
+        }}
+        menuId={currentMenuId || 0}
+        onStatusChange={(menuId, isShared) => {
+          setSharingStatuses(prev => ({ ...prev, [menuId]: isShared }));
+        }}
       />
       <Footer className="w-full bg-gray-800/50 backdrop-blur-sm border-t border-gray-700/50 p-4 text-white" />
     </div>

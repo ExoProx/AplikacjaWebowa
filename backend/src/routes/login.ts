@@ -25,7 +25,7 @@ router.post('/', async (req: Request, res: Response) => {
 
   try {
     const accountResult = await client.query(
-      'SELECT id_account, email, password, role FROM accounts WHERE email = $1',
+      'SELECT id_account, email, password, role, status FROM accounts WHERE email = $1',
       [email]
     );
 
@@ -40,7 +40,9 @@ router.post('/', async (req: Request, res: Response) => {
       console.log('Password mismatch');
       return res.status(401).json({ error: 'Invalid email or password' });
     }
-
+    if ( account.status == 'deactivated'){
+      return res.status(403).json({error: 'Deactivated account'})
+    }
     const user = { userId: account.id_account, email: account.email, role: account.role };
     const token = generateToken(user);
 

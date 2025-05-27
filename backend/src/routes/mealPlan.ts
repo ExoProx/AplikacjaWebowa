@@ -443,6 +443,10 @@ router.get(
 router.get(
   '/shared/:token',
   async (req: Request, res: Response) => {
+    
+    if (!req.user){
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
     const { token } = req.params;
     if (!token) {
       return res.status(400).json({ error: 'Missing token' });
