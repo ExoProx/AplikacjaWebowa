@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Loading from "../components/Loading";
-import { Users, Plus, Edit, Trash2, CheckCircle, XCircle } from "lucide-react";
+import { Plus, Edit, Trash2, CheckCircle, XCircle } from "lucide-react";
 import { useRouter } from 'next/navigation';
 
 interface User {
@@ -45,7 +45,7 @@ const AdminPage = () => {
         };
     useEffect(() => {
         fetchUsers();
-    }, [router]);
+    }, [router, fetchUsers()]);
 
 
     const handleAddUser = async (userData: User) => {
@@ -73,7 +73,7 @@ const AdminPage = () => {
             alert("User added successfully!");
             setShowAddUserForm(false);
             return true;
-        } catch (error: any) {
+        } catch (error) {
             console.error("Error adding user:", error);
             if (axios.isAxiosError(error) && error.response) {
                 if (error.response.status === 401) {
@@ -129,7 +129,7 @@ const AdminPage = () => {
             await fetchUsers();
             setShowEditUserForm(false);
             return true;
-        } catch (error: any) {
+        } catch (error) {
             console.error("Error updating user:", error);
             if (axios.isAxiosError(error) && error.response) {
                 if (error.response.status === 401) {
@@ -162,7 +162,7 @@ const AdminPage = () => {
                 alert(`User account ${newStatus} successfully.`);
                 await fetchUsers();
                 return true;
-            } catch (error: any) {
+            } catch (error) {
                 console.error(`Error toggling user status to ${newStatus}:`, error);
                 if (axios.isAxiosError(error) && error.response) {
                     if (error.response.status === 401) {

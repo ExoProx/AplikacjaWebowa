@@ -1,21 +1,21 @@
 import axios from 'axios';
-import { Recipe } from '../types/Recipe';
+
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
 export const getFavoriteRecipes = async (): Promise<string[]> => {
   try {
     console.log('Fetching favorite recipes...');
-    const response = await axios.get<any>(`${API_BASE_URL}/api/favorites`, {
+    const response = await axios.get(`${API_BASE_URL}/api/favorites`, {
       withCredentials: true
     });
     console.log('Favorite recipes response:', response.data);
     
     let favorites: string[];
     if (Array.isArray(response.data)) {
-      favorites = response.data.map((id: any) => String(id));
+      favorites = response.data.map((id) => String(id));
     } else if (response.data && typeof response.data === 'object') {
-      favorites = Array.from(response.data as Set<any>).map((id: any) => String(id));
+      favorites = Array.from(response.data as Set).map((id) => String(id));
     } else {
       favorites = [];
     }

@@ -45,7 +45,7 @@ const SharedMealPlan = () => {
         const recipeDetails = recipeResponse.data;
         console.log('Fetched recipe details:', recipeDetails);
 
-        let plan: DayPlan[] = [];
+        const plan: DayPlan[] = [];
         for (let i = 0; i < planData.days; i++) {
           const dayPlan: DayPlan = {};
           mealTypes.forEach(type => {
