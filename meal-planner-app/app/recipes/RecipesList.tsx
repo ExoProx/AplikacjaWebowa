@@ -1,18 +1,18 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { HeartIcon, StarIcon } from "@heroicons/react/24/outline";
 import axios from "axios";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import Sidebar from "../components/Sidebar";
-import { useSearch } from "../../src/SearchContext"
+import { useSearch } from "../../src/SearchContext";
 import Pagination from "../components/Pagination";
 import RecipeModal from "../components/RecipeModal";
 import Loading from '../components/Loading';
 import { Recipe } from "../types/Recipe";
-import RecipeTile from "./RecipeTile";
+import RecipeTile from "./RecipeTile"; // Corrected import based on your latest RecipeTile.tsx
 
+import { useRouter } from 'next/navigation'; // Added for potential redirect on 401
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
@@ -32,6 +32,7 @@ const RecipesList: React.FC = () => {
   );
 
   const { query } = useSearch();
+  const router = useRouter(); // Initialize useRouter hook
 
   useEffect(() => {
     if (!query) {
@@ -54,6 +55,7 @@ const RecipesList: React.FC = () => {
         if (axios.isAxiosError(err) && err.response) {
             if (err.response.status === 401) {
                 setErrorMessage("Session expired or unauthorized. Please log in again.");
+                router.push('/login'); // Redirect to login page on 401
             } else if (err.response.status === 404) {
                 setErrorMessage("No recipes found for your search.");
             } else {
@@ -73,7 +75,7 @@ const RecipesList: React.FC = () => {
     }, 500);
 
     return () => clearTimeout(debounceTimeout);
-  }, [query]);
+  }, [query, router]); // Add router to dependency array
 
   useEffect(() => {
     const storedRatings = localStorage.getItem("recipeRatings");
@@ -101,6 +103,7 @@ const RecipesList: React.FC = () => {
       <Navbar />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
+        {/* This div is the main content area for recipes, messages, and loading */}
         <div className="flex-1 flex flex-col p-2">
           {errorMessage && (
             <div className="bg-red-700 text-white p-3 rounded-md mb-4 text-center">
@@ -108,6 +111,7 @@ const RecipesList: React.FC = () => {
             </div>
           )}
 
+          {/* This inner div handles the conditional rendering and centering */}
           {isLoadingRecipes ? (
             <div className="flex-1 flex items-center justify-center">
               <Loading />

@@ -27,12 +27,6 @@ const Sidebar: React.FC = () => {
       >
         Search
       </button>
-      <h3 className="text-md font-semibold mb-2 text-white">Sort by</h3>
-      <select className="w-full p-2 mb-4 border rounded bg-gray-700 text-white">
-        <option>Name</option>
-        <option>Popularity</option>
-        <option>Rating</option>
-      </select>
       <h3 className="text-md font-semibold mb-2 text-white">Categories</h3>
       <div className="space-y-2">
          {categoriesList.map(category => (

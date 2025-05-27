@@ -82,13 +82,16 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', passport.authenticate('jwt', { session: false }),
+  async (req: Request, res: Response) => {
+  const user = req.user as { userId: string };
   const client = await db.connect();
   try {
     const result = await client.query(`
       SELECT 
         u.id_user AS id, 
         u.name || ' ' || u.lastname AS name,
+        u.phone_number as phone_number,
         a.email 
       FROM users u
       JOIN accounts a ON u.id_account = a.id_account
@@ -104,40 +107,78 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/userdata',
+router.get(
+  '/userdata',
   passport.authenticate('jwt', { session: false }),
   async (req: Request, res: Response) => {
-  const user = req.user as { userId: string };
+    const user = req.user as { userId: string };
 
-  const client = await db.connect();
-  try {
-    const accountResult = await client.query(`
-      SELECT 
-        id_account FROM users WHERE id_account = $1`,[user.userId]
-    );
-    if (accountResult.rows.length === 0) {
-    console.warn(`User with ID ${user.userId} not found in users table.`);
-    // Or handle this as an error if a user should always exist
-    return res.status(404).json({ error: 'User data not found.' });
-}
-    const accountId = accountResult.rows[0].id_account;
-    const result = await client.query(`
-      SELECT
-        a.email, u.name, u.lastname, u.phone_number FROM users u 
-      JOIN
-      accounts a ON u.id_account = a.id 
-      WHERE
-      u.id_account = $1; 
-      `,[accountId]);
-    await client.query("COMMIT");
-    res.status(200).json(result.rows);
-    console.log(result.rows);
-  } catch (err) {
-    console.error('Error fetching users:', err);
-    res.status(500).json({ error: 'Internal server error' });
-  } finally {
-    client.release();
+    const client = await db.connect();
+    try {
+
+      const result = await client.query(`
+        SELECT
+          a.email, u.name, u.lastname, u.phone_number
+        FROM
+          users u
+        JOIN
+          accounts a ON u.id_account = a.id_account
+        WHERE
+          u.id_account = $1;
+      `, [user.userId]);
+
+      if (result.rows.length === 0) {
+        console.warn(`User with ID ${user.userId} not found in users table.`);
+        return res.status(404).json({ error: 'User data not found.' });
+      }
+
+
+      res.status(200).json(result.rows[0]); 
+      console.log(result.rows[0]);
+    } catch (err) {
+      console.error('Error fetching user data:', err); 
+      res.status(500).json({ error: 'Internal server error' });
+    } finally {
+      client.release();
+    }
   }
-});
+);
+
+router.put(
+  '/updateuserdata',
+  passport.authenticate('jwt', { session: false }),
+  async (req: Request, res: Response) => {
+    const user = req.user as { userId: string };
+
+    const client = await db.connect();
+    try {
+
+      const result = await client.query(`
+        UPDATE
+          a.email, u.name, u.lastname, u.phone_number
+        FROM
+          users u
+        JOIN
+          accounts a ON u.id_account = a.id_account
+        WHERE
+          u.id_account = $1;
+      `, [user.userId]);
+
+      if (result.rows.length === 0) {
+        console.warn(`User with ID ${user.userId} not found in users table.`);
+        return res.status(404).json({ error: 'User data not found.' });
+      }
+
+
+      res.status(200).json('Success'); 
+      console.log('Success');
+    } catch (err) {
+      console.error('Error fetching user data:', err); 
+      res.status(500).json({ error: 'Internal server error' });
+    } finally {
+      client.release();
+    }
+  }
+);
 
 export default router;

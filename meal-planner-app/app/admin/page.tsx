@@ -4,12 +4,13 @@ import { useEffect } from "react";
 import axios from "axios";
 import { useState } from "react";
 import { Users, Plus, Edit, Trash2 } from "lucide-react";
-// Usunięto importy Link i Image, ponieważ nie są potrzebne dla uproszczonej stopki
+import { useRouter } from 'next/navigation';
 
 interface User {
     id : number;
     name : string;
     email: string;
+    phone_number: number;
   }
 
 const AdminPage = () => {
@@ -18,6 +19,7 @@ const AdminPage = () => {
   const [showAddUserForm, setShowAddUserForm] = useState(false);
   const [showEditUserForm, setShowEditUserForm] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -26,13 +28,19 @@ const AdminPage = () => {
         console.log("Response: " + response.data.users);
         setUsers(response.data);
       } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          alert("Session expired. Please log in again.");
+          router.push('/login');
+        } else {
         console.error("Błąd podczas pobierania użytkowników:", error);
         alert("Nie udało się pobrać użytkowników z serwera.");
       }
+    }
     };
   
     fetchUsers();
   }, []);
+  
 
   const handleAddUser = (userData: User) => {
     // Basic validation
@@ -51,8 +59,23 @@ const AdminPage = () => {
     setShowAddUserForm(false);
     return true;
   };
-
-  const handleEditUser = (userData : User) => {
+  const handleLogout = async () => {
+    try {
+      await axios.post(
+        "http://localhost:5000/api/logout",
+        {},
+        {
+          withCredentials: true,
+        }
+      );
+    } catch (err) {
+      console.error("Logout error:", err);
+    } finally {
+      localStorage.removeItem("token");
+      router.push("/login");
+    }
+  };
+  const handleEditUser = async (userData : User) => {
     // Basic validation
     if (!userData.name || !userData.email) {
       alert("Proszę wypełnić wszystkie pola.");
@@ -62,18 +85,37 @@ const AdminPage = () => {
       alert("Użytkownik o podanym adresie email już istnieje.");
       return false;
     }
-
-    setUsers(users.map((user) => (user.id === userData.id ? userData : user)));
-    alert("Dane użytkownika zaktualizowane pomyślnie!");
-    setShowEditUserForm(false);
-    setCurrentUser(null);
-    return true;
-  };
+    try {
+        await axios.post(`http://localhost/foodSecret/userdata/change`, {
+          id_account: userData.id,
+          email: userData.email, 
+          name: userData.email,
+          phone_number: userData.phone_number,
+          withCredentials: true,
+        });
+        return true;
+      } catch (error: any) {
+        console.error("Error updating user:", error);
+        if (axios.isAxiosError(error) && error.response) {
+      if (error.response.status === 401) {
+        alert("Authorisation error.");
+        handleLogout();
+      } else if (error.response.status === 400) {
+        alert(`Błąd danych: ${error.response.data.message || 'Nieprawidłowe dane.'}`);
+      } else {
+        alert(`Błąd serwera: ${error.response.status} - ${error.response.data.message || 'Wystąpił nieznany błąd.'}`);
+      }
+    } else {
+      alert("Error while connecting with the server. Please check your internet connection.");
+    }
+    return false;
+    }
+  }
 
   const handleDeleteUser = (userId: number) => {
-    if (window.confirm("Czy na pewno chcesz dezaktywować to konto?")) {
+    if (window.confirm("Do you really want to deactivate this account??")) {
       setUsers(users.filter((user) => user.id !== userId));
-      alert("Konto użytkownika dezaktywowane pomyślnie.");
+      alert("User account deactivated succesfully.");
     }
   };
 
@@ -82,7 +124,7 @@ const AdminPage = () => {
       case "user_management":
         return (
           <div className="p-6">
-            <h2 className="text-2xl font-bold mb-4">Panel zarządzania</h2>
+            <h2 className="text-2xl font-bold mb-4">Management panel</h2>
 
             {/* Panel zarządzania: Przyciski */}
             <div className="flex justify-between items-center bg-gray-700 p-3 rounded-t-lg mb-4">
@@ -91,10 +133,12 @@ const AdminPage = () => {
                 onClick={() => { setShowAddUserForm(true); setShowEditUserForm(false); }}
               >
                 <Plus size={18} className="mr-2" />
-                Dodaj użytkownika
+                Add user
               </button>
-              <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
-                Wyloguj się
+              <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+              onClick={handleLogout}
+              >
+                Logout
               </button>
             </div>
 
@@ -125,6 +169,7 @@ const AdminPage = () => {
                       <th className="py-2 px-4 border-b border-gray-700">#</th>
                       <th className="py-2 px-4 border-b border-gray-700">Nazwa użytkownika</th>
                       <th className="py-2 px-4 border-b border-gray-700">Email</th>
+                      <th className="py-2 px-4 border-b border-gray-700">Numer Telefonu</th>
                       <th className="py-2 px-4 border-b border-gray-700">Akcje</th>
                     </tr>
                   </thead>
@@ -135,6 +180,7 @@ const AdminPage = () => {
                           <td className="py-2 px-4 border-b border-gray-700">{index + 1}</td>
                           <td className="py-2 px-4 border-b border-gray-700">{user.name}</td>
                           <td className="py-2 px-4 border-b border-gray-700">{user.email}</td>
+                          <td className="py-2 px-4 border-b border-gray-700">{user.phone_number}</td>
                           <td className="py-2 px-4 border-b border-gray-700 flex space-x-2">
                             <button
                               className="bg-yellow-600 hover:bg-yellow-700 text-white py-1 px-3 rounded flex items-center"
@@ -201,23 +247,49 @@ interface UserFormProps {
       id?: number;
       name: string;
       email: string;
+      phone_number: number;
+      
     };
     onSubmit: (data: User) => void;
     onCancel: () => void;
   }
 
-const UserForm: React.FC<UserFormProps> = ({ title, initialData = { name: "", email: "" }, onSubmit, onCancel }) => {
+const UserForm: React.FC<UserFormProps> = ({ title, initialData = { name: "", email: "", phone_number: 0 }, onSubmit, onCancel }) => {
   const [name, setName] = useState(initialData.name);
   const [email, setEmail] = useState(initialData.email);
   const id = initialData.id;
+  const [phone_number_input, setPhone_number_input] = useState<number | ''>(
+    initialData.phone_number === 0 ? '' : initialData.phone_number
+  );
+  useEffect(() => {
+    setPhone_number_input(initialData.phone_number === 0 ? '' : initialData.phone_number);
+    setName(initialData.name);
+    setEmail(initialData.email);
+  }, [initialData]);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    onSubmit({ id:  id ?? 0, name, email });
+
+    let phoneNumberForAPI: number;
+    if (phone_number_input === '') {
+      phoneNumberForAPI = 0;
+    } else {
+      const parsedNumber = Number(phone_number_input);
+      phoneNumberForAPI = isNaN(parsedNumber) ? 0 : parsedNumber;
+    }
+    onSubmit({
+      id: id ?? 0, 
+      name,
+      email,
+      phone_number: phoneNumberForAPI, 
+    });
+
     setName("");
     setEmail("");
+    setPhone_number_input("");
   };
 
+   
   return (
     <div className="bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
       <h3 className="text-xl font-semibold mb-4">{title}</h3>
@@ -247,6 +319,21 @@ const UserForm: React.FC<UserFormProps> = ({ title, initialData = { name: "", em
             onChange={(e) => setEmail(e.target.value)}
             required
           />
+        </div>
+        <div className="mb-4">
+          <label htmlFor="email" className="block text-gray-300 text-sm font-bold mb-2">
+            Phone Number:
+          </label>
+            <input
+              type="number"
+              id="phone_number"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline bg-gray-200"
+              value={phone_number_input}
+               onChange={(e) =>
+            setPhone_number_input(e.target.value === '' ? '' : Number(e.target.value))
+          }
+              required
+            />
         </div>
         <div className="flex items-center justify-between">
           <button
