@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import axios from "axios";
@@ -8,12 +8,10 @@ import Navbar from "components/Navbar";
 import Footer from "components/Footer";
 import "react-datepicker/dist/react-datepicker.css";
 import { ShareIcon } from "@heroicons/react/24/outline";
-import Loading from "components/Loading"; // <--- IMPORT THE LOADING COMPONENT HERE
+import Loading from "components/Loading";
 
-// Define your API base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
-// Lista cytatów
 const quotes = [
   "Cooking is an art anyone can master!",
   "Food is a symbolic expression of love when words are inadequate.",
@@ -27,7 +25,6 @@ const quotes = [
   "Every meal is an opportunity to celebrate.",
 ];
 
-// Lista porad kulinarnych
 const tips = [
   "To preserve more flavor, steam vegetables instead of boiling them!",
   "Use fresh herbs to add depth to your dishes.",
@@ -41,7 +38,6 @@ const tips = [
   "Always wash your hands before cooking.",
 ];
 
-// Interfejs dla przepisu
 interface Recipe {
   id: number;
   name: string;
@@ -51,7 +47,6 @@ interface Recipe {
   image?: string;
 }
 
-// Funkcja do losowego tasowania tablicy (Fisher-Yates shuffle)
 const getRandomRecipes = (array: Recipe[], count: number): Recipe[] => {
   let shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -67,52 +62,64 @@ const MainPage: React.FC = () => {
   const [tip, setTip] = useState("");
   const [favoriteRecipes, setFavoriteRecipes] = useState<Recipe[]>([]);
   const [recommendedRecipe, setRecommendedRecipe] = useState<Recipe | null>(null);
-  const [isLoading, setIsLoading] = useState(true); // Manage loading state for the page
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const router = useRouter();
 
-  useEffect(() => {
-    const checkAuthAndFetchData = async () => {
-      try {
-        const userResponse = await axios.get(`${API_BASE_URL}/foodSecret/userdata`, {
-          withCredentials: true,
-        });
-        setUserName(userResponse.data.username || "User");
 
-        const recipeResponse = await axios.get(`${API_BASE_URL}/foodSecret/search/random`, {
-          withCredentials: true,
-        });
-        const recipes: Recipe[] = recipeResponse.data;
-        if (recipes.length > 0) {
-          setRecommendedRecipe(recipes[0]);
-        }
-      } catch (error) {
-        console.error('Authentication or data fetch failed:', error);
-        if (axios.isAxiosError(error) && error.response && error.response.status === 401) {
-          router.push('/login');
-        } else {
-          setMessage("Failed to load user data or recommended recipe.");
-        }
-      } finally {
-        setIsLoading(false);
+  const fetchInitialData = useCallback(async () => {
+    try {
+      const userResponse = await axios.get(`${API_BASE_URL}/api/users/userdata`, {
+        withCredentials: true,
+      });
+      setUserName(userResponse.data.name || "User");
+      const recipeResponse = await axios.get(`${API_BASE_URL}/foodSecret/search/random`, {
+        withCredentials: true,
+      });
+      const recipes: Recipe[] = recipeResponse.data;
+      if (recipes.length > 0) {
+        setRecommendedRecipe(recipes[0]);
+      } else {
       }
-    };
+    } catch (error) {
+      console.error('fetchInitialData: ERROR during API calls:', error);
+      if (axios.isAxiosError(error) && error.response && error.response.status === 401) {
+        router.push('/login?error=auth');
+      } else {
+        setMessage("Failed to load user data or recommended recipe.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [router, setUserName, setRecommendedRecipe, setMessage, setIsLoading]);
 
-    checkAuthAndFetchData();
+  useEffect(() => {
+    fetchInitialData();
+  }, [fetchInitialData]);
 
+  useEffect(() => {
     setQuote(quotes[Math.floor(Math.random() * quotes.length)]);
     setTip(tips[Math.floor(Math.random() * tips.length)]);
+  }, []);
 
-    const storedFavorites = localStorage.getItem("favoriteRecipes");
-    const favorites: Recipe[] = storedFavorites ? JSON.parse(storedFavorites) : [];
-    const randomFavorites = getRandomRecipes(favorites, 4);
-    setFavoriteRecipes(randomFavorites);
+  useEffect(() => {
+    try {
+      const storedFavorites = localStorage.getItem("favoriteRecipes");
+      const favorites: Recipe[] = storedFavorites ? JSON.parse(storedFavorites) : [];
+      const randomFavorites = getRandomRecipes(favorites, 4);
+      setFavoriteRecipes(randomFavorites);
+    } catch (e) {
+    }
+  }, []);
 
-  }, [router]);
-
-  const openModal = (recipe: Recipe) => setSelectedRecipe(recipe);
-  const closeModal = () => { setSelectedRecipe(null); setMessage(null); };
+  const openModal = (recipe: Recipe) => {
+    setSelectedRecipe(recipe);
+  };
+  const closeModal = () => {
+    setSelectedRecipe(null);
+    setMessage(null);
+  };
 
   const handleAddToFavorites = (recipe: Recipe) => {
     const storedFavorites = localStorage.getItem("favoriteRecipes");
@@ -122,25 +129,35 @@ const MainPage: React.FC = () => {
       localStorage.setItem("favoriteRecipes", JSON.stringify(updatedFavorites));
       setFavoriteRecipes(getRandomRecipes(updatedFavorites, 4));
       setMessage("Dodano przepis do ulubionych!");
-      setTimeout(() => setMessage(null), 2000);
+      setTimeout(() => {
+        setMessage(null);
+      }, 2000);
     } else {
-      setMessage("Przepis jest już w ulubionych!");
-      setTimeout(() => setMessage(null), 2000);
+      setTimeout(() => {
+        setMessage(null);
+      }, 2000);
     }
   };
 
   if (isLoading) {
-    // This div creates the full-screen overlay for the Loading component.
-    // It is 'fixed' to cover the whole viewport and has its own background color.
-    return (
-      <div
-        className="fixed inset-0 flex items-center justify-center z-50"
-        style={{ backgroundColor: "rgba(21, 32, 43, 0.9)" }} // Darker background for full screen
-      >
-        <Loading /> {/* Use the imported Loading component */}
-      </div>
-    );
-  }
+  return (
+    <div style={{
+      position: 'fixed', // Use 'fixed' or 'absolute' depending on desired overlay behavior
+      top: 0,
+      left: 0,
+      width: '100vw',
+      height: '100vh',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'rgba(21, 32, 43, 0.9)', // Your original semi-transparent background
+      zIndex: 9999 // Ensure it's on top
+    }}>
+      <Loading /> {/* Now, reintroduce your Loading component here */}
+    </div>
+  );
+}
+
 
   return (
     <div className="relative flex flex-col h-screen text-white font-sans">

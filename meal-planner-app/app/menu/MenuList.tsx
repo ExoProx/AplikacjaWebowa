@@ -54,7 +54,7 @@ const MenuComponent: React.FC = () => {
 
         if (authResponse.status !== 200 || !authResponse.data.isAuthenticated) {
           console.log("Not authenticated, redirecting to login.");
-          router.push('/login');
+          router.push('/login?error=auth');
           return;
         }
 
@@ -72,7 +72,7 @@ const MenuComponent: React.FC = () => {
         console.error("Error during authentication or fetching menus:", error);
         if (axios.isAxiosError(error) && error.response?.status === 401) {
           setErrorMessage("Session expired. Please log in again.");
-          router.push('/login');
+          router.push('/login?error=auth');
         } else {
           setErrorMessage("Failed to load initial data. Please try again.");
         }
@@ -102,7 +102,7 @@ const MenuComponent: React.FC = () => {
       } catch (err) {
         if (axios.isAxiosError(err) && err.response?.status === 401) {
           setErrorMessage("Session expired. Please log in again.");
-          router.push('/login');
+          router.push('/login?error=auth');
         }
         console.error("Global recipe search failed", err);
 
@@ -157,7 +157,7 @@ const handleSelectMenu = async (menu: Menu) => {
       } catch (recipeErr) {
         if (axios.isAxiosError(recipeErr) && recipeErr.response?.status === 401) {
           setErrorMessage("Session expired. Please log in again.");
-          router.push('/login');
+          router.push('/login?error=auth');
         }
         console.error("Error fetching recipes from FatSecret API:", recipeErr);
       }
@@ -216,7 +216,7 @@ const handleSelectMenu = async (menu: Menu) => {
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 401) {
           setErrorMessage("Session expired. Please log in again.");
-          router.push('/login');
+          router.push('/login?error=auth');
         }else
     console.error("Failed to delete menu", error);
   }
@@ -249,7 +249,7 @@ const handleSelectRecipe = async (recipe: Recipe) => {
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 401) {
           setErrorMessage("Session expired. Please log in again.");
-          router.push('/login');
+          router.push('/login?error=auth');
         }else
     console.error("❌ Failed to save recipe to menu:", error);
   }
@@ -279,7 +279,7 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 401) {
           setErrorMessage("Session expired. Please log in again.");
-          router.push('/login');
+          router.push('login?error=auth');
         }else
     console.error("Failed to remove recipe from meal plan", error);
   }
@@ -304,19 +304,30 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
   const truncateText = (text: string, maxLength: number) =>
     text.length <= maxLength ? text : text.substring(0, maxLength) + "...";
    if (isLoadingMain) {
-    return (
-      <div className="flex flex-col h-screen bg-gray-900 text-white font-sans items-center justify-center">
-        <Loading /> {/* Your Loading component */}
-      </div>
-    );
-  }
+  return (
+    <div style={{
+      position: 'fixed', // Use 'fixed' or 'absolute' depending on desired overlay behavior
+      top: 0,
+      left: 0,
+      width: '100vw',
+      height: '100vh',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'rgba(21, 32, 43, 0.9)', // Your original semi-transparent background
+      zIndex: 9999 // Ensure it's on top
+    }}>
+      <Loading /> {/* Now, reintroduce your Loading component here */}
+    </div>
+  );
+}
 
   if (errorMessage && !isLoadingMain) {
     return (
       <div className="flex flex-col h-screen bg-gray-900 text-white font-sans items-center justify-center">
         <p className="text-red-500 text-center text-lg">{errorMessage}</p>
         <button
-          onClick={() => router.push('/login')}
+          onClick={() => router.push('/login?error=auth')}
           className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
         >
           Go to Login

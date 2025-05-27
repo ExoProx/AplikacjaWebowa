@@ -43,6 +43,10 @@ const ProfileEdit: React.FC = () => {
 
         });
       } catch (err) {
+        if (axios.isAxiosError(err) && err.response && err.response.status === 401) {
+        console.log('fetchInitialData: Unauthorized, redirecting to login.');
+        router.push('/login?error=auth');
+      }
         console.error("Error fetching user data:", err);
         setMessage("Failed to load user data.");
       }
