@@ -84,6 +84,11 @@ const SharedMealPlan = () => {
         setMealPlan({ ...planData, plan });
         setRecipes(recipeDetails);
       } catch (err: any) {
+        if (axios.isAxiosError(err)) {
+          if (err.response?.status === 401) {
+           router.push('/login?error=auth');
+          }
+        }
         console.error('Error loading shared plan:', err);
         setError(err.response?.data?.error || "Failed to load shared meal plan");
       } finally {

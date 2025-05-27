@@ -1,14 +1,17 @@
 import React from "react";
 import { Menu } from "../types/Menu";
-import { ShareIcon, CalendarDaysIcon, XIcon, ChevronRightIcon, PlusIcon } from "lucide-react";
+import { Share2, CalendarDays, X, ChevronRight, Plus, Copy, Link2Off } from "lucide-react";
 
 const MenuTile: React.FC<{
   menu: Menu;
-  onSelect: (menu: Menu) => void;
+  onSelect: (menu: Menu) => Promise<void>;
   onDelete: (id: number) => void;
-  onShare: (menu: Menu) => void;
-  onExtend?: (menu: Menu) => void;
-}> = ({ menu, onSelect, onDelete, onShare, onExtend }) => (
+  onShare: (menu: Menu) => Promise<void>;
+  onUnshare: (menu: Menu) => Promise<void>;
+  onShowShareModal: (menu: Menu) => void;
+  onExtend?: (menu: Menu) => Promise<void>;
+  isShared: boolean;
+}> = ({ menu, onSelect, onDelete, onShare, onUnshare, onShowShareModal, onExtend, isShared }) => (
   <div
     className="bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-700 hover:border-gray-600 transition-all duration-300 hover:shadow-xl cursor-pointer group relative overflow-hidden"
     onClick={() => onSelect(menu)}
@@ -23,16 +26,41 @@ const MenuTile: React.FC<{
         )}
       </div>
       <div className="flex gap-2 z-10">
-        <button
-          className="p-2 text-gray-400 hover:text-blue-400 transition-colors duration-200 rounded-lg hover:bg-blue-500/10"
-          onClick={(e) => {
-            e.stopPropagation();
-            onShare(menu);
-          }}
-          title="Share menu"
-        >
-          <ShareIcon className="w-5 h-5" />
-        </button>
+        {isShared ? (
+          <>
+            <button
+              className="p-2 text-gray-400 hover:text-blue-400 transition-colors duration-200 rounded-lg hover:bg-blue-500/10"
+              onClick={(e) => {
+                e.stopPropagation();
+                onShowShareModal(menu);
+              }}
+              title="Copy share link"
+            >
+              <Copy className="w-5 h-5" />
+            </button>
+            <button
+              className="p-2 text-gray-400 hover:text-red-400 transition-colors duration-200 rounded-lg hover:bg-red-500/10"
+              onClick={(e) => {
+                e.stopPropagation();
+                onUnshare(menu);
+              }}
+              title="Stop sharing"
+            >
+              <Link2Off className="w-5 h-5" />
+            </button>
+          </>
+        ) : (
+          <button
+            className="p-2 text-gray-400 hover:text-blue-400 transition-colors duration-200 rounded-lg hover:bg-blue-500/10"
+            onClick={(e) => {
+              e.stopPropagation();
+              onShare(menu);
+            }}
+            title="Share menu"
+          >
+            <Share2 className="w-5 h-5" />
+          </button>
+        )}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -41,14 +69,14 @@ const MenuTile: React.FC<{
           className="p-2 text-gray-400 hover:text-red-400 transition-colors duration-200 rounded-lg hover:bg-red-500/10"
           title="Delete menu"
         >
-          <XIcon className="w-5 h-5" />
+          <X className="w-5 h-5" />
         </button>
       </div>
     </div>
 
     <div className="flex items-center justify-between text-gray-500 z-10 relative">
       <div className="flex items-center">
-        <CalendarDaysIcon className="w-5 h-5 mr-2" />
+        <CalendarDays className="w-5 h-5 mr-2" />
         <span className="text-sm">{menu.days} days</span>
       </div>
       <div className="flex gap-2">
@@ -61,7 +89,7 @@ const MenuTile: React.FC<{
             className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-400 hover:text-blue-400 transition-colors duration-200 rounded-lg hover:bg-blue-500/10"
             title="Add more days"
           >
-            <PlusIcon className="w-4 h-4" />
+            <Plus className="w-4 h-4" />
             <span>Add days</span>
           </button>
         )}
@@ -70,7 +98,7 @@ const MenuTile: React.FC<{
           className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-400 hover:text-blue-400 transition-colors duration-200 rounded-lg hover:bg-blue-500/10"
         >
           <span>Open menu</span>
-          <ChevronRightIcon className="w-4 h-4" />
+          <ChevronRight className="w-4 h-4" />
         </button>
       </div>
     </div>
