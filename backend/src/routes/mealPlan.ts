@@ -366,17 +366,73 @@ router.post(
     try {
       await client.query("BEGIN");
       
-      await client.query(
-        `UPDATE meal_plans SET shared_token = NULL 
+      const menuCheck = await client.query(
+        `SELECT id_meal_plans FROM meal_plans 
          WHERE id_meal_plans = $1 AND id_account = $2`,
         [menuId, user.userId]
+      );
+
+      if (menuCheck.rows.length === 0) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ error: "Menu not found or not owned by user" });
+      }
+
+      await client.query(
+        `UPDATE meal_plans SET shared_token = NULL 
+         WHERE id_meal_plans = $1`,
+        [menuId]
       );
 
       await client.query("COMMIT");
       return res.status(200).json({ message: "Sharing stopped successfully" });
     } catch (err) {
       await client.query("ROLLBACK");
-      console.error('Unshare Error:', err);
+      console.error('Stop Sharing Error:', err);
+      return res.status(500).json({ error: "Internal server error" }); 
+    } finally {
+      client.release();
+    }
+  }
+);
+
+router.get(
+  '/check-share/:menuId',
+  passport.authenticate('jwt', { session: false }),
+  async (req: Request, res: Response) => {
+    console.log('Checking sharing status for menuId:', req.params.menuId);
+    
+    const user = req.user as { userId: string; email: string };
+    if (!user || !user.userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { menuId } = req.params;
+    if (!menuId) {
+      return res.status(400).json({ error: 'Missing menuId' });
+    }
+
+    const client = await db.connect();
+    try {
+      const menuCheck = await client.query(
+        `SELECT id_meal_plans AS id, name, day_count AS days, shared_token AS token 
+         FROM meal_plans WHERE id_meal_plans = $1 AND id_account = $2`,
+        [menuId, user.userId]
+      );
+
+      console.log('Menu check result:', menuCheck.rows[0]);
+
+      if (menuCheck.rows.length === 0) {
+        return res.status(404).json({ error: "Menu not found" });
+      }
+
+      return res.status(200).json({
+        mealPlan: {
+          ...menuCheck.rows[0],
+          token: menuCheck.rows[0].token || null
+        }
+      });
+    } catch (err) {
+      console.error('Get Menu Sharing Status Error:', err);
       return res.status(500).json({ error: "Internal server error" }); 
     } finally {
       client.release();
@@ -394,8 +450,6 @@ router.get(
 
     const client = await db.connect();
     try {
-      await client.query("BEGIN");
-      
       const mealPlan = await client.query(
         `SELECT id_meal_plans AS id, name, day_count AS days, shared_token AS token 
          FROM meal_plans WHERE shared_token = $1`,
@@ -403,7 +457,6 @@ router.get(
       );
 
       if (mealPlan.rows.length === 0) {
-        await client.query("ROLLBACK");
         return res.status(404).json({ error: "Shared meal plan not found" });
       }
 
@@ -415,13 +468,11 @@ router.get(
         [mealPlan.rows[0].id]
       );
 
-      await client.query("COMMIT");
       return res.status(200).json({
         mealPlan: mealPlan.rows[0],
         recipes: recipes.rows
       });
     } catch (err) {
-      await client.query("ROLLBACK");
       console.error('Get Shared Plan Error:', err);
       return res.status(500).json({ error: "Internal server error" }); 
     } finally {
@@ -434,39 +485,52 @@ router.post(
   '/copy-shared',
   passport.authenticate('jwt', { session: false }),
   async (req: Request, res: Response) => {
+    console.log('Copy-shared endpoint called with token:', req.body.token);
+    
     const user = req.user as { userId: string; email: string };
     if (!user || !user.userId) {
+      console.log('Unauthorized - no user or userId');
       return res.status(401).json({ error: 'Unauthorized' });
     }
+    console.log('User authenticated:', user.userId);
 
     const { token } = req.body;
     if (!token) {
+      console.log('Missing token in request body');
       return res.status(400).json({ error: 'Missing token' });
     }
 
     const client = await db.connect();
     try {
+      console.log('Starting transaction');
       await client.query("BEGIN");
       
+      console.log('Fetching original plan with token:', token);
       const originalPlan = await client.query(
         `SELECT id_meal_plans, name, day_count 
          FROM meal_plans WHERE shared_token = $1`,
         [token]
       );
+      console.log('Original plan query result:', originalPlan.rows);
 
       if (originalPlan.rows.length === 0) {
+        console.log('No meal plan found with token:', token);
         await client.query("ROLLBACK");
         return res.status(404).json({ error: "Shared meal plan not found" });
       }
 
       const original = originalPlan.rows[0];
+      console.log('Found original plan:', original);
 
+      console.log('Creating new plan');
       const newPlan = await client.query(
         `INSERT INTO meal_plans (name, created_at, id_account, day_count) 
          VALUES ($1, Now(), $2, $3) RETURNING id_meal_plans`,
         [`Copy of ${original.name}`, user.userId, original.day_count]
       );
+      console.log('New plan created:', newPlan.rows[0]);
 
+      console.log('Copying recipes');
       await client.query(
         `INSERT INTO meal_plans_recipes (id_meal_plans, meal_type, dayindex, id_recipe)
          SELECT $1, meal_type, dayindex, id_recipe
@@ -474,16 +538,22 @@ router.post(
          WHERE id_meal_plans = $2`,
         [newPlan.rows[0].id_meal_plans, original.id_meal_plans]
       );
+      console.log('Recipes copied successfully');
 
+      console.log('Committing transaction');
       await client.query("COMMIT");
       return res.status(201).json({ 
         message: "Meal plan copied successfully",
         newPlanId: newPlan.rows[0].id_meal_plans
       });
-    } catch (err) {
+    } catch (err: any) {
+      console.error('Copy Shared Plan Error - Full error:', err);
       await client.query("ROLLBACK");
       console.error('Copy Shared Plan Error:', err);
-      return res.status(500).json({ error: "Internal server error" }); 
+      return res.status(500).json({ 
+        error: "Internal server error",
+        details: err.message 
+      }); 
     } finally {
       client.release();
     }
