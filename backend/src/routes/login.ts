@@ -5,7 +5,7 @@ import db from '../db';
 
 const router = express.Router();
 
-const generateToken = (user: { userId: string; email: string }) => {
+const generateToken = (user: { userId: string; email: string, role: string }) => {
   const JWT_SECRET = process.env.JWT_SECRET as string;
 
   const options: jwt.SignOptions = {
@@ -25,7 +25,7 @@ router.post('/', async (req: Request, res: Response) => {
 
   try {
     const accountResult = await client.query(
-      'SELECT id_account, email, password FROM accounts WHERE email = $1',
+      'SELECT id_account, email, password, role FROM accounts WHERE email = $1',
       [email]
     );
 
@@ -41,7 +41,7 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    const user = { userId: account.id_account, email: account.email };
+    const user = { userId: account.id_account, email: account.email, role: account.role };
     const token = generateToken(user);
 
     // Set cookie with token
@@ -53,7 +53,7 @@ router.post('/', async (req: Request, res: Response) => {
       path: '/',
     });
 
-    res.json({ message: 'Logged in' });
+    res.json({ role: account.role });
     console.log('Login successful');
   } catch (err) {
     console.error('Login error:', err);

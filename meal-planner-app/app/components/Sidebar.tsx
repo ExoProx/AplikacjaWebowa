@@ -20,6 +20,7 @@ const Sidebar: React.FC = () => {
   };
 
   return (
+
     <div className="w-72 bg-gray-800/50 backdrop-blur-sm border-r border-gray-700/50 p-6">
       <div className="space-y-6">
         <div>

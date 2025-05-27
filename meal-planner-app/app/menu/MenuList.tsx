@@ -21,7 +21,6 @@ import Loading from "../components/Loading";
 import { PlusIcon } from "lucide-react";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
-
 const mealTypes = ["Breakfast", "Second Breakfast", "Lunch", "Snack", "Dinner"];
 //Komponent tworzący stronę wyboru jadłospisów, oraz samego jadłospisu
 
@@ -38,21 +37,21 @@ const MenuComponent: React.FC = () => {
   const [isRecipeModalOpen, setIsRecipeModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [loading, setLoading] = useState(true); 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [currentMenuPage, setCurrentMenuPage] = useState(1);
   const [isLoadingMain, setIsLoadingMain] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-   const [isLoadingContent, setIsLoadingContent] = useState(false);
+  const [isLoadingContent, setIsLoadingContent] = useState(false);
+  const [loading, setLoading] = useState(true);
   const itemsPerPage = 6;
   const router = useRouter();
   const { query } = useSearch();
   const [isExtendModalOpen, setIsExtendModalOpen] = useState(false);
   const [menuToExtend, setMenuToExtend] = useState<Menu | null>(null);
   const [daysToAdd, setDaysToAdd] = useState(1);
-
+  
   useEffect(() => {
     const loadInitialData = async () => {
       setIsLoadingMain(true); // Start main loading
@@ -66,18 +65,15 @@ const MenuComponent: React.FC = () => {
 
         if (authResponse.status !== 200 || !authResponse.data.isAuthenticated) {
           console.log("Not authenticated, redirecting to login.");
-          router.push('/login');
-          return; // Stop execution if not authenticated
+          router.push('/login?error=auth');
+          return;
         }
 
-        // 2. If authenticated, fetch menus
-        // Try to load from localStorage first for a quicker initial display
         const storedMenus = localStorage.getItem("menus");
         if (storedMenus) {
           setMenus(JSON.parse(storedMenus));
         }
 
-        // Always attempt to fetch fresh menus from API in background
         const res = await axios.get(`${API_BASE_URL}/api/menuList/`, { withCredentials: true });
         setMenus(res.data);
         localStorage.setItem("menus", JSON.stringify(res.data));
@@ -87,19 +83,17 @@ const MenuComponent: React.FC = () => {
         console.error("Error during authentication or fetching menus:", error);
         if (axios.isAxiosError(error) && error.response?.status === 401) {
           setErrorMessage("Session expired. Please log in again.");
-          router.push('/login');
+          router.push('/login?error=auth');
         } else {
           setErrorMessage("Failed to load initial data. Please try again.");
         }
       } finally {
-        setIsLoadingMain(false); 
+        setIsLoadingMain(false);
       }
     };
 
     loadInitialData();
   }, [router]); 
-
-
 
   useEffect(() => {
     if (!query) {
@@ -108,14 +102,19 @@ const MenuComponent: React.FC = () => {
     }
     //Obsługa pobierania przepisów w edycji jadłospisu
     const fetchRecipes = async () => {
-      setIsLoadingContent(true); 
+      setIsLoadingContent(true); //
       setErrorMessage(null);
+      
       try {
         const response = await axios.get(`${API_BASE_URL}/foodSecret/search?query=${query}`, {
           withCredentials: true,
         });
         setRecipes(response.data.recipes || response.data);
       } catch (err) {
+        if (axios.isAxiosError(err) && err.response?.status === 401) {
+          setErrorMessage("Session expired. Please log in again.");
+          router.push('/login?error=auth');
+        }
         console.error("Global recipe search failed", err);
 
       } finally {
@@ -165,6 +164,10 @@ const handleSelectMenu = async (menu: Menu) => {
         fetchedRecipes = recipeFetchRes.data;
         console.log("Fetched recipes from FatSecret:", fetchedRecipes);
       } catch (recipeErr) {
+        if (axios.isAxiosError(recipeErr) && recipeErr.response?.status === 401) {
+          setErrorMessage("Session expired. Please log in again.");
+          router.push('/login?error=auth');
+        }
         console.error("Error fetching recipes from FatSecret API:", recipeErr);
       }
     }
@@ -205,7 +208,6 @@ const handleSelectMenu = async (menu: Menu) => {
 };
 //Edycja posiłku
   const handleEditMeal = (dayIndex: number, mealType: string) => {
-
   setEditCell({ dayIndex, mealType });
   setIsRecipeModalOpen(true);
 };
@@ -221,6 +223,10 @@ const handleSelectMenu = async (menu: Menu) => {
       setSelectedMenu(null);
     }
   } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+          setErrorMessage("Session expired. Please log in again.");
+          router.push('/login?error=auth');
+        }else
     console.error("Failed to delete menu", error);
   }
 };
@@ -250,6 +256,10 @@ const handleSelectRecipe = async (recipe: Recipe) => {
     setIsRecipeModalOpen(false);
     setEditCell(null);
   } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+          setErrorMessage("Session expired. Please log in again.");
+          router.push('/login?error=auth');
+        }else
     console.error("❌ Failed to save recipe to menu:", error);
   }
 };
@@ -276,6 +286,10 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
     updatedPlan[dayIndex][mealType] = null;
     setSelectedMenu({ ...selectedMenu, plan: updatedPlan });
   } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+          setErrorMessage("Session expired. Please log in again.");
+          router.push('login?error=auth');
+        }else
     console.error("Failed to remove recipe from meal plan", error);
   }
 };
@@ -290,31 +304,39 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
       const res = await axios.get(`${API_BASE_URL}/foodSecret/search?query=${query}`, {
         withCredentials: true,
       });
-      setRecipes(res.data.recipes || res.data); // update recipes list, adjust based on your backend response structure
+      setRecipes(res.data.recipes || res.data);
     } catch (err) {
       console.error("Recipe search failed", err);
-      // Removed: toast.error("Recipe search failed.");
     }
   };
 
   const truncateText = (text: string, maxLength: number) =>
     text.length <= maxLength ? text : text.substring(0, maxLength) + "...";
    if (isLoadingMain) {
-    return (
-      <div className="flex flex-col h-screen bg-gray-900 text-white font-sans items-center justify-center">
-        <Loading /> {/* Your Loading component */}
-      </div>
-    );
-  }
+  return (
+    <div style={{
+      position: 'fixed', // Use 'fixed' or 'absolute' depending on desired overlay behavior
+      top: 0,
+      left: 0,
+      width: '100vw',
+      height: '100vh',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'rgba(21, 32, 43, 0.9)', // Your original semi-transparent background
+      zIndex: 9999 // Ensure it's on top
+    }}>
+      <Loading /> {/* Now, reintroduce your Loading component here */}
+    </div>
+  );
+}
 
-  // If we reach here, main loading is complete, user is authenticated (or redirected)
-  // If there was an error during main loading (and no redirect), display it
   if (errorMessage && !isLoadingMain) {
     return (
       <div className="flex flex-col h-screen bg-gray-900 text-white font-sans items-center justify-center">
         <p className="text-red-500 text-center text-lg">{errorMessage}</p>
         <button
-          onClick={() => router.push('/login')} // Provide an option to retry/login
+          onClick={() => router.push('/login?error=auth')}
           className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
         >
           Go to Login
@@ -332,6 +354,7 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
         </div>
       );
     }
+
 
     if (selectedMenu) {
       return (
@@ -434,6 +457,7 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
                       );
                     })}
                   </div>
+
                 </div>
               ))}
             </div>

@@ -1,17 +1,17 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { HeartIcon, StarIcon } from "@heroicons/react/24/outline";
+import React, { useState, useEffect, useCallback } from "react"; // Added useCallback
 import axios from "axios";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import Sidebar from "../components/Sidebar";
-import { useSearch } from "../../src/SearchContext"
+import { useSearch } from "../../src/SearchContext";
 import Pagination from "../components/Pagination";
 import RecipeModal from "../components/RecipeModal";
-import Loading from '../components/Loading';
+import Loading from '../components/Loading'; // Correct import for Loading
 import { Recipe } from "../types/Recipe";
 import RecipeTile from "./RecipeTile";
+import { useRouter } from 'next/navigation';
 import { getFavoriteRecipes } from "../api/favorites";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
@@ -20,20 +20,15 @@ const RecipesList: React.FC = () => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [isLoadingRecipes, setIsLoadingRecipes] = useState(false);
+  const [isLoadingPage, setIsLoadingPage] = useState(true); // New state for initial page load/auth
+  const [isLoadingRecipes, setIsLoadingRecipes] = useState(false); // Existing state for recipe search
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [ratings, setRatings] = useState<{ [key: number]: number }>({});
   const [favoriteRecipeIds, setFavoriteRecipeIds] = useState<string[]>([]);
 
   const recipesPerPage = 12;
-  const totalPages = Math.ceil(recipes.length / recipesPerPage);
-  const currentRecipes = recipes.slice(
-    (currentPage - 1) * recipesPerPage,
-    currentPage * recipesPerPage
-  );
-
   const { query } = useSearch();
-
+  const router = useRouter();
   const refreshFavorites = async () => {
     try {
       const favorites = await getFavoriteRecipes();
@@ -51,17 +46,49 @@ const RecipesList: React.FC = () => {
   useEffect(() => {
     if (!query) {
       setRecipes([]);
+      setIsLoadingRecipes(false); // Ensure loading is off if no query
       setErrorMessage(null);
       return;
     }
 
-    const fetchRecipes = async () => {
-      setIsLoadingRecipes(true);
-      setErrorMessage(null);
+    setIsLoadingRecipes(true);
+    setErrorMessage(null);
+    try {
+      const response = await axios.get(`${API_BASE_URL}/foodSecret/search?query=${query}`, {
+        withCredentials: true,
+      });
+      setRecipes(response.data.recipes || response.data);
+      setCurrentPage(1);
+    } catch (err: any) {
+      
+      console.error("Fetch recipes failed:", err);
+      // Handle 401 specifically for recipe search if it occurs (though initial auth handles most)
+      if (axios.isAxiosError(err) && err.response) {
+          if (err.response.status === 401) {
+              setErrorMessage("Session expired or unauthorized. Please log in again.");
+              router.push('/login');
+          } else if (err.response.status === 404) {
+              setErrorMessage("No recipes found for your search.");
+          } else {
+              setErrorMessage(`Error searching recipes: ${err.response.statusText || 'Unknown error'}`);
+          }
+      } else {
+          setErrorMessage("An unexpected error occurred while searching for recipes.");
+      }
+      setRecipes([]);
+    } finally {
+      setIsLoadingRecipes(false);
+    }
+  }, [query, router]); // Dependency on query and router
+
+  // Effect for initial page load and authentication check
+  useEffect(() => {
+    const authenticateUser = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/foodSecret/search?query=${query}`, {
+        await axios.get(`${API_BASE_URL}/api/users/userdata`, {
           withCredentials: true,
         });
+
         setRecipes(response.data.recipes || response.data);
         setCurrentPage(1);
         await refreshFavorites();
@@ -69,6 +96,7 @@ const RecipesList: React.FC = () => {
         if (axios.isAxiosError(err) && err.response) {
           if (err.response.status === 401) {
             setErrorMessage("Session expired or unauthorized. Please log in again.");
+            router.push('/login?error=auth');
           } else if (err.response.status === 404) {
             setErrorMessage("No recipes found for your search.");
           } else {
@@ -79,23 +107,37 @@ const RecipesList: React.FC = () => {
         }
         setRecipes([]);
       } finally {
-        setIsLoadingRecipes(false);
+        setIsLoadingPage(false);
       }
     };
 
-    const debounceTimeout = setTimeout(() => {
-      fetchRecipes();
-    }, 500);
+    authenticateUser();
 
-    return () => clearTimeout(debounceTimeout);
-  }, [query]);
-
-  useEffect(() => {
     const storedRatings = localStorage.getItem("recipeRatings");
     if (storedRatings) {
       setRatings(JSON.parse(storedRatings));
     }
-  }, []);
+  }, [router, fetchRecipes]); // Added fetchRecipes to dependency array
+
+
+  // Effect for debounced recipe search (only if query changes AND after initial auth)
+  useEffect(() => {
+    // Only trigger search if not in the initial page loading phase AND query is present
+    if (!isLoadingPage && query) {
+      const debounceTimeout = setTimeout(() => {
+        fetchRecipes();
+      }, 500); // Debounce for 500ms
+
+      return () => clearTimeout(debounceTimeout);
+    }
+  }, [query, isLoadingPage, fetchRecipes]); // Add fetchRecipes to dependency array
+
+
+  const totalPages = Math.ceil(recipes.length / recipesPerPage);
+  const currentRecipes = recipes.slice(
+    (currentPage - 1) * recipesPerPage,
+    currentPage * recipesPerPage
+  );
 
   const handleRatingChange = (recipeId: number, rating: number) => {
     const updatedRatings = { ...ratings, [recipeId]: rating };
@@ -111,6 +153,16 @@ const RecipesList: React.FC = () => {
     setCurrentPage(page);
   };
 
+  // If the page is still loading/authenticating, show a full-page loading spinner
+  if (isLoadingPage) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(21, 32, 43, 0.9)" }}>
+        <Loading />
+      </div>
+    );
+  }
+
+  // Once authenticated and page is loaded, render the content
   return (
     <div className="flex flex-col min-h-screen bg-gray-900 text-white font-sans">
       <Navbar />
@@ -123,9 +175,11 @@ const RecipesList: React.FC = () => {
             </div>
           )}
 
+          {/* This inner div handles the conditional rendering and centering of recipe search loading */}
           {isLoadingRecipes ? (
-            <div className="flex-1 flex items-center justify-center">
-              <Loading />
+            // This div provides the contained overlay effect for recipe search
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-75 rounded-lg z-10">
+              <Loading /> {/* Uses your generic Loading component */}
             </div>
           ) : (
             <>

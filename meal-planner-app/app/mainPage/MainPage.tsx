@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import axios from "axios";
+
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import Loading from "../components/Loading";
@@ -15,7 +16,6 @@ import { getFavoriteRecipes } from "../api/favorites";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
-// Lista cytatów
 const quotes = [
   "Cooking is an art anyone can master!",
   "Food is a symbolic expression of love when words are inadequate.",
@@ -29,7 +29,6 @@ const quotes = [
   "Every meal is an opportunity to celebrate.",
 ];
 
-// Lista porad kulinarnych
 const tips = [
   "To preserve more flavor, steam vegetables instead of boiling them!",
   "Use fresh herbs to add depth to your dishes.",
@@ -43,6 +42,7 @@ const tips = [
   "Always wash your hands before cooking.",
 ];
 
+
 const MainPage: React.FC = () => {
   const [userName, setUserName] = useState("Jan");
   const [quote, setQuote] = useState("");
@@ -55,25 +55,42 @@ const MainPage: React.FC = () => {
   const [ratings, setRatings] = useState<{ [key: number]: number }>({});
   const router = useRouter();
 
+
+  const fetchInitialData = useCallback(async () => {
+    try {
+      const userResponse = await axios.get(`${API_BASE_URL}/api/users/userdata`, {
+        withCredentials: true,
+      });
+      setUserName(userResponse.data.name || "User");
+      const recipeResponse = await axios.get(`${API_BASE_URL}/foodSecret/search/random`, {
+        withCredentials: true,
+      });
+      const recipes: Recipe[] = recipeResponse.data;
+      if (recipes.length > 0) {
+        setRecommendedRecipe(recipes[0]);
+      } else {
+      }
+    } catch (error) {
+      console.error('fetchInitialData: ERROR during API calls:', error);
+      if (axios.isAxiosError(error) && error.response && error.response.status === 401) {
+        router.push('/login?error=auth');
+      } else {
+        setMessage("Failed to load user data or recommended recipe.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [router, setUserName, setRecommendedRecipe, setMessage, setIsLoading]);
+
   useEffect(() => {
-    const loadInitialData = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
+    fetchInitialData();
+  }, [fetchInitialData]);
 
-        const authResponse = await axios.get(`${API_BASE_URL}/api/auth/check-auth`, {
-          withCredentials: true,
-        });
-
-        if (authResponse.status !== 200 || !authResponse.data.isAuthenticated) {
-          router.push('/login');
-          return;
-        }
-
-        setQuote(quotes[Math.floor(Math.random() * quotes.length)]);
-        setTip(tips[Math.floor(Math.random() * tips.length)]);
-
-        try {
+  useEffect(() => {
+    setQuote(quotes[Math.floor(Math.random() * quotes.length)]);
+    setTip(tips[Math.floor(Math.random() * tips.length)]);
+ 
+     try {
           const favoriteIds = await getFavoriteRecipes();
           console.log('Favorite IDs:', favoriteIds);
 
@@ -131,20 +148,57 @@ const MainPage: React.FC = () => {
         setIsLoading(false);
       }
     };
+   }, [router]);
 
-    loadInitialData();
-  }, [router]);
-
-  useEffect(() => {
-    console.log('Current favorite recipes:', favoriteRecipes);
-  }, [favoriteRecipes]);
-
-  const handleRatingChange = (recipeId: number, rating: number) => {
-    const updatedRatings = { ...ratings, [recipeId]: rating };
-    setRatings(updatedRatings);
-    localStorage.setItem("recipeRatings", JSON.stringify(updatedRatings));
+  const openModal = (recipe: Recipe) => {
+    setSelectedRecipe(recipe);
+  };
+  const closeModal = () => {
+    setSelectedRecipe(null);
+    setMessage(null);
   };
 
+  const handleAddToFavorites = (recipe: Recipe) => {
+    const storedFavorites = localStorage.getItem("favoriteRecipes");
+    const currentFavorites: Recipe[] = storedFavorites ? JSON.parse(storedFavorites) : [];
+    if (!currentFavorites.some((fav) => fav.id === recipe.id)) {
+      const updatedFavorites = [...currentFavorites, recipe];
+      localStorage.setItem("favoriteRecipes", JSON.stringify(updatedFavorites));
+      setFavoriteRecipes(getRandomRecipes(updatedFavorites, 4));
+      setMessage("Dodano przepis do ulubionych!");
+      setTimeout(() => {
+        setMessage(null);
+      }, 2000);
+    } else {
+      setTimeout(() => {
+        setMessage(null);
+      }, 2000);
+    }
+  };
+
+  if (isLoading) {
+  return (
+    <div style={{
+      position: 'fixed', // Use 'fixed' or 'absolute' depending on desired overlay behavior
+      top: 0,
+      left: 0,
+      width: '100vw',
+      height: '100vh',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'rgba(21, 32, 43, 0.9)', // Your original semi-transparent background
+      zIndex: 9999 // Ensure it's on top
+    }}>
+      <Loading /> {/* Now, reintroduce your Loading component here */}
+    </div>
+  );
+}
+
+
+ 
+  useEffect(() => {
+    console.log('Current favorite recipes:', favoriteReci
   return (
     <div className="flex flex-col min-h-screen bg-gray-900 text-white font-sans relative">
       <div className="fixed inset-0 z-0">
