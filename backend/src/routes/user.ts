@@ -149,31 +149,39 @@ router.put(
   passport.authenticate('jwt', { session: false }),
   async (req: Request, res: Response) => {
     const user = req.user as { userId: string };
+    const {name, phoneNumber } = req.body;
+     const trimmedPhoneNumber = phoneNumber ? String(phoneNumber).trim() : ''; // Ensure it's a string and trim
+console.log('Backend: Trimmed phone_number for validation:', trimmedPhoneNumber, 'Length:', trimmedPhoneNumber.length);
+        if (trimmedPhoneNumber.length < 9) {
+            return res.status(400).json({ message: 'Numer telefonu musi zawierać co najmniej 9 cyfr.' });
+        }
+        // Optional: Check if it contains only digits
+        if (!/^\d+$/.test(trimmedPhoneNumber)) {
+            return res.status(400).json({ message: 'Numer telefonu może zawierać tylko cyfry.' });
+        }
+     let firstName = '';
+        let lastName = '';
 
+        if (name && typeof name === 'string') {
+            const nameParts = name.trim().split(' ');
+            if (nameParts.length > 1) {
+                firstName = nameParts[0];
+                lastName = nameParts.slice(1).join(' ');
+            } else {
+                firstName = nameParts[0];
+            }
+        }
     const client = await db.connect();
     try {
-
-      const result = await client.query(`
-        UPDATE
-          a.email, u.name, u.lastname, u.phone_number
-        FROM
-          users u
-        JOIN
-          accounts a ON u.id_account = a.id_account
-        WHERE
-          u.id_account = $1;
-      `, [user.userId]);
-
-      if (result.rows.length === 0) {
-        console.warn(`User with ID ${user.userId} not found in users table.`);
-        return res.status(404).json({ error: 'User data not found.' });
-      }
-
-
+      await client.query("BEGIN")
+      await client.query(` UPDATE users SET name = $1, lastname = $2, phone_number = $3 WHERE id_account = $4;
+      `, [firstName, lastName, trimmedPhoneNumber, user.userId]);
+      await client.query("COMMIT");
       res.status(200).json('Success'); 
       console.log('Success');
     } catch (err) {
-      console.error('Error fetching user data:', err); 
+      await client.query("ROLLBACK");
+      console.error('Error updating user data:', err); 
       res.status(500).json({ error: 'Internal server error' });
     } finally {
       client.release();

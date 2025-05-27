@@ -1,3 +1,4 @@
+// app/userData/UserDataEdit.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -13,21 +14,19 @@ import Link from "next/link";
 interface ProfileData {
   name: string;
   lastname: string;
-  phone_number: number;
-  password?: string;
+  phone_number: string;
 }
 
-const ProfileEdit: React.FC = () => {
+const UserDataEdit: React.FC = () => {
   const [profileData, setProfileData] = useState<ProfileData>({
     name: "",
     lastname: "",
-    phone_number: 0,
-    password: ""
+    phone_number: "",
   });
   const [message, setMessage] = useState<string>("");
+  const [phoneError, setPhoneError] = useState<string | null>(null); // New state for phone number validation error
   const router = useRouter();
 
-  // Fetch user data on mount (example)
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -36,30 +35,72 @@ const ProfileEdit: React.FC = () => {
         });
         setProfileData({
           name: response.data.name || "",
-
           lastname: response.data.lastname || "",
-          phone_number: response.data.phone_number || "",
-          password: "", // Hasło nie jest pobierane ze względów bezpieczeństwa
-
+          phone_number: response.data.phone_number ? String(response.data.phone_number) : "",
         });
       } catch (err) {
         if (axios.isAxiosError(err) && err.response && err.response.status === 401) {
-        console.log('fetchInitialData: Unauthorized, redirecting to login.');
-        router.push('/login?error=auth');
-      }
+          console.log('fetchInitialData: Unauthorized, redirecting to login.');
+          router.push('/login?error=auth');
+        }
         console.error("Error fetching user data:", err);
         setMessage("Failed to load user data.");
       }
     };
     fetchUserData();
-  }, []);
+  }, [router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Clear phone error when user starts typing
+    if (e.target.name === "phone_number") {
+      setPhoneError(null);
+    }
     setProfileData({ ...profileData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    // Handle form submission logic here
+    e.preventDefault();
+
+    // Frontend Validation
+    const trimmedPhoneNumber = profileData.phone_number.trim();
+    if (trimmedPhoneNumber.length < 9) {
+      setPhoneError("Numer telefonu musi zawierać co najmniej 9 cyfr.");
+      setMessage(""); // Clear general message
+      return; // Stop form submission
+    }
+    // Optional: Check if it contains only digits
+    if (!/^\d+$/.test(trimmedPhoneNumber)) {
+        setPhoneError("Numer telefonu może zawierać tylko cyfry.");
+        setMessage("");
+        return;
+    }
+
+    setPhoneError(null); // Clear any previous phone errors
+    setMessage("Saving changes...");
+
+    try {
+      const dataToSend = {
+        name: profileData.name,
+        lastname: profileData.lastname,
+        phone_number: trimmedPhoneNumber, // Send the trimmed value
+      };
+
+      await axios.put("http://localhost:5000/api/users/updateuserdata", dataToSend, {
+        withCredentials: true,
+      });
+      setMessage("Profile updated successfully!");
+    } catch (err) {
+      console.error("Error updating profile:", err);
+      if (axios.isAxiosError(err) && err.response) {
+        // Display backend validation errors
+        setMessage(`Error updating profile: ${err.response.data.message || 'Unknown error'}`);
+        if (err.response.status === 401) {
+          router.push('/login?error=auth');
+        }
+      } else {
+        setMessage("An unexpected error occurred while updating profile.");
+      }
+    }
   };
 
   return (
@@ -80,37 +121,28 @@ const ProfileEdit: React.FC = () => {
               className="bg-gray-200 rounded-md p-2 w-full text-gray-800"
             />
             <InputField
-
               label="Nazwisko"
               type="text"
               field="lastname"
-              value={profileData.password || ""}
+              value={profileData.lastname}
               onChange={handleChange}
-              placeholder="Wpisz nowe nazwisko  "
-              icon={<Lock className="text-gray-800" size={20} />}
+              placeholder="Wpisz nowe nazwisko"
+              icon={<User className="text-gray-800" size={20} />}
               className="bg-gray-200 rounded-md p-2 w-full text-gray-800"
             />
             <InputField
               label="Numer telefonu"
-              type="number"
+              type="text"
               field="phone_number"
-              value={profileData.password || ""}
+              value={profileData.phone_number}
               onChange={handleChange}
-              placeholder="Wpisz nowe hasło"
-              icon={<Lock className="text-gray-800" size={20} />}
-
-              className="bg-gray-200 rounded-md p-2 w-full text-gray-800"
+              placeholder="Wpisz nowy numer telefonu"
+              icon={<Mail className="text-gray-800" size={20} />}
+              className={`bg-gray-200 rounded-md p-2 w-full text-gray-800 ${phoneError ? 'border-red-500 border-2' : ''}`}
             />
-            <InputField
-              label="New Password (optional)"
-              type="password"
-              field="password"
-              value={profileData.password || ""}
-              onChange={handleChange}
-              placeholder="Enter new password"
-              icon={<Lock className="text-gray-800" size={20} />}
-              className="bg-gray-200 rounded-md p-2 w-full text-gray-800"
-            />
+            {phoneError && ( // Display phone number error
+              <p className="text-red-400 text-sm mt-1">{phoneError}</p>
+            )}
             <div className="transform transition-transform hover:scale-105 duration-300">
               <SubmitButton
                 type="submit"
@@ -120,8 +152,8 @@ const ProfileEdit: React.FC = () => {
               </SubmitButton>
             </div>
             <div className="mt-4 transform transition-transform hover:scale-105 duration-300">
-              <Link href="/mainPage">
-                <SubmitButton type="button" className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-md">
+              <Link href="/mainPage" passHref>
+                <SubmitButton type="button" className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-md w-full">
                   Cancel
                 </SubmitButton>
               </Link>
@@ -137,4 +169,4 @@ const ProfileEdit: React.FC = () => {
   );
 };
 
-export default ProfileEdit;
+export default UserDataEdit;
