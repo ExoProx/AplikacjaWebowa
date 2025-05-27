@@ -20,8 +20,10 @@ import { useRouter } from 'next/navigation';
 import Loading from "../components/Loading";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
+
 const mealTypes = ["Breakfast", "Second Breakfast", "Lunch", "Snack", "Dinner"];
 //Komponent tworzący stronę wyboru jadłospisów, oraz samego jadłospisu
+
 const MenuComponent: React.FC = () => {
   const [menus, setMenus] = useState<Menu[]>([]);
   const [selectedMenu, setSelectedMenu] = useState<Menu & { plan: Record<string, Recipe | null>[] } | null>(null);
@@ -41,6 +43,7 @@ const MenuComponent: React.FC = () => {
   const itemsPerPage = 6;
   const router = useRouter();
   const { query } = useSearch();
+
   useEffect(() => {
     const loadInitialData = async () => {
       setIsLoadingMain(true); // Start main loading
@@ -80,14 +83,15 @@ const MenuComponent: React.FC = () => {
           setErrorMessage("Failed to load initial data. Please try again.");
         }
       } finally {
-        setIsLoadingMain(false); // End main loading
+        setIsLoadingMain(false); 
       }
     };
 
     loadInitialData();
-  }, [router]); // Effect runs once on mount. `router` is in dependencies as good practice.
+  }, [router]); 
 
-  // --- Effect for Recipe Search based on `query` ---
+
+
   useEffect(() => {
     if (!query) {
       setRecipes([]);
@@ -95,7 +99,7 @@ const MenuComponent: React.FC = () => {
     }
     //Obsługa pobierania przepisów w edycji jadłospisu
     const fetchRecipes = async () => {
-      setIsLoadingContent(true); // Set content loading for recipe search
+      setIsLoadingContent(true); 
       setErrorMessage(null);
       try {
         const response = await axios.get(`${API_BASE_URL}/foodSecret/search?query=${query}`, {
@@ -194,6 +198,7 @@ const handleSelectMenu = async (menu: Menu) => {
 };
 //Edycja posiłku
   const handleEditMeal = (dayIndex: number, mealType: string) => {
+
   setEditCell({ dayIndex, mealType });
   setIsRecipeModalOpen(true);
 };
@@ -321,15 +326,14 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
           <table className="w-full h-full border-collapse text-white">
             <thead>
               <tr className="bg-gray-800">
-                <th className="text-left px-1 text-small min-w-[120px]">Posiłek</th>
+                <th className="text-left px-1 text-small min-w-[120px]">Meal</th>
                 {Array.from({ length: selectedMenu.days }, (_, i) => (
-                  <th key={i} className="text-center text-sm min-w-[150px]">
-                    Dzień {i + 1}
-                  </th>
+                  <th key={i} className="text-center text-sm min-w-[150px]">Day {i + 1}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
+
   {mealTypes.map((meal) => (
     <tr key={meal} className="border-t border-gray-600 h-1/5">
       <td className="p-2 font-semibold whitespace-nowrap overflow-hidden text-ellipsis">
@@ -388,7 +392,7 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
                     }
                   }}
                 >
-                  Edytuj posiłek
+                  Edit meal
                 </div>
               )}
             </div>

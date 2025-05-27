@@ -15,9 +15,10 @@ const CreateMenuModal: React.FC<{
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
     setMessage("");
      if (!name.trim() || days < 1 || days > 31) {
-      setMessage("Proszę podać poprawną nazwę i liczbę dni (1-31).");
+      setMessage("Please enter a valid name and number of days (1–31).");
       return;
     }
 
@@ -31,36 +32,36 @@ const CreateMenuModal: React.FC<{
         }
       );
         const newMenu: Menu = response.data; 
-+      onCreateSuccess(newMenu); 
-+      onClose();
+      onCreateSuccess(newMenu); 
+      onClose();
        } catch (err: any) {
+
       console.error("Error during submission:", err);
       if (err.response?.data?.error) {
         setMessage(err.response.data.error);
       } else {
-        setMessage("Coś poszło nie tak. Spróbuj ponownie.");
+        setMessage("Something went wrong. Please try again.");
       }
     }
   };
-
 
   return (
     <div
       className="fixed inset-0 flex items-center justify-center z-50"
       style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}
-      onClick={onClose} // close on clicking outside modal box
+      onClick={onClose} // zamknięcie po kliknięciu poza okno modala
     >
       <form
         onSubmit={handleSubmit}
         className="bg-gray-800 p-6 rounded-lg w-96 text-white"
-        onClick={(e) => e.stopPropagation()} // prevent closing when clicking inside
+        onClick={(e) => e.stopPropagation()} // zapobiega zamknięciu przy kliknięciu wewnątrz
       >
-        <h2 className="text-xl font-bold mb-4">Utwórz jadłospis</h2>
+        <h2 className="text-xl font-bold mb-4">Create a Meal Plan</h2>
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Nazwa jadłospisu"
+          placeholder="Meal plan name"
           className="w-full p-2 mb-4 bg-gray-800 rounded text-white border-none"
         />
         <input
@@ -71,7 +72,7 @@ const CreateMenuModal: React.FC<{
           }
           min={1}
           max={31}
-          placeholder="Liczba dni (1-31)"
+          placeholder="Number of days (1–31)"
           className="w-full p-2 mb-4 bg-gray-800 rounded text-white border-none"
         />
 
@@ -85,13 +86,13 @@ const CreateMenuModal: React.FC<{
             onClick={onClose}
             className="text-blue-500 hover:underline"
           >
-            Anuluj
+            Cancel
           </button>
           <button
             type="submit"
             className="bg-blue-500 hover:bg-blue-600 p-2 rounded text-white border-none"
           >
-            Utwórz
+            Create
           </button>
         </div>
       </form>

@@ -1,7 +1,6 @@
 import React from "react";
 import { Menu } from "../types/Menu";
 
-
 const Sidebar: React.FC<{ 
   onCreateMenu: () => void; 
   onBack?: () => void; 
@@ -10,7 +9,7 @@ const Sidebar: React.FC<{
 }> = ({ onCreateMenu, onBack, selectedMenu, onShare }) => (
   <div className="w-64 bg-gray-800 shadow-md p-4 flex flex-col gap-4 text-white">
     <h2 className="text-lg text-center mt-40 font-semibold">
-      {selectedMenu ? selectedMenu.name : "Jadłospisy"}
+      {selectedMenu ? selectedMenu.name : "Meal Plans"}
     </h2>
     {selectedMenu ? (
       <>
@@ -18,19 +17,19 @@ const Sidebar: React.FC<{
           onClick={() => onShare(selectedMenu)} 
           className="bg-blue-500 hover:bg-blue-600 p-2 rounded text-sm text-white border-none cursor-pointer"
         >
-          Udostępnij jadłospis
+          Share meal plan
         </button>
         <button 
           className="bg-blue-500 hover:bg-blue-600 p-2 rounded text-sm text-white border-none cursor-pointer"
           disabled
         >
-          Zakończ udostępnianie
+          Stop sharing
         </button>
         <button 
           onClick={onBack} 
           className="bg-gray-600 hover:bg-gray-700 p-2 rounded text-sm text-white border-none cursor-pointer"
         >
-          Powrót
+          Back
         </button>
       </>
     ) : (
@@ -38,7 +37,7 @@ const Sidebar: React.FC<{
         onClick={onCreateMenu} 
         className="bg-blue-500 hover:bg-blue-600 p-2 rounded text-sm text-white border-none cursor-pointer"
       >
-        Utwórz jadłospis
+        Create meal plan
       </button>
     )}
   </div>

@@ -32,7 +32,7 @@ const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose, rating, onRa
       <div className="bg-gray-800 p-4 rounded-lg max-w-250 w-full shadow-xl text-white overflow-y-auto">
         <h2 className="text-2xl font-bold mb-2">{recipe.name}</h2>
         <p className="mb-2 text-sm">{recipe.description}</p>
-        <h3 className="text-lg font-semibold mb-1">Składniki:</h3>
+        <h3 className="text-lg font-semibold mb-1">Ingredients:</h3>
         <div className="grid grid-cols-2 gap-x-4 mb-2 text-sm">
           {recipe.ingredients?.map((ingredient, index) => (
             <div key={index} className="flex">
@@ -41,14 +41,14 @@ const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose, rating, onRa
             </div>
           ))}
         </div>
-        <h3 className="text-lg font-semibold mb-1">Instrukcje:</h3>
+        <h3 className="text-lg font-semibold mb-1">Instruction:</h3>
         <p className="mb-2 text-sm">{recipe.instructions}</p>
         <div className="flex justify-between items-center mb-1">
           <button className="text-blue-500 hover:underline text-sm" onClick={onClose}>
-            Zamknij
+            Close
           </button>
           <div className="flex flex-col items-center">
-            <h3 className="text-sm font-semibold mb-1">Oceń przepis</h3>
+            <h3 className="text-sm font-semibold mb-1">Rate recipe</h3>
             <StarRating rating={rating} onRatingChange={onRatingChange} />
           </div>
           {message && <p className="text-green-400 mb-1 text-sm">{message}</p>}
@@ -56,7 +56,7 @@ const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose, rating, onRa
             onClick={() => handleAddToFavorites(recipe)}
             className="bg-red-500 text-white px-20 py-1 rounded text-sm hover:bg-red-600"
           >
-            Dodaj do ulubionych
+            Add to favorites
           </button>
         </div>
       </div>

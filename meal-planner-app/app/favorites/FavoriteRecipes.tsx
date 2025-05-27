@@ -5,6 +5,7 @@ import { HeartIcon, StarIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import Navbar from "../components/Navbar"; 
 import Footer from "../components/Footer";
+import Sidebar from "../components/Sidebar";
 
 // Interfejs dla przepisu
 interface Recipe {
@@ -55,48 +56,6 @@ const StarRating: React.FC<StarRatingProps> = ({ rating, onRatingChange, readOnl
   );
 };
 
-// Komponent Sidebar
-const Sidebar: React.FC = () => {
-   return (
-    <div className="w-64 bg-gray-800 shadow-md p-4">
-      <h2 className="text-lg font-semibold mb-4 text-white">Filtry</h2>
-      <input
-        type="text"
-        placeholder="Szukaj przepisów"
-        className="w-full p-2 mb-3 border rounded bg-gray-700 text-white"
-      />
-      <button
-        className="w-full p-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors duration-200 mb-4"
-      >
-        Wyszukaj
-      </button>
-      <h3 className="text-md font-semibold mb-2 text-white">Sortuj wg</h3>
-      <select className="w-full p-2 mb-4 border rounded bg-gray-700 text-white">
-        <option>Nazwa</option>
-        <option>Popularność</option>
-        <option>Ocena</option>
-      </select>
-      <h3 className="text-md font-semibold mb-2 text-white">Kategorie</h3>
-      <div className="space-y-2">
-        <label className="flex items-center text-white">
-          <input type="checkbox" className="mr-2" /> Śniadanie
-        </label>
-        <label className="flex items-center text-white">
-          <input type="checkbox" className="mr-2" /> II Śniadanie
-        </label>
-        <label className="flex items-center text-white">
-          <input type="checkbox" className="mr-2" /> Obiad
-        </label>
-        <label className="flex items-center text-white">
-          <input type="checkbox" className="mr-2" /> Podwieczorek
-        </label>
-        <label className="flex items-center text-white">
-          <input type="checkbox" className="mr-2" /> Kolacja
-        </label>
-      </div>
-    </div>
-  );
-};
 
 // Komponent RecipeTile
 interface RecipeTileProps {
@@ -164,7 +123,7 @@ const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose, onRemove, ra
       <div className="bg-gray-800 p-4 rounded-lg max-w-250 w-full shadow-xl text-white overflow-y-auto">
         <h2 className="text-2xl font-bold mb-2">{recipe.name}</h2>
         <p className="mb-2 text-sm">{recipe.description}</p>
-        <h3 className="text-lg font-semibold mb-1">Składniki:</h3>
+        <h3 className="text-lg font-semibold mb-1">Ingredients:</h3>
         <div className="grid grid-cols-2 gap-x-4 mb-2 text-sm">
           {recipe.ingredients?.map((ingredient, index) => (
             <div key={index} className="flex">
@@ -173,21 +132,21 @@ const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose, onRemove, ra
             </div>
           ))}
         </div>
-        <h3 className="text-lg font-semibold mb-1">Instrukcje:</h3>
+        <h3 className="text-lg font-semibold mb-1">Instruction:</h3>
         <p className="mb-2 text-sm">{recipe.instructions}</p>
         <div className="flex justify-between items-center mb-2">
           <button className="text-blue-500 hover:underline text-sm" onClick={onClose}>
-            Zamknij
+            Close
           </button>
           <div className="flex flex-col items-center">
-            <h3 className="text-sm font-semibold mb-1">Oceń przepis</h3>
+            <h3 className="text-sm font-semibold mb-1">Rate recipe</h3>
             <StarRating rating={rating} onRatingChange={onRatingChange} />
           </div>
           <button
             className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
             onClick={() => onRemove(recipe)}
           >
-            Usuń z ulubionych
+            Remove from favorites
           </button>
         </div>
       </div>
