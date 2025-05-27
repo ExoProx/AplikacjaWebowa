@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useSearch } from "../../src/SearchContext";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 
