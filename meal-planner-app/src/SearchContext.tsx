@@ -19,21 +19,27 @@ export const SearchProvider = ({ children }: { children: React.ReactNode }) => {
   const [query, setQuery] = useState("");
 
   useEffect(() => {
-    const searchParams = new URLSearchParams();
-    if (input) searchParams.append("query", input);
     if (categories.length > 0) {
+      const searchParams = new URLSearchParams();
       searchParams.append("categories", categories.join(","));
+      setQuery(searchParams.toString());
     }
-    setQuery(searchParams.toString());
   }, [categories]);
 
+  const handleSetInput = (val: string) => {
+    setInput(val);
+  };
+
   const triggerSearch = () => {
-    const searchParams = new URLSearchParams();
-    if (input) searchParams.append("query", input);
-    if (categories.length > 0) {
-      searchParams.append("recipe_types", categories.join(","));
+    if (input || categories.length > 0) {
+      const searchParams = new URLSearchParams();
+      if (categories.length > 0) {
+        searchParams.append("recipe_types", categories.join(","));
+      }
+      setQuery(input.toLowerCase());
+    } else {
+      setQuery("");
     }
-    setQuery(searchParams.toString());
   };
 
   const toggleCategory = (cat: string) => {
@@ -42,10 +48,16 @@ export const SearchProvider = ({ children }: { children: React.ReactNode }) => {
     );
   };
 
-
   return (
     <SearchContext.Provider
-      value={{ input, setInput, categories, toggleCategory, query, triggerSearch }}
+      value={{ 
+        input, 
+        setInput: handleSetInput, 
+        categories, 
+        toggleCategory, 
+        query, 
+        triggerSearch 
+      }}
     >
       {children}
     </SearchContext.Provider>

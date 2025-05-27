@@ -4,10 +4,10 @@ import Link from "next/link";
 import SubmitButton from "./SubmitButton";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import { HeartIcon, HomeIcon, PowerIcon, UserIcon } from "@heroicons/react/24/outline";
+import { HeartIcon, HomeIcon, PowerIcon, UserIcon, ClipboardDocumentListIcon, BookOpenIcon } from "@heroicons/react/24/outline";
 
 interface NavbarProps {
-  className?: string; // Add className as an optional prop
+  className?: string;
 }
 
 const Navbar: React.FC<NavbarProps> = ({ className }) => {
@@ -30,26 +30,36 @@ const Navbar: React.FC<NavbarProps> = ({ className }) => {
     }
   };
 
+  const navItems = [
+    { href: "/mainPage", icon: HomeIcon, label: "Home" },
+    { href: "/recipes", icon: BookOpenIcon, label: "Recipes" },
+    { href: "/favorites", icon: HeartIcon, label: "Favorites" },
+    { href: "/menu", icon: ClipboardDocumentListIcon, label: "Meal Plans" },
+    { href: "/userData", icon: UserIcon, label: "Profile" },
+  ];
+
   return (
-    <nav className={`bg-gray-800 py-4 shadow-md ${className || ""}`}>
-      <div className="max-w-7xl mx-auto flex justify-between items-center px-2">
-        <Link href="/mainPage" className="text-white hover:text-gray-300">
-          <HomeIcon className="h-6 w-6" />
-        </Link>
-        <Link href="/recipes" className="text-white hover:text-gray-300">
-          Recipes
-        </Link>
-        <Link href="/favorites" className="text-white hover:text-gray-300">
-          Favorite Recipes
-        </Link>
-        <Link href="/menu" className="text-white hover:text-gray-300">
-          Meal Plans
-        </Link>
-        <Link href="/userData" className="text-white hover:text-gray-300">
-          <UserIcon className="h-6 w-6 text-gray-300 hover:text-white" />
-        </Link>
-        <button onClick={handleLogout} className="text-white hover:text-gray-300">
-          <PowerIcon className="h-6 w-6 text-red-500 hover:text-red-700" />
+    <nav className={`bg-gray-800/50 backdrop-blur-sm border-b border-gray-700/50 py-4 ${className || ""}`}>
+      <div className="max-w-7xl mx-auto flex justify-between items-center px-6">
+        <div className="flex items-center space-x-8">
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors duration-200"
+            >
+              <item.icon className="h-5 w-5" />
+              <span className="text-sm font-medium">{item.label}</span>
+            </Link>
+          ))}
+        </div>
+        <button
+          onClick={handleLogout}
+          className="flex items-center space-x-2 text-gray-300 hover:text-red-400 transition-colors duration-200"
+          title="Logout"
+        >
+          <PowerIcon className="h-5 w-5" />
+          <span className="text-sm font-medium">Logout</span>
         </button>
       </div>
     </nav>
