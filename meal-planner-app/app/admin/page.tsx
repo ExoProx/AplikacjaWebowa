@@ -1,10 +1,9 @@
-
 "use client";
 
-import { useEffect, useState } from "react"; 
+import { useEffect, useState } from "react";
 import axios from "axios";
 import Loading from "../components/Loading";
-import { Users, Plus, Edit, Trash2 } from "lucide-react";
+import { Users, Plus, Edit, Trash2, CheckCircle, XCircle } from "lucide-react";
 import { useRouter } from 'next/navigation';
 
 interface User {
@@ -12,6 +11,8 @@ interface User {
     name : string;
     email: string;
     phone_number: number;
+    password?: string;
+    status: string;
 }
 
 const AdminPage = () => {
@@ -20,48 +21,74 @@ const AdminPage = () => {
     const [showAddUserForm, setShowAddUserForm] = useState(false);
     const [showEditUserForm, setShowEditUserForm] = useState(false);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const [isLoading, setIsLoading] = useState(true); 
+    const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
-
-    useEffect(() => {
-        const fetchUsers = async () => {
-            setIsLoading(true); 
+    const fetchUsers = async () => {
+            setIsLoading(true);
             try {
-                const response = await axios.get("http://localhost:5000/api/users");
+                const response = await axios.get("http://localhost:5000/api/users", {
+                    withCredentials: true,
+                });
                 console.log("Response: ", response.data);
-                setUsers(response.data); 
+                setUsers(response.data);
             } catch (error) {
                 if (axios.isAxiosError(error) && error.response && error.response.status === 401) {
                     console.log('fetchUsers: Unauthorized, redirecting to login.');
                     router.push('/login?error=auth');
                 } else {
-                    console.error("Błąd podczas pobierania użytkowników:", error);
-                    alert("Nie udało się pobrać użytkowników z serwera.");
+                    console.error("Error fetching users:", error);
+                    alert("Failed to fetch users from the server.");
                 }
             } finally {
                 setIsLoading(false);
             }
         };
-
+    useEffect(() => {
         fetchUsers();
     }, [router]);
 
 
-    const handleAddUser = (userData: User) => {
-        if (!userData.name || !userData.email) {
-            alert("Proszę wypełnić wszystkie pola.");
+    const handleAddUser = async (userData: User) => {
+        // Now also check for password if adding a user
+        if (!userData.name || !userData.email || !userData.password) {
+            alert("Please fill in all fields, including password.");
             return false;
         }
         if (users.some(user => user.email === userData.email)) {
-            alert("Użytkownik o podanym adresie email już istnieje.");
+            alert("A user with this email already exists.");
             return false;
         }
 
-        const newUser = { ...userData };
-        setUsers([...users, newUser]);
-        alert("Użytkownik dodany pomyślnie!");
-        setShowAddUserForm(false);
-        return true;
+        try {
+            const dataToSend = {
+                name: userData.name,
+                email: userData.email,
+                phone_number: userData.phone_number,
+                password: userData.password,
+            };
+            await axios.post("http://localhost:5000/api/users/add", dataToSend, {
+                withCredentials: true,
+            });
+            await fetchUsers();
+            alert("User added successfully!");
+            setShowAddUserForm(false);
+            return true;
+        } catch (error: any) {
+            console.error("Error adding user:", error);
+            if (axios.isAxiosError(error) && error.response) {
+                if (error.response.status === 401) {
+                    alert("Authorisation error.");
+                    handleLogout();
+                } else if (error.response.status === 400) {
+                    alert(`Data error: ${error.response.data.message || 'Invalid data.'}`);
+                } else {
+                    alert(`Server error: ${error.response.status} - ${error.response.data.message || 'An unknown error occurred.'}`);
+                }
+            } else {
+                alert("Error while connecting with the server. Please check your internet connection.");
+            }
+            return false;
+        }
     };
     const handleLogout = async () => {
         try {
@@ -81,21 +108,26 @@ const AdminPage = () => {
     };
     const handleEditUser = async (userData : User) => {
         if (!userData.name || !userData.email) {
-            alert("Proszę wypełnić wszystkie pola.");
+            alert("Please fill in all fields.");
             return false;
         }
         if (users.some(user => user.email === userData.email && user.id !== userData.id)) {
-            alert("Użytkownik o podanym adresie email już istnieje.");
+            alert("A user with this email already exists.");
             return false;
         }
         try {
-            await axios.post(`http://localhost/foodSecret/userdata/change`, {
+            const dataToSend={
                 id_account: userData.id,
                 email: userData.email,
                 name: userData.name,
                 phone_number: userData.phone_number,
+            }
+            await axios.put(`http://localhost:5000/api/users/change`, dataToSend, {
                 withCredentials: true,
+
             });
+            await fetchUsers();
+            setShowEditUserForm(false);
             return true;
         } catch (error: any) {
             console.error("Error updating user:", error);
@@ -104,9 +136,9 @@ const AdminPage = () => {
                     alert("Authorisation error.");
                     handleLogout();
                 } else if (error.response.status === 400) {
-                    alert(`Błąd danych: ${error.response.data.message || 'Nieprawidłowe dane.'}`);
+                    alert(`Data error: ${error.response.data.message || 'Invalid data.'}`);
                 } else {
-                    alert(`Błąd serwera: ${error.response.status} - ${error.response.data.message || 'Wystąpił nieznany błąd.'}`);
+                    alert(`Server error: ${error.response.status} - ${error.response.data.message || 'An unknown error occurred.'}`);
                 }
             } else {
                 alert("Error while connecting with the server. Please check your internet connection.");
@@ -115,11 +147,39 @@ const AdminPage = () => {
         }
     }
 
-    const handleDeleteUser = (userId: number) => {
-        if (window.confirm("Do you really want to deactivate this account??")) {
-            setUsers(users.filter((user) => user.id !== userId));
-            alert("User account deactivated succesfully.");
+    const handleToggleUserStatus = async (userId: number, currentStatus: string) => {
+        const newStatus = currentStatus === 'activated' ? 'deactivated' : 'activated';
+        const confirmMessage = `Do you really want to ${newStatus === 'deactivated' ? 'deactivate' : 'activate'} this account?`;
+
+        if (window.confirm(confirmMessage)) {
+            try {
+                await axios.put(`http://localhost:5000/api/users/toggle-status`, {
+                    id_account: userId,
+                    status: newStatus,
+                }, {
+                    withCredentials: true
+                });
+                alert(`User account ${newStatus} successfully.`);
+                await fetchUsers();
+                return true;
+            } catch (error: any) {
+                console.error(`Error toggling user status to ${newStatus}:`, error);
+                if (axios.isAxiosError(error) && error.response) {
+                    if (error.response.status === 401) {
+                        alert("Authorisation error.");
+                        handleLogout();
+                    } else if (error.response.status === 400) {
+                        alert(`Data error: ${error.response.data.message || 'Invalid data.'}`);
+                    } else {
+                        alert(`Server error: ${error.response.status} - ${error.response.data.message || 'An unknown error occurred.'}`);
+                    }
+                } else {
+                    alert("Error while connecting with the server. Please check your internet connection.");
+                }
+                return false;
+            }
         }
+        return false;
     };
 
     const renderContent = () => {
@@ -147,7 +207,8 @@ const AdminPage = () => {
 
                         {showAddUserForm && (
                             <UserForm
-                                title="Dodaj nowego użytkownika"
+                                key="addUserForm"
+                                title="Add New User"
                                 onSubmit={handleAddUser}
                                 onCancel={() => setShowAddUserForm(false)}
                             />
@@ -155,7 +216,8 @@ const AdminPage = () => {
 
                         {showEditUserForm && currentUser && (
                             <UserForm
-                                title="Edytuj dane użytkownika"
+                                key={`editUserForm-${currentUser.id}`}
+                                title="Edit User Data"
                                 initialData={currentUser}
                                 onSubmit={handleEditUser}
                                 onCancel={() => { setShowEditUserForm(false); setCurrentUser(null); }}
@@ -164,16 +226,17 @@ const AdminPage = () => {
 
                         {/* Panel zarządzania - lista użytkowników */}
                         <div className="bg-gray-700 p-4 rounded-b-lg">
-                            <h3 className="text-xl font-semibold mb-3">Panel zarządzania - lista użytkowników</h3>
+                            <h3 className="text-xl font-semibold mb-3">Management Panel - User List</h3>
                             <div className="overflow-x-auto">
                                 <table className="min-w-full bg-gray-800 rounded-lg">
                                     <thead>
                                         <tr className="bg-gray-600 text-left">
                                             <th className="py-2 px-4 border-b border-gray-700">#</th>
-                                            <th className="py-2 px-4 border-b border-gray-700">Nazwa użytkownika</th>
+                                            <th className="py-2 px-4 border-b border-gray-700">Username</th>
                                             <th className="py-2 px-4 border-b border-gray-700">Email</th>
-                                            <th className="py-2 px-4 border-b border-gray-700">Numer Telefonu</th>
-                                            <th className="py-2 px-4 border-b border-gray-700">Akcje</th>
+                                            <th className="py-2 px-4 border-b border-gray-700">Phone Number</th>
+                                            <th className="py-2 px-4 border-b border-gray-700">Status</th>
+                                            <th className="py-2 px-4 border-b border-gray-700">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -184,27 +247,33 @@ const AdminPage = () => {
                                                     <td className="py-2 px-4 border-b border-gray-700">{user.name}</td>
                                                     <td className="py-2 px-4 border-b border-gray-700">{user.email}</td>
                                                     <td className="py-2 px-4 border-b border-gray-700">{user.phone_number}</td>
+                                                    <td className="py-2 px-4 border-b border-gray-700">
+                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${user.status === 'activated' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                                            {user.status === 'activated' ? <CheckCircle size={12} className="mr-1" /> : <XCircle size={12} className="mr-1" />}
+                                                            {user.status}
+                                                        </span>
+                                                    </td>
                                                     <td className="py-2 px-4 border-b border-gray-700 flex space-x-2">
                                                         <button
                                                             className="bg-yellow-600 hover:bg-yellow-700 text-white py-1 px-3 rounded flex items-center"
                                                             onClick={() => { setShowEditUserForm(true); setShowAddUserForm(false); setCurrentUser(user); }}
                                                         >
                                                             <Edit size={16} className="mr-1" />
-                                                            Edytuj dane
+                                                            Edit Data
                                                         </button>
                                                         <button
-                                                            className="bg-red-600 hover:bg-red-700 text-white py-1 px-3 rounded flex items-center"
-                                                            onClick={() => handleDeleteUser(user.id)}
+                                                            className={`${user.status === 'activated' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} text-white py-1 px-3 rounded flex items-center`}
+                                                            onClick={() => handleToggleUserStatus(user.id, user.status)}
                                                         >
                                                             <Trash2 size={16} className="mr-1" />
-                                                            Dezaktywuj
+                                                            {user.status === 'activated' ? 'Deactivate' : 'Activate'}
                                                         </button>
                                                     </td>
                                                 </tr>
                                             ))
                                         ) : (
                                             <tr>
-                                                <td colSpan={4} className="py-4 text-center text-gray-400">Brak użytkowników do wyświetlenia.</td>
+                                                <td colSpan={6} className="py-4 text-center text-gray-400">No users to display.</td>
                                             </tr>
                                         )}
                                     </tbody>
@@ -227,8 +296,8 @@ const AdminPage = () => {
     }
 
     return (
-        <div className="flex flex-col min-h-screen bg-gray-900 text-white"> {/* Dodano flex-col i min-h-screen */}
-            <div className="flex flex-1"> {/* Ten div będzie rozciągał się, pchając stopkę na dół */}
+        <div className="flex flex-col min-h-screen bg-gray-900 text-white">
+            <div className="flex flex-1">
                 <aside className="w-64 bg-gray-800 p-4 space-y-4">
                     <h1 className="text-2xl font-bold">Admin</h1>
                     <nav className="space-y-2">
@@ -236,7 +305,7 @@ const AdminPage = () => {
                             onClick={() => { setActiveTab("user_management"); setShowAddUserForm(false); setShowEditUserForm(false); setCurrentUser(null); }}
                             className={`block w-full text-left px-4 py-2 rounded hover:bg-gray-700 ${activeTab === "user_management" ? "bg-gray-700" : ""}`}
                         >
-                            Zarządzanie użytkownikami
+                            User Management
                         </button>
                     </nav>
                 </aside>
@@ -244,8 +313,7 @@ const AdminPage = () => {
                 <main className="flex-1">{renderContent()}</main>
             </div>
 
-            {/* Stopka na samym dole, poza główną zawartością */}
-            <footer className="bg-gray-800 py-4 text-center mt-auto"> {/* Użycie mt-auto do wypchnięcia na dół */}
+            <footer className="bg-gray-800 py-4 text-center mt-auto">
                 <p className="text-gray-400">&copy; 2025 mniamplan</p>
             </footer>
         </div>
@@ -259,26 +327,29 @@ interface UserFormProps {
         name: string;
         email: string;
         phone_number: number;
-
+        password?: string;
     };
-    onSubmit: (data: User) => void;
+    onSubmit: (data: User) => Promise<boolean>;
     onCancel: () => void;
 }
 
 const UserForm: React.FC<UserFormProps> = ({ title, initialData = { name: "", email: "", phone_number: 0 }, onSubmit, onCancel }) => {
-    const [name, setName] = useState(initialData.name);
-    const [email, setEmail] = useState(initialData.email);
+    const [name, setName] = useState(() => initialData.name);
+    const [email, setEmail] = useState(() => initialData.email);
+    const [password, setPassword] = useState(() => initialData.password || "");
     const id = initialData.id;
-    const [phone_number_input, setPhone_number_input] = useState<number | ''>(
+    const [phone_number_input, setPhone_number_input] = useState<number | ''>(() =>
         initialData.phone_number === 0 ? '' : initialData.phone_number
     );
+
     useEffect(() => {
-        setPhone_number_input(initialData.phone_number === 0 ? '' : initialData.phone_number);
         setName(initialData.name);
         setEmail(initialData.email);
-    }, [initialData]);
+        setPassword(initialData.password || "");
+        setPhone_number_input(initialData.phone_number === 0 ? '' : initialData.phone_number);
+    }, [initialData.id, initialData.name, initialData.email, initialData.phone_number, initialData.password]);
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         let phoneNumberForAPI: number;
@@ -288,16 +359,25 @@ const UserForm: React.FC<UserFormProps> = ({ title, initialData = { name: "", em
             const parsedNumber = Number(phone_number_input);
             phoneNumberForAPI = isNaN(parsedNumber) ? 0 : parsedNumber;
         }
-        onSubmit({
+
+        const dataToSubmit: User = {
             id: id ?? 0,
             name,
             email,
             phone_number: phoneNumberForAPI,
-        });
+            status: 'activated'
+        };
 
-        setName("");
-        setEmail("");
-        setPhone_number_input("");
+        const isAddingUser = !initialData.id;
+        if (isAddingUser) {
+            dataToSubmit.password = password;
+        }
+
+        const success = await onSubmit(dataToSubmit);
+
+        if (success) {
+            onCancel();
+        }
     };
 
 
@@ -307,7 +387,7 @@ const UserForm: React.FC<UserFormProps> = ({ title, initialData = { name: "", em
             <form onSubmit={handleSubmit}>
                 <div className="mb-4">
                     <label htmlFor="name" className="block text-gray-300 text-sm font-bold mb-2">
-                        Nazwa użytkownika:
+                        Username:
                     </label>
                     <input
                         type="text"
@@ -332,7 +412,7 @@ const UserForm: React.FC<UserFormProps> = ({ title, initialData = { name: "", em
                     />
                 </div>
                 <div className="mb-4">
-                    <label htmlFor="email" className="block text-gray-300 text-sm font-bold mb-2">
+                    <label htmlFor="phone_number" className="block text-gray-300 text-sm font-bold mb-2">
                         Phone Number:
                     </label>
                     <input
@@ -346,19 +426,35 @@ const UserForm: React.FC<UserFormProps> = ({ title, initialData = { name: "", em
                         required
                     />
                 </div>
+                {/* Only show password field when adding a new user */}
+                {!initialData.id && (
+                    <div className="mb-4">
+                        <label htmlFor="password" className="block text-gray-300 text-sm font-bold mb-2">
+                            Password:
+                        </label>
+                        <input
+                            type="password"
+                            id="password"
+                            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline bg-gray-200"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required={!initialData.id}
+                        />
+                    </div>
+                )}
                 <div className="flex items-center justify-between">
                     <button
                         type="submit"
                         className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
                     >
-                        Zapisz
+                        Save
                     </button>
                     <button
                         type="button"
                         onClick={onCancel}
                         className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
                     >
-                        Anuluj
+                        Cancel
                     </button>
                 </div>
             </form>

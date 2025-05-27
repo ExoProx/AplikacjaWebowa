@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { User, Mail, Lock } from "lucide-react";
+import { User, Mail } from "lucide-react"; 
 import InputField from "../components/InputField";
 import SubmitButton from "../components/SubmitButton";
 import Navbar from "../components/Navbar";
@@ -10,21 +10,24 @@ import Footer from "../components/Footer";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { profile } from "console";
 
 interface ProfileData {
   name: string;
   lastname: string;
-  phone_number: string;
+  phone_number: string; 
+  email: string;
 }
 
 const UserDataEdit: React.FC = () => {
   const [profileData, setProfileData] = useState<ProfileData>({
     name: "",
     lastname: "",
-    phone_number: "",
+    phone_number: "", 
+    email: ""
   });
   const [message, setMessage] = useState<string>("");
-  const [phoneError, setPhoneError] = useState<string | null>(null); // New state for phone number validation error
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -37,6 +40,7 @@ const UserDataEdit: React.FC = () => {
           name: response.data.name || "",
           lastname: response.data.lastname || "",
           phone_number: response.data.phone_number ? String(response.data.phone_number) : "",
+          email: response.data.email || ""
         });
       } catch (err) {
         if (axios.isAxiosError(err) && err.response && err.response.status === 401) {
@@ -51,38 +55,55 @@ const UserDataEdit: React.FC = () => {
   }, [router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Clear phone error when user starts typing
+    // Clear phone error when user starts typing in the phone field
     if (e.target.name === "phone_number") {
       setPhoneError(null);
+
+      // Optional: enforce numeric input strictly for type="number"
+      // Browsers handle this mostly, but this adds an extra layer.
+      const value = e.target.value;
+      if (value === '' || /^\d+$/.test(value)) { // Allow empty string or digits only
+        setProfileData({ ...profileData, [e.target.name]: value });
+      } else {
+        // If non-digit input, do not update state, effectively blocking it
+        // Or you could show an inline error here if desired.
+      }
+    } else {
+      setProfileData({ ...profileData, [e.target.name]: e.target.value });
     }
-    setProfileData({ ...profileData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Frontend Validation
+    // Frontend Validation for phone_number
     const trimmedPhoneNumber = profileData.phone_number.trim();
+
+    if (trimmedPhoneNumber.length === 0) {
+      setPhoneError("Numer telefonu nie może być pusty.");
+      setMessage("");
+      return; 
+    }
     if (trimmedPhoneNumber.length < 9) {
       setPhoneError("Numer telefonu musi zawierać co najmniej 9 cyfr.");
-      setMessage(""); // Clear general message
-      return; // Stop form submission
+      setMessage("");
+      return; 
     }
-    // Optional: Check if it contains only digits
     if (!/^\d+$/.test(trimmedPhoneNumber)) {
         setPhoneError("Numer telefonu może zawierać tylko cyfry.");
         setMessage("");
         return;
     }
 
-    setPhoneError(null); // Clear any previous phone errors
+    setPhoneError(null);
     setMessage("Saving changes...");
 
     try {
       const dataToSend = {
         name: profileData.name,
         lastname: profileData.lastname,
-        phone_number: trimmedPhoneNumber, // Send the trimmed value
+        phone_number: trimmedPhoneNumber, 
+        email: profileData.email
       };
 
       await axios.put("http://localhost:5000/api/users/updateuserdata", dataToSend, {
@@ -92,7 +113,6 @@ const UserDataEdit: React.FC = () => {
     } catch (err) {
       console.error("Error updating profile:", err);
       if (axios.isAxiosError(err) && err.response) {
-        // Display backend validation errors
         setMessage(`Error updating profile: ${err.response.data.message || 'Unknown error'}`);
         if (err.response.status === 401) {
           router.push('/login?error=auth');
@@ -121,28 +141,40 @@ const UserDataEdit: React.FC = () => {
               className="bg-gray-200 rounded-md p-2 w-full text-gray-800"
             />
             <InputField
-              label="Nazwisko"
+              label="Lastname"
               type="text"
               field="lastname"
               value={profileData.lastname}
               onChange={handleChange}
-              placeholder="Wpisz nowe nazwisko"
+              placeholder="Enter a new lastname"
               icon={<User className="text-gray-800" size={20} />}
               className="bg-gray-200 rounded-md p-2 w-full text-gray-800"
             />
             <InputField
-              label="Numer telefonu"
-              type="text"
-              field="phone_number"
-              value={profileData.phone_number}
+              label="Email"
+              type="email" 
+              field="Email"
+              value={profileData.email}
               onChange={handleChange}
-              placeholder="Wpisz nowy numer telefonu"
+              placeholder="Enter a new email"
               icon={<Mail className="text-gray-800" size={20} />}
               className={`bg-gray-200 rounded-md p-2 w-full text-gray-800 ${phoneError ? 'border-red-500 border-2' : ''}`}
             />
+            <InputField
+              label="Phone Number"
+              type="number"
+              field="phone_number"
+              value={profileData.phone_number}
+              onChange={handleChange}
+              placeholder="Enter a new phone number"
+              icon={<User className="text-gray-800" size={20} />}
+              className="bg-gray-200 rounded-md p-2 w-full text-gray-800"
+            />
+            
             {phoneError && ( // Display phone number error
               <p className="text-red-400 text-sm mt-1">{phoneError}</p>
             )}
+            {/* Password field removed as per previous request */}
             <div className="transform transition-transform hover:scale-105 duration-300">
               <SubmitButton
                 type="submit"

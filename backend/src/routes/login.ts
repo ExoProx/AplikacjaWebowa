@@ -49,7 +49,7 @@ router.post('/', async (req: Request, res: Response) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production', // true in prod for HTTPS only
       sameSite: 'lax',
-      maxAge: 3600 * 1000 * 24, // 1 hour
+      maxAge: 1000* 60 * 60 * 24,
       path: '/',
     });
 

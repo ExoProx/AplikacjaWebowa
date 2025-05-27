@@ -305,7 +305,7 @@ const MainPage: React.FC = () => {
                 </div>
                 <div className="p-4 flex flex-col items-center justify-center text-gray-200 h-full"> {/* Added h-full for consistent height */}
                   {recommendedRecipe ? (
-                    <div className="flex-grow items-center flex flex-col overflow-hidden shadow-md rounded-xl transform transition-transform hover:scale-103 duration-300 w-full">
+                    <div className="flex-grow items-center flex flex-col overflow-hidden shadow-md rounded-xl transform transition-transform hover:scale-103 duration-600 w-full">
                       <img
                         src={recommendedRecipe.image || "/placeholder.jpg"}
                         alt={recommendedRecipe.name}
