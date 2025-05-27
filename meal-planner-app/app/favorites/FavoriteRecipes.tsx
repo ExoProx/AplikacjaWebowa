@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { HeartIcon } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid";
 import Navbar from "../components/Navbar"; 
 import Footer from "../components/Footer";
@@ -11,11 +10,12 @@ import { getFavoriteRecipes, removeFromFavorites } from "../api/favorites";
 import axios from "axios";
 import Loading from '../components/Loading';
 import RecipeModal from "../components/RecipeModal";
+import Image from "next/image";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
 const FavoriteRecipes: React.FC = () => {
-  const [favoriteRecipeIds, setFavoriteRecipeIds] = useState<string[]>([]);
+  const [, setFavoriteRecipeIds] = useState<string[]>([]);
   const [favoriteRecipes, setFavoriteRecipes] = useState<Recipe[]>([]);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [ratings, setRatings] = useState<{ [key: number]: number }>({});
@@ -47,6 +47,8 @@ const FavoriteRecipes: React.FC = () => {
         setError(null);
       } catch (err) {
         setError("Nie udało się załadować ulubionych przepisów");
+        setIsLoading(false);
+        return;
       } finally {
         setIsLoading(false);
       }
@@ -63,6 +65,8 @@ const FavoriteRecipes: React.FC = () => {
       setSelectedRecipe(null);
     } catch (err) {
       setError("Nie udało się usunąć przepisu z ulubionych");
+      setIsLoading(false);
+      return;
     }
   };
 
@@ -81,7 +85,7 @@ const FavoriteRecipes: React.FC = () => {
         onClick={() => setSelectedRecipe(recipe)}
       >
         <div className="aspect-w-16 aspect-h-9 relative">
-          <img
+          <Image
             src={recipe.image || "/placeholder.jpg"}
             alt={recipe.name}
             className="w-full h-48 object-cover"

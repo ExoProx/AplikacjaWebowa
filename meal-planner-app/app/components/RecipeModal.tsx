@@ -5,7 +5,7 @@ import { checkIsFavorite, addToFavorites, removeFromFavorites } from "../api/fav
 import { HeartIcon } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid";
 import { StarIcon } from "@heroicons/react/24/outline";
-
+import Image from "next/image";
 interface RecipeModalProps {
   recipe: Recipe;
   onClose: () => void;
@@ -87,7 +87,7 @@ const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose, rating, onRa
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
           {recipe.image && (
             <div className="mb-6 relative pt-[56.25%]">
-              <img
+              <Image
                 src={recipe.image}
                 alt={recipe.name}
                 className="absolute inset-0 w-full h-full object-contain bg-gray-900 rounded-lg"

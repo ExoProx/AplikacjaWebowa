@@ -17,7 +17,7 @@ const LoginForm: React.FC = () => {
   const [formData, setFormData] = useState<LoginData>({ email: '', password: '' });
   const [message, setMessage] = useState<string>('');
   const router = useRouter();
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorMessage] = useState<string | null>(null);
   const [authRedirectMessage, setAuthRedirectMessage] = useState<string | null>(null);
   const searchParams = useSearchParams();
    useEffect(() => {
@@ -62,12 +62,12 @@ const LoginForm: React.FC = () => {
   
       setMessage('Login successful!');
       if (response.data.role == "user"){
-      router.push('/mainPage'); // Redirect after successful login
+      router.push('/mainPage'); 
       }else if (response.data.role == "admin"){
         router.push('/admin');
       }
   
-    } catch (err: any) {
+    } catch (err: Error) {
       console.error('Error during login:', err);
       if (err.response && err.response.data && err.response.data.error) {
         setMessage(err.response.data.error);
