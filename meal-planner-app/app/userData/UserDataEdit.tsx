@@ -7,6 +7,7 @@ import InputField from "../components/InputField";
 import SubmitButton from "../components/SubmitButton";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import Loading from "../components/Loading"; // Import the Loading component
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -14,7 +15,7 @@ import Link from "next/link";
 interface ProfileData {
   name: string;
   lastname: string;
-  phone_number: string; 
+  phone_number: string;
   email: string;
 }
 
@@ -22,15 +23,17 @@ const UserDataEdit: React.FC = () => {
   const [profileData, setProfileData] = useState<ProfileData>({
     name: "",
     lastname: "",
-    phone_number: "", 
+    phone_number: "",
     email: ""
   });
   const [message, setMessage] = useState<string>("");
   const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true); // Add loading state
   const router = useRouter();
 
   useEffect(() => {
     const fetchUserData = async () => {
+      setIsLoading(true); // Start loading
       try {
         const response = await axios.get("http://localhost:5000/api/users/userdata", {
           withCredentials: true,
@@ -48,6 +51,8 @@ const UserDataEdit: React.FC = () => {
         }
         console.error("Error fetching user data:", err);
         setMessage("Failed to load user data.");
+      } finally {
+        setIsLoading(false); // End loading
       }
     };
     fetchUserData();
@@ -67,22 +72,26 @@ const UserDataEdit: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsLoading(true); // Start loading on submit
 
     const trimmedPhoneNumber = profileData.phone_number.trim();
 
     if (trimmedPhoneNumber.length === 0) {
-      setPhoneError("Numer telefonu nie może być pusty.");
+      setPhoneError("Phone number cannot be empty."); // Translated
       setMessage("");
-      return; 
+      setIsLoading(false); // Stop loading on validation error
+      return;
     }
     if (trimmedPhoneNumber.length < 9) {
-      setPhoneError("Numer telefonu musi zawierać co najmniej 9 cyfr.");
+      setPhoneError("Phone number must contain at least 9 digits."); // Translated
       setMessage("");
-      return; 
+      setIsLoading(false); // Stop loading on validation error
+      return;
     }
     if (!/^\d+$/.test(trimmedPhoneNumber)) {
-        setPhoneError("Numer telefonu może zawierać tylko cyfry.");
+        setPhoneError("Phone number can only contain digits."); // Translated
         setMessage("");
+        setIsLoading(false); // Stop loading on validation error
         return;
     }
 
@@ -93,7 +102,7 @@ const UserDataEdit: React.FC = () => {
       const dataToSend = {
         name: profileData.name,
         lastname: profileData.lastname,
-        phone_number: trimmedPhoneNumber, 
+        phone_number: trimmedPhoneNumber,
         email: profileData.email
       };
 
@@ -111,12 +120,20 @@ const UserDataEdit: React.FC = () => {
       } else {
         setMessage("An unexpected error occurred while updating profile.");
       }
+    } finally {
+      setIsLoading(false); // End loading
     }
   };
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-900 text-white font-sans">
       <Navbar />
+      <div className="flex-1 flex items-center justify-center p-4 overflow-hidden relative"> {/* Added relative for loading overlay */}
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center z-50 bg-gray-900 bg-opacity-90">
+            <Loading />
+          </div>
+        )}
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-2xl mx-auto">
           <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl shadow-xl p-8 relative overflow-hidden">
@@ -222,7 +239,9 @@ const UserDataEdit: React.FC = () => {
                   </Link>
                 </div>
               </form>
+
             </div>
+          </div>
           </div>
         </div>
       </div>

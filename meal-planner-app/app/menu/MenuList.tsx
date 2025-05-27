@@ -90,7 +90,7 @@ const MenuComponent: React.FC = () => {
           }
 
           if (authError.response?.status === 401) {
-            router.push('/login');
+            router.push('/login?error=auth');
             return;
           }
 
