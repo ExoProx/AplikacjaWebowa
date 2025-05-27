@@ -6,6 +6,11 @@ import passport from 'passport';
 
 const router = express.Router();
 
+interface PostgresError {
+  code: string;
+  detail?: string;
+}
+
 //Walidacja danych biblitoeką zod
 const userSchema = z.object({
   email: z.string().email(),
@@ -78,12 +83,11 @@ router.post('/', async (req: Request, res: Response) => {
 
     await client.query("COMMIT");
     res.status(201).json({ message: "Account created", userId: accountId });
-  } catch (err) {
+  } catch (err: Error | unknown) {
     await client.query("ROLLBACK");
 
-
     if (typeof err === "object" && err !== null && "code" in err) {
-      const pgError = err as { code: string; detail?: string };
+      const pgError = err as PostgresError;
       if (pgError.code === "23505") {
         if (pgError.detail?.includes("email")) {
           return res.status(400).json({ error: "Email is already in use" });
@@ -161,11 +165,11 @@ router.post('/add',
 
             await client.query("COMMIT");
             res.status(201).json({ message: "User account created successfully", userId: accountId });
-        } catch (err) {
+        } catch (err: Error | unknown) {
             await client.query("ROLLBACK");
 
             if (typeof err === "object" && err !== null && "code" in err) {
-                const pgError = err as { code: string; detail?: string };
+                const pgError = err as PostgresError;
                 if (pgError.code === "23505") {
                     if (pgError.detail?.includes("email")) {
                         return res.status(400).json({ error: "Email is already in use." });
@@ -275,12 +279,15 @@ router.put('/change', passport.authenticate('jwt', { session: false }),
 
         await client.query("COMMIT");
         res.status(200).json({message: `Update Successful`})
-    } catch (err: any) {
+    } catch (err: Error | unknown) {
         await client.query("ROLLBACK");
         console.error('Error fetching users:', err);
 
-        if (err.code === '23505' && err.detail && err.detail.includes('email')) {
-            return res.status(400).json({ error: 'The provided email is already in use by another account.' });
+        if (typeof err === "object" && err !== null && "code" in err) {
+            const pgError = err as PostgresError;
+            if (pgError.code === "23505" && pgError.detail && pgError.detail.includes('email')) {
+                return res.status(400).json({ error: 'The provided email is already in use by another account.' });
+            }
         }
 
         res.status(500).json({ error: 'Internal server error' });
@@ -408,7 +415,7 @@ router.put(
 
       await client.query("COMMIT");
       res.status(200).json({ message: `Account with ID ${id_account} ${actionMessage} successfully.` });
-    } catch (err) {
+    } catch (err: Error | unknown) {
       await client.query("ROLLBACK");
       console.error('Error toggling account status:', err);
       res.status(500).json({ error: 'Internal server error.' });
@@ -417,6 +424,5 @@ router.put(
     }
   }
 );
-
 
 export default router;

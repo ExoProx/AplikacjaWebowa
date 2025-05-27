@@ -35,9 +35,9 @@ const CreateMenuModal: React.FC<{
       const newMenu: Menu = response.data;
       onCreateSuccess(newMenu);
       onClose();
-    } catch (err: any) {
+    } catch (err: Error | unknown) {
       console.error("Error during submission:", err);
-      if (err.response?.data?.error) {
+      if (axios.isAxiosError(err) && err.response?.data?.error) {
         setMessage(err.response.data.error);
       } else {
         setMessage("Something went wrong. Please try again.");

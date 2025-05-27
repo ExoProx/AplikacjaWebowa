@@ -6,7 +6,7 @@ import InputField from 'components/InputField'; // Make sure this component exis
 import SubmitButton from 'components/SubmitButton'; // Same for this component
 import Link from "next/link";
 import { useRouter, useSearchParams  } from 'next/navigation';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
 interface LoginData {
   email: string;
@@ -48,6 +48,8 @@ const LoginForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setMessage(''); // Clear previous success messages
+    setErrorMessage(null); // Clear previous error messages
 
     const data = {
       email: formData.email,
@@ -67,12 +69,18 @@ const LoginForm: React.FC = () => {
         router.push('/admin');
       }
   
-    } catch (err: any) {
-      console.error('Error during login:', err);
-      if (err.response && err.response.data && err.response.data.error) {
-        setMessage(err.response.data.error);
+    } catch (e: unknown) {
+      console.error('Error during login:', e);
+      if (axios.isAxiosError(e)) {
+        if (e.response && e.response.data && e.response.data.error) {
+          setErrorMessage(e.response.data.error);
+        } else {
+          setErrorMessage('Something went wrong. Please try again.');
+        }
+      } else if (e instanceof Error) {
+        setErrorMessage(e.message);
       } else {
-        setMessage('Something went wrong. Please try again.');
+        setErrorMessage('An unexpected error occurred. Please try again.');
       }
     }
   };
@@ -122,8 +130,8 @@ const LoginForm: React.FC = () => {
         </div>
       </form>
 
-      {/* Display any message from the backend */}
-      {message && (
+      {/* Display any success message from the backend */}
+      {message && !errorMessage && (
         <p className="mt-4 text-center text-green-600 font-semibold">
           {message}
         </p>

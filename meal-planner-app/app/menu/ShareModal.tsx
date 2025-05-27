@@ -45,9 +45,16 @@ const ShareModal: React.FC<{
         onStatusChange?.(menuId, false);
         handleInitialShare();
       }
-    } catch (err: any) {
+    } catch (err: Error | unknown) {
       console.error('Error checking share status:', err);
-      const errorMessage = err.response?.data?.message || err.response?.data?.error || err.message || "Failed to check sharing status";
+      let errorMessage = "Failed to check sharing status";
+      
+      if (axios.isAxiosError(err)) {
+        errorMessage = err.response?.data?.message || err.response?.data?.error || err.message || errorMessage;
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      
       setError(errorMessage);
       setIsSharing(false);
       onStatusChange?.(menuId, false);
@@ -77,9 +84,16 @@ const ShareModal: React.FC<{
       } else {
         throw new Error('No token received from share endpoint');
       }
-    } catch (err: any) {
+    } catch (err: Error | unknown) {
       console.error('Error sharing menu:', err);
-      const errorMessage = err.response?.data?.message || err.response?.data?.error || err.message || "Failed to share menu";
+      let errorMessage = "Failed to share menu";
+      
+      if (axios.isAxiosError(err)) {
+        errorMessage = err.response?.data?.message || err.response?.data?.error || err.message || errorMessage;
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      
       setError(errorMessage);
       onStatusChange?.(menuId, false);
     } finally {
@@ -119,11 +133,17 @@ const ShareModal: React.FC<{
       setLink("");
       setIsSharing(false);
       onStatusChange?.(menuId, false);
-    } catch (err: any) {
+    } catch (err: Error | unknown) {
       console.error('Error unsharing menu:', err);
-      const errorMessage = err.response?.data?.message || err.response?.data?.error || err.message || "Failed to stop sharing";
+      let errorMessage = "Failed to stop sharing";
+      
+      if (axios.isAxiosError(err)) {
+        errorMessage = err.response?.data?.message || err.response?.data?.error || err.message || errorMessage;
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      
       setError(errorMessage);
-
       await checkSharingStatus();
     } finally {
       setIsUnsharing(false);

@@ -53,7 +53,7 @@ const RecipesList: React.FC = () => {
     setIsLoadingRecipes(true);
     setErrorMessage(null);
     try {
-      const response = await axios.get<{ recipes?: Recipe[]; [key: string]: any }>(`${API_BASE_URL}/foodSecret/search?query=${currentQuery}`, {
+      const response = await axios.get<{ recipes: Recipe[] }>(`${API_BASE_URL}/foodSecret/search?query=${currentQuery}`, {
         withCredentials: true,
       });
 
@@ -63,7 +63,7 @@ const RecipesList: React.FC = () => {
 
       setRecipes(fetchedRecipes);
       setCurrentPage(1);
-    } catch (err: any) {
+    } catch (err: Error | unknown) {
       console.error("Fetch recipes failed:", err);
       if (axios.isAxiosError(err) && err.response) {
         if (err.response.status === 401) {
@@ -108,7 +108,7 @@ const RecipesList: React.FC = () => {
             setRatings({});
           }
         }
-      } catch (err: any) {
+      } catch (err: Error | unknown) {
         console.error("Initial authentication or data load failed:", err);
         if (axios.isAxiosError(err) && err.response) {
           if (err.response.status === 401) {

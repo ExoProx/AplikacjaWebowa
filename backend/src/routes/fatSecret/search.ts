@@ -13,6 +13,19 @@ interface Recipe {
     instructions?: string;
     image?: string;
 }
+
+interface FatSecretIngredient {
+  ingredient_description: string;
+}
+
+interface FatSecretDirection {
+  direction_description: string;
+}
+
+interface FatSecretSearchItem {
+  recipe_id: string;
+}
+
 router.get(
   '/',
   passport.authenticate('jwt', { session: false }),
@@ -55,7 +68,7 @@ router.get(
     }
 
     const detailedRecipes: Recipe[] = await Promise.all(
-      recipesList.map(async (item: any) => {
+      recipesList.map(async (item: FatSecretSearchItem) => {
         const detailParams = new URLSearchParams();
         detailParams.append('method', 'recipe.get.v2');
         detailParams.append('recipe_id', item.recipe_id);
@@ -80,10 +93,10 @@ router.get(
           id: parseInt(details.recipe_id),
           name: details.recipe_name,
           description: details.recipe_description,
-          ingredients: details.ingredients?.ingredient?.map((ing: any) => ing.ingredient_description) || [],
+          ingredients: details.ingredients?.ingredient?.map((ing: FatSecretIngredient) => ing.ingredient_description) || [],
           instructions:
             details.directions?.direction
-              ?.map((dir: any) => dir.direction_description)
+              ?.map((dir: FatSecretDirection) => dir.direction_description)
               .join(' ') || 'Brak instrukcji.',
           image: details.recipe_images?.recipe_image?.[0] || null,
         };
@@ -92,7 +105,6 @@ router.get(
 
     return res.status(200).json(detailedRecipes); 
   } catch (error) {
-    console.error('Error fetching data from FatSecret API:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
@@ -138,10 +150,10 @@ router.get(
             id: parseInt(details.recipe_id),
             name: details.recipe_name,
             description: details.recipe_description,
-            ingredients: details.ingredients?.ingredient?.map((ing: any) => ing.ingredient_description) || [],
+            ingredients: details.ingredients?.ingredient?.map((ing: FatSecretIngredient) => ing.ingredient_description) || [],
             instructions:
               details.directions?.direction
-                ?.map((dir: any) => dir.direction_description)
+                ?.map((dir: FatSecretDirection) => dir.direction_description)
                 .join(' ') || 'Brak instrukcji.',
             image: details.recipe_images?.recipe_image?.[0] || null,
           };
@@ -150,7 +162,6 @@ router.get(
 
       return res.status(200).json(detailedRecipes);
     } catch (error) {
-      console.error('Error fetching multiple recipe details:', error);
       res.status(500).json({ error: 'Internal Server Error' });
     }
   }
@@ -163,18 +174,13 @@ router.get(
         try {
             const token = await getAccessToken();
 
-            // Step 1 & 2: Search for a broad category to get a list of potential recipe IDs
-            // Use a very general search term or a common cuisine to ensure a wide range of results.
-            // You might need to experiment with 'search_expression' for best results.
-            // 'max_results' can be set to a reasonable number to get a pool of IDs.
-            // 'page_number' could also be randomized for more variety if you get many pages.
             const searchParams = new URLSearchParams();
             searchParams.append('method', 'recipes.search.v3');
-            searchParams.append('search_expression', 'food'); // Broad search term
+            searchParams.append('search_expression', 'food');
             searchParams.append('format', 'json');
-            searchParams.append('must_have_images', 'true'); // Only recipes with images
-            searchParams.append('max_results', '50'); // Get up to 50 results
-            searchParams.append('page_number', '0'); // Start from the first page
+            searchParams.append('must_have_images', 'true');
+            searchParams.append('max_results', '50');
+            searchParams.append('page_number', '0');
 
             const searchResponse = await axios.post(
                 'https://platform.fatsecret.com/rest/server.api',
@@ -192,11 +198,9 @@ router.get(
                 return res.status(404).json({ error: 'No recipes found for random selection.' });
             }
 
-            // Step 3: Pick one recipe_id randomly from the list
             const randomIndex = Math.floor(Math.random() * recipesList.length);
             const randomRecipeId = recipesList[randomIndex].recipe_id;
 
-            // Step 4: Fetch detailed information for the randomly selected recipe
             const detailParams = new URLSearchParams();
             detailParams.append('method', 'recipe.get.v2');
             detailParams.append('recipe_id', randomRecipeId);
@@ -219,15 +223,14 @@ router.get(
                 return res.status(404).json({ error: 'Details for random recipe not found.' });
             }
 
-            // Format the detailed recipe as per your Recipe interface
             const formattedRecipe: Recipe = {
                 id: parseInt(details.recipe_id),
                 name: details.recipe_name,
                 description: details.recipe_description,
-                ingredients: details.ingredients?.ingredient?.map((ing: any) => ing.ingredient_description) || [],
+                ingredients: details.ingredients?.ingredient?.map((ing: FatSecretIngredient) => ing.ingredient_description) || [],
                 instructions:
                     details.directions?.direction
-                        ?.map((dir: any) => dir.direction_description)
+                        ?.map((dir: FatSecretDirection) => dir.direction_description)
                         .join(' ') || 'Brak instrukcji.',
                 image: details.recipe_images?.recipe_image?.[0] || null,
             };
@@ -235,10 +238,8 @@ router.get(
             return res.status(200).json(formattedRecipe);
 
         } catch (error) {
-            console.error('Error fetching a random recipe from FatSecret API:', error);
-            // Check if it's an Axios error and log response data if available
             if (axios.isAxiosError(error) && error.response) {
-                console.error('FatSecret API error response:', error.response.data);
+                return res.status(500).json({ error: 'Internal Server Error' });
             }
             res.status(500).json({ error: 'Internal Server Error' });
         }

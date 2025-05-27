@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import Image from 'next/image';
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import axios from "axios";
@@ -144,10 +145,6 @@ const MainPage: React.FC = () => {
   const openModal = (recipe: Recipe) => {
     setSelectedRecipe(recipe);
   };
-  const closeModal = () => {
-    setSelectedRecipe(null);
-    setActionMessage(null);
-  };
 
   const handleAddToFavorites = (recipe: Recipe) => {
     const storedFavorites = localStorage.getItem("favoriteRecipes");
@@ -242,11 +239,13 @@ const MainPage: React.FC = () => {
                             className="group cursor-pointer bg-black/40 rounded-lg overflow-hidden hover:bg-black/60 transition-all duration-200"
                           >
                             <div className="flex items-center p-2">
-                              <div className="w-16 h-16 flex-shrink-0 rounded-md overflow-hidden">
-                                <img
+                              <div className="w-16 h-16 flex-shrink-0 rounded-md overflow-hidden relative">
+                                <Image
                                   src={recipe.image || "/placeholder.jpg"}
                                   alt={recipe.name}
-                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                  width={64}
+                                  height={64}
+                                  className="object-cover group-hover:scale-105 transition-transform duration-200"
                                 />
                               </div>
                               <div className="ml-3 flex-1 min-w-0">

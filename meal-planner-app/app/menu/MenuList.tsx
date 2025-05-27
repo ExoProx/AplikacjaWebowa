@@ -76,22 +76,26 @@ const MenuComponent: React.FC = () => {
             withCredentials: true,
             timeout: 8000,
           });
-        } catch (authError: any) {
-          if (authError.message === 'Network Error') {
-            setErrorMessage("Failed to connect to the server. Please ensure the backend server is running.");
-            setIsLoadingMain(false);
-            return;
+        } catch (authError: Error | unknown) {
+          if (authError instanceof Error) {
+            if (authError.message === 'Network Error') {
+              setErrorMessage("Failed to connect to the server. Please ensure the backend server is running.");
+              setIsLoadingMain(false);
+              return;
+            }
           }
           
-          if (authError.code === 'ECONNABORTED') {
-            setErrorMessage("Connection timeout. Check your connection and try again.");
-            setIsLoadingMain(false);
-            return;
-          }
+          if (axios.isAxiosError(authError)) {
+            if (authError.code === 'ECONNABORTED') {
+              setErrorMessage("Connection timeout. Check your connection and try again.");
+              setIsLoadingMain(false);
+              return;
+            }
 
-          if (authError.response?.status === 401) {
-            router.push('/login?error=auth');
-            return;
+            if (authError.response?.status === 401) {
+              router.push('/login?error=auth');
+              return;
+            }
           }
 
           setErrorMessage("Authentication check failed. Please try again.");
@@ -129,18 +133,22 @@ const MenuComponent: React.FC = () => {
           
           setSharingStatuses(sharingStatusUpdates);
 
-        } catch (menuError: any) {
-          if (menuError.message === 'Network Error') {
-            setErrorMessage("Failed to fetch meal plans. Check your connection.");
-          } else if (menuError.code === 'ECONNABORTED') {
-            setErrorMessage("Timeout fetching meal plans. Check your connection and try again.");
-          } else {
-            setErrorMessage(menuError.response?.data?.error || "Failed to fetch meal plans.");
+        } catch (menuError: Error | unknown) {
+          if (menuError instanceof Error) {
+            if (menuError.message === 'Network Error') {
+              setErrorMessage("Failed to fetch meal plans. Check your connection.");
+            } else if (axios.isAxiosError(menuError) && menuError.code === 'ECONNABORTED') {
+              setErrorMessage("Timeout fetching meal plans. Check your connection and try again.");
+            } else if (axios.isAxiosError(menuError)) {
+              setErrorMessage(menuError.response?.data?.error || "Failed to fetch meal plans.");
+            }
           }
         }
 
-      } catch (error: any) {
-        setErrorMessage("An unexpected error occurred. Please try again later.");
+      } catch (error: Error | unknown) {
+        if (error instanceof Error) {
+          setErrorMessage("An unexpected error occurred. Please try again later.");
+        }
       } finally {
         setIsLoadingMain(false);
       }
@@ -601,8 +609,14 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
       } else {
         throw new Error('No token received from share endpoint');
       }
-    } catch (err: any) {
-      setErrorMessage(err.response?.data?.error || "Failed to share menu");
+    } catch (err: Error | unknown) {
+      if (axios.isAxiosError(err)) {
+        setErrorMessage(err.response?.data?.error || "Failed to share menu");
+      } else if (err instanceof Error) {
+        setErrorMessage(err.message);
+      } else {
+        setErrorMessage("Failed to share menu");
+      }
       setSharingStatuses(prev => ({ ...prev, [menuId]: false }));
     }
   };
@@ -621,8 +635,14 @@ const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
       if (currentStatus) {
         setSharingStatuses(prev => ({ ...prev, [menuId]: true }));
       }
-    } catch (err: any) {
-      setErrorMessage(err.response?.data?.error || "Failed to stop sharing menu");
+    } catch (err: Error | unknown) {
+      if (axios.isAxiosError(err)) {
+        setErrorMessage(err.response?.data?.error || "Failed to unshare menu");
+      } else if (err instanceof Error) {
+        setErrorMessage(err.message);
+      } else {
+        setErrorMessage("Failed to unshare menu");
+      }
       const currentStatus = await checkSharingStatus(menuId);
       setSharingStatuses(prev => ({ ...prev, [menuId]: currentStatus }));
     }

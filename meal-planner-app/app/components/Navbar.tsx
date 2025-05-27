@@ -1,7 +1,6 @@
 "use client";
 import React from "react";
 import Link from "next/link";
-import SubmitButton from "./SubmitButton";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { HeartIcon, HomeIcon, PowerIcon, UserIcon, ClipboardDocumentListIcon, BookOpenIcon } from "@heroicons/react/24/outline";

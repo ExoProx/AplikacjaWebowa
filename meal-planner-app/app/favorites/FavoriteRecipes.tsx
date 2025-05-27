@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { HeartIcon } from "@heroicons/react/24/outline";
+import Image from 'next/image';
 import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid";
 import Navbar from "../components/Navbar"; 
 import Footer from "../components/Footer";
@@ -45,7 +45,7 @@ const FavoriteRecipes: React.FC = () => {
           setFavoriteRecipes([]);
         }
         setError(null);
-      } catch (err) {
+      } catch (_err) {
         setError("Nie udało się załadować ulubionych przepisów");
       } finally {
         setIsLoading(false);
@@ -61,7 +61,7 @@ const FavoriteRecipes: React.FC = () => {
       setFavoriteRecipeIds(prev => prev.filter(id => id !== recipeId));
       setFavoriteRecipes(prev => prev.filter(recipe => recipe.id.toString() !== recipeId));
       setSelectedRecipe(null);
-    } catch (err) {
+    } catch (_err) {
       setError("Nie udało się usunąć przepisu z ulubionych");
     }
   };
@@ -80,11 +80,12 @@ const FavoriteRecipes: React.FC = () => {
         className="group relative flex flex-col bg-gray-800 shadow-lg rounded-xl overflow-hidden hover:ring-2 hover:ring-blue-500 transition-all duration-200 h-[300px]"
         onClick={() => setSelectedRecipe(recipe)}
       >
-        <div className="aspect-w-16 aspect-h-9 relative">
-          <img
+        <div className="aspect-w-16 aspect-h-9 relative w-full">
+          <Image
             src={recipe.image || "/placeholder.jpg"}
             alt={recipe.name}
-            className="w-full h-48 object-cover"
+            layout="fill"
+            objectFit="cover"
           />
         </div>
         <div className="flex-1 p-4 flex flex-col justify-between">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import Image from 'next/image';
 import { Recipe } from "../types/Recipe";
 import StarRating from "./StarRating";
 import { checkIsFavorite, addToFavorites, removeFromFavorites } from "../api/favorites";
@@ -87,10 +88,12 @@ const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose, rating, onRa
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
           {recipe.image && (
             <div className="mb-6 relative pt-[56.25%]">
-              <img
+              <Image
                 src={recipe.image}
                 alt={recipe.name}
-                className="absolute inset-0 w-full h-full object-contain bg-gray-900 rounded-lg"
+                layout="fill"
+                objectFit="contain"
+                className="bg-gray-900 rounded-lg"
               />
             </div>
           )}

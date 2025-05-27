@@ -18,6 +18,12 @@ interface DayPlan {
   [key: string]: Recipe | null;
 }
 
+interface SharedMeal {
+  id: number;
+  dayindex: number;
+  mealtype: string;
+}
+
 const SharedMealPlan = () => {
   const params = useParams();
   const router = useRouter();
@@ -36,7 +42,7 @@ const SharedMealPlan = () => {
         console.log('Received plan data:', planData);
         console.log('Received recipes data:', recipesData);
 
-        const recipeIds = recipesData.map((meal: any) => meal.id).join(',');
+        const recipeIds = recipesData.map((meal: SharedMeal) => meal.id).join(',');
         console.log('Recipe IDs to fetch:', recipeIds);
         
         const recipeResponse = await axios.get(`${API_BASE_URL}/foodSecret/search/recipes?ids=${recipeIds}`, {
@@ -83,14 +89,16 @@ const SharedMealPlan = () => {
         console.log('Final plan structure:', JSON.parse(JSON.stringify(plan)));
         setMealPlan({ ...planData, plan });
         setRecipes(recipeDetails);
-      } catch (err: any) {
+      } catch (err: Error | unknown) {
         if (axios.isAxiosError(err)) {
           if (err.response?.status === 401) {
-           router.push('/login?error=auth');
+            router.push('/login?error=auth');
           }
+          setError(err.response?.data?.error || "Failed to load shared meal plan");
+        } else {
+          console.error('Error loading shared plan:', err);
+          setError("Failed to load shared meal plan");
         }
-        console.error('Error loading shared plan:', err);
-        setError(err.response?.data?.error || "Failed to load shared meal plan");
       } finally {
         setLoading(false);
       }
@@ -108,8 +116,12 @@ const SharedMealPlan = () => {
         { withCredentials: true }
       );
       router.push('/menu');
-    } catch (err: any) {
-      setError(err.response?.data?.error || "Failed to copy meal plan");
+    } catch (err: Error | unknown) {
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.error || "Failed to copy meal plan");
+      } else {
+        setError("Failed to copy meal plan");
+      }
     } finally {
       setIsCopying(false);
     }
