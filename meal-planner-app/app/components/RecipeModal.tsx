@@ -1,9 +1,9 @@
 import React , { useState }  from "react";
 import { Recipe } from "../types/Recipe";
-import Pagination from "./Pagination";
-import StarRating from "../menu/StarRating";
+import StarRating from "./StarRating";
 
 interface RecipeModalProps {
+  isOpen: boolean
   recipe: Recipe;
   onClose: () => void;
   rating: number;

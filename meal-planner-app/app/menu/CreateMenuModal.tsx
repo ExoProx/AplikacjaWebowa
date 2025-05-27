@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { Menu } from "../types/Menu"
 
 const CreateMenuModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-}> = ({ isOpen, onClose }) => {
+   onCreateSuccess: (newMenu: Menu) => void; // Add this new prop
+}> = ({ isOpen, onClose, onCreateSuccess }) => {
   const [name, setName] = useState("");
   const [days, setDays] = useState(1);
   const [message, setMessage] = useState("");
@@ -14,13 +16,14 @@ const CreateMenuModal: React.FC<{
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!name || days < 1 || days > 31) {
+    setMessage("");
+     if (!name.trim() || days < 1 || days > 31) {
       setMessage("Please enter a valid name and number of days (1–31).");
       return;
     }
 
     try {
-      await axios.post(
+       const response = await axios.post(
         "http://localhost:5000/api/menuList",
         { name, number: days },
         {
@@ -28,8 +31,11 @@ const CreateMenuModal: React.FC<{
           withCredentials: true,
         }
       );
+        const newMenu: Menu = response.data; 
+      onCreateSuccess(newMenu); 
       onClose();
-    } catch (err: any) {
+       } catch (err: any) {
+
       console.error("Error during submission:", err);
       if (err.response?.data?.error) {
         setMessage(err.response.data.error);

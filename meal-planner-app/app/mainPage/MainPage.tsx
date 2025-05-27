@@ -9,6 +9,7 @@ import Footer from "components/Footer";
 import "react-datepicker/dist/react-datepicker.css";
 import { ShareIcon } from "@heroicons/react/24/outline";
 
+
 // Lista cytatów
 const quotes = [
   "Cooking is an art anyone can master!",
@@ -58,6 +59,7 @@ const getRandomRecipes = (array: Recipe[], count: number): Recipe[] => {
 };
 
 const MainPage: React.FC = () => {
+    
   const [userName, setUserName] = useState("Jan");
   const [quote, setQuote] = useState("");
   const [tip, setTip] = useState("");
@@ -68,22 +70,8 @@ const MainPage: React.FC = () => {
   const [message, setMessage] = useState<string | null>(null);
   const router = useRouter();
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        await axios.get("http://localhost:3000/mainPage", {
-          withCredentials: true,
-        });
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Not authenticated, redirecting to login");
-        router.push("/login");
-      }
-    };
 
-    checkAuth();
-  }, [router]);
-
+ 
   useEffect(() => {
     // Losowanie cytatu i porady
     setQuote(quotes[Math.floor(Math.random() * quotes.length)]);
@@ -94,15 +82,15 @@ const MainPage: React.FC = () => {
     const favorites: Recipe[] = storedFavorites ? JSON.parse(storedFavorites) : [];
     const randomFavorites = getRandomRecipes(favorites, 4);
     setFavoriteRecipes(randomFavorites);
-
     // Pobranie losowego przepisu z API
     const fetchRecommendedRecipe = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/foodSecret/search?query=a');
+        const response = await axios.get(`http://localhost:5000/foodSecret/search/random`, {
+            withCredentials: true,
+        });
         const recipes: Recipe[] = response.data;
         if (recipes.length > 0) {
-          const randomIndex = Math.floor(Math.random() * recipes.length);
-          setRecommendedRecipe(recipes[randomIndex]);
+          setRecommendedRecipe(recipes[0]);
         }
       } catch (error) {
         console.error('Error fetching recommended recipe:', error);
@@ -139,13 +127,6 @@ const MainPage: React.FC = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-gray-900 text-">
-        <div>Loading...</div>
-      </div>
-    );
-  }
 
   return (
   <div className="relative flex flex-col h-screen text-white font-sans">

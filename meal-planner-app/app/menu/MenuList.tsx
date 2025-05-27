@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { ShareIcon } from "@heroicons/react/24/outline";
 import { useSearch } from "@/src/SearchContext";
 import RecipeDetailsModal from "./RecipeDetailsModal";
 import Pagination from "../components/Pagination";
@@ -16,191 +15,311 @@ import { Meal } from "../types/Meal";
 import Sidebar from "./Sidebar";
 import CreateMenuModal from "./CreateMenuModal";
 import ShareModal from "./ShareModal";
+import RecipeModal from "./RecipeModal";
+import { useRouter } from 'next/navigation';
+import Loading from "../components/Loading";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
-const RecipeModal: React.FC<{
-  isOpen: boolean;
-  onClose: () => void;
-  onSelect: (recipe: Recipe) => void;
-  recipes: Recipe[];
-}> = ({ isOpen, onClose, onSelect, recipes }) => {
-  const [currentRecipePage, setCurrentRecipePage] = useState(1);
-  const recipesPerPage = 12;
-  const totalRecipePages = Math.ceil(recipes.length / recipesPerPage);
-  const currentRecipes = recipes.slice(
-    (currentRecipePage - 1) * recipesPerPage,
-    currentRecipePage * recipesPerPage
-  );
 
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}>
-      <div className="bg-gray-900 p-6 rounded-lg max-w-7xl w-full text-white max-h-[100vh] overflow-y-auto">
-        <h2 className="text-xl font-bold mb-4">Select a recipe</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          {currentRecipes.map((recipe) => (
-            <div
-              key={recipe.id}
-              className="bg-gray-800 p-4 rounded cursor-pointer hover:bg-gray-700 hover:scale-105 duration-300 flex flex-col items-center "
-              onClick={() => onSelect(recipe)}
-            >
-              <img src={recipe.image || "/placeholder.jpg"} alt={recipe.name} className="w-16 h-16 object-cover mb-2" />
-              <p className="text-center">{recipe.name}</p>
-            </div>
-          ))}
-        </div>
-        <Pagination
-          currentPage={currentRecipePage}
-          totalPages={totalRecipePages}
-          onPageChange={setCurrentRecipePage}
-        />
-        <button onClick={onClose} className="text-blue-500 hover:underline">Close</button>
-      </div>
-    </div>
-  );
-};
-
-const mealTypes = ["Breakfast I", "Breakfast II", "Lunch", "Afternoon Snack", "Dinner"];
+const mealTypes = ["Breakfast", "Second Breakfast", "Lunch", "Snack", "Dinner"];
+//Komponent tworzący stronę wyboru jadłospisów, oraz samego jadłospisu
 
 const MenuComponent: React.FC = () => {
   const [menus, setMenus] = useState<Menu[]>([]);
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [selectedMenu, setSelectedMenu] = useState<Menu & { plan: Record<string, Recipe | null>[] } | null>(null);
   const [editCell, setEditCell] = useState<{ dayIndex: number; mealType: string } | null>(null);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [isRecipeModalOpen, setIsRecipeModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [loading, setLoading] = useState(true); 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [currentMenuPage, setCurrentMenuPage] = useState(1);
+  const [isLoadingMain, setIsLoadingMain] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+   const [isLoadingContent, setIsLoadingContent] = useState(false);
   const itemsPerPage = 6;
-
-  const currentMenus = menus.slice(
-    (currentMenuPage - 1) * itemsPerPage,
-    currentMenuPage * itemsPerPage
-  );
-
-  const totalMenuPages = Math.ceil(menus.length / itemsPerPage);
-
+  const router = useRouter();
   const { query } = useSearch();
 
   useEffect(() => {
-    const storedMenus = localStorage.getItem("menus");
-    if (storedMenus) {
-      setMenus(JSON.parse(storedMenus));
-    }
+    const loadInitialData = async () => {
+      setIsLoadingMain(true); // Start main loading
+      setErrorMessage(null); // Clear any previous errors
 
-    const fetchMenus = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/menuList/", { withCredentials: true });
+        // 1. Check Authentication Status
+        const authResponse = await axios.get(`${API_BASE_URL}/api/auth/check-auth`, {
+          withCredentials: true,
+        });
+
+        if (authResponse.status !== 200 || !authResponse.data.isAuthenticated) {
+          console.log("Not authenticated, redirecting to login.");
+          router.push('/login');
+          return; // Stop execution if not authenticated
+        }
+
+        // 2. If authenticated, fetch menus
+        // Try to load from localStorage first for a quicker initial display
+        const storedMenus = localStorage.getItem("menus");
+        if (storedMenus) {
+          setMenus(JSON.parse(storedMenus));
+        }
+
+        // Always attempt to fetch fresh menus from API in background
+        const res = await axios.get(`${API_BASE_URL}/api/menuList/`, { withCredentials: true });
         setMenus(res.data);
-        console.log("Menus set:", res.data);
         localStorage.setItem("menus", JSON.stringify(res.data));
-      } catch (err) {
-        console.error("Error fetching menus", err);
+        console.log("Menus fetched and set:", res.data);
+
+      } catch (error) {
+        console.error("Error during authentication or fetching menus:", error);
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          setErrorMessage("Session expired. Please log in again.");
+          router.push('/login');
+        } else {
+          setErrorMessage("Failed to load initial data. Please try again.");
+        }
+      } finally {
+        setIsLoadingMain(false); 
       }
     };
 
-    fetchMenus();
-  }, []);
+    loadInitialData();
+  }, [router]); 
+
+
 
   useEffect(() => {
-    if (!query) return;
-
+    if (!query) {
+      setRecipes([]);
+      return;
+    }
+    //Obsługa pobierania przepisów w edycji jadłospisu
     const fetchRecipes = async () => {
-      setLoading(true);
+      setIsLoadingContent(true); 
+      setErrorMessage(null);
       try {
-        const res = await axios.get(`http://localhost:5000/foodSecret/search?query=${query}`, {
+        const response = await axios.get(`${API_BASE_URL}/foodSecret/search?query=${query}`, {
           withCredentials: true,
         });
-        setRecipes(res.data);
+        setRecipes(response.data.recipes || response.data);
       } catch (err) {
-        console.error("Search fetch failed", err);
+        console.error("Global recipe search failed", err);
+
       } finally {
         setLoading(false);
       }
     };
 
-    fetchRecipes();
+    const debounceFetch = setTimeout(() => {
+      fetchRecipes();
+    }, 300); 
+
+    return () => clearTimeout(debounceFetch);
   }, [query]);
 
-  const handleSelectMenu = async (menu: Menu) => {
-    try {
-      const mealRes = await axios.get(`http://localhost:5000/api/meals/fetch?menuId=${menu.id}`, {
-        withCredentials: true,
-      });
-      const relatedMeals: Meal[] = mealRes.data;
+  const currentMenus = menus.slice(
+    (currentMenuPage - 1) * itemsPerPage,
+    currentMenuPage * itemsPerPage
+  );
+  const totalMenuPages = Math.ceil(menus.length / itemsPerPage);
+const handleCreateMenuSuccess = (newMenu: Menu) => { 
 
-      const recipeIds = [...new Set(relatedMeals.map((m) => m.recipeId))];
+    setMenus((prevMenus) => [...prevMenus, newMenu]); 
+    setIsCreateModalOpen(false); 
 
-      const recipeResponses = await Promise.all(
-        recipeIds.map((id) => axios.get(`http://localhost:5000/foodSecret/details?id=${id}`))
-      );
-      const recipeMap: Record<string, Recipe> = Object.fromEntries(
-        recipeResponses.map((res) => [res.data.id, res.data])
-      );
+  };
 
-      type DayPlan = Record<string, Recipe | null>;
+  //Funkcja wyboru jadłospisu
+const handleSelectMenu = async (menu: Menu) => {
+  setLoading(true);
+  try {
+    console.log("Attempting to fetch meals for menuId:", menu.id);
+    const mealRes = await axios.get(`${API_BASE_URL}/api/menuList/fetch?menuId=${menu.id}`, {
+      withCredentials: true,
+    });
+    const relatedMeals: Meal[] = mealRes.data;
+    console.log("Fetched relatedMeals from backend:", relatedMeals);
 
-      const plan: DayPlan[] = Array(menu.days).fill(null).map(() =>
+    const recipeIds: string[] = [...new Set(relatedMeals.map((m) => m.id).filter(Boolean))];
+    console.log("Extracted recipeIds from meals:", recipeIds);
+
+    const batchedRecipeIds = recipeIds.join(',');
+    let fetchedRecipes: Recipe[] = [];
+    if (recipeIds.length > 0) {
+      try {
+        console.log("Fetching recipes from FatSecret with IDs:", batchedRecipeIds);
+        const recipeFetchRes = await axios.get(`${API_BASE_URL}/foodSecret/search/recipes?ids=${batchedRecipeIds}`, {
+          withCredentials: true,
+        });
+        fetchedRecipes = recipeFetchRes.data;
+        console.log("Fetched recipes from FatSecret:", fetchedRecipes);
+      } catch (recipeErr) {
+        console.error("Error fetching recipes from FatSecret API:", recipeErr);
+      }
+    }
+
+    const recipeMap: Record<string, Recipe> = Object.fromEntries(
+      fetchedRecipes.map((recipe) => [String(recipe.id), recipe])
+    );
+    console.log("Constructed recipeMap:", recipeMap);
+
+    type DayPlan = Record<string, Recipe | null>;
+    const plan: DayPlan[] = Array(menu.days + 1)
+      .fill(null)
+      .map(() =>
         mealTypes.reduce((acc, type) => ({ ...acc, [type]: null }), {} as DayPlan)
       );
+    console.log("Menu days:", menu.days);
 
-      relatedMeals.forEach((meal) => {
-        if (plan[meal.dayIndex]) {
-          plan[meal.dayIndex][meal.mealType] = recipeMap[meal.recipeId];
-        }
-      });
+    relatedMeals.forEach((meal) => {
+      const frontendDayIndex = meal.dayindex;
+      const trimmedMealType = meal.mealtype.trim();
 
-      setSelectedMenu({ ...menu, plan });
-    } catch (err) {
-      console.error("Error fetching meals or recipes", err);
-    }
-  };
+      if (plan[frontendDayIndex] && meal.id !== null) {
+        const recipeForSlot = recipeMap[String(meal.id)] ?? null;
+        plan[frontendDayIndex][trimmedMealType] = recipeForSlot;
+        console.log(`Assigned recipe to Day ${frontendDayIndex}, Meal ${trimmedMealType}:`, recipeForSlot ? recipeForSlot.name : "null");
+      } else {
+        console.warn(`Skipping assignment for Day ${frontendDayIndex}, Meal ${trimmedMealType}. Plan entry exists: ${!!plan[frontendDayIndex]}, Recipe ID not null: ${meal.id !== null}`);
+      }
+    });
 
+    console.log("Final plan constructed:", plan);
+    setSelectedMenu({ ...menu, plan });
+  } catch (err) {
+    console.error("Error fetching meals or menu details", err);
+  } finally {
+    setLoading(false);
+  }
+};
+//Edycja posiłku
   const handleEditMeal = (dayIndex: number, mealType: string) => {
-    setEditCell({ dayIndex, mealType });
-    setIsRecipeModalOpen(true);
-  };
 
-  const handleDeleteMenu = async (id: number) => {
-    try {
-      await axios.delete(`http://localhost:5000/api/menuList/delete/${id}`, { withCredentials: true });
-      setMenus((prevMenus) => prevMenus.filter(menu => menu.id !== id));
-      setDeleteId(null);
-      if (selectedMenu?.id === id) setSelectedMenu(null);
-    } catch (error) {
-      console.error("Failed to delete menu", error);
+  setEditCell({ dayIndex, mealType });
+  setIsRecipeModalOpen(true);
+};
+  //Usuwanie jadłospisu
+  const handleDeleteMenu = async (menuIdToDelete: number) => { 
+  try {
+    await axios.delete(`${API_BASE_URL}/api/menuList/delete?menuId=${menuIdToDelete}`, { withCredentials: true });
+
+    setMenus((prevMenus) => prevMenus.filter(m => m.id !== menuIdToDelete));
+
+    setDeleteId(null);
+    if (selectedMenu?.id === menuIdToDelete) {
+      setSelectedMenu(null);
     }
-  };
+  } catch (error) {
+    console.error("Failed to delete menu", error);
+  }
+};
 
-  const handleSelectRecipe = (recipe: Recipe) => {
-    if (!selectedMenu || !editCell) return;
+  //Wybór przepisu do ustawienia
+const handleSelectRecipe = async (recipe: Recipe) => {
+  if (!selectedMenu || !editCell) return;
+
+  const { dayIndex, mealType } = editCell;
+
+  try {
+    await axios.put(
+      `${API_BASE_URL}/api/menuList/updateMeal`,
+      {
+        menuId: selectedMenu.id,
+        dayIndex: dayIndex, 
+        mealType: mealType,
+        recipeId: recipe.id,
+      },
+      { withCredentials: true }
+    );
+
     const updatedPlan = [...selectedMenu.plan];
-    updatedPlan[editCell.dayIndex][editCell.mealType] = recipe;
+    updatedPlan[dayIndex][mealType] = recipe;
     setSelectedMenu({ ...selectedMenu, plan: updatedPlan });
+
     setIsRecipeModalOpen(false);
     setEditCell(null);
-  };
+  } catch (error) {
+    console.error("❌ Failed to save recipe to menu:", error);
+  }
+};
 
-  const handleRemoveRecipe = (dayIndex: number, mealType: string) => {
-    if (!selectedMenu) return;
+
+//Usunięcie przepisu
+const handleRemoveRecipe = async (dayIndex: number, mealType: string) => {
+  if (!selectedMenu) return;
+
+  try {
+    await axios.put(
+      `${API_BASE_URL}/api/menuList/updateMeal`,
+      {
+        menuId: selectedMenu.id,
+        dayIndex: dayIndex, 
+        mealType: mealType,
+        recipeId: null,
+      },
+      { withCredentials: true }
+    );
+
+
     const updatedPlan = [...selectedMenu.plan];
     updatedPlan[dayIndex][mealType] = null;
     setSelectedMenu({ ...selectedMenu, plan: updatedPlan });
-  };
-
+  } catch (error) {
+    console.error("Failed to remove recipe from meal plan", error);
+  }
+};
+  //Pokazanie detali przepisu
   const handleShowDetails = (recipe: Recipe) => {
     setSelectedRecipe(recipe);
     setIsDetailsModalOpen(true);
   };
+  //Wyszukiwanie przepisu
+  const handleRecipeSearch = async (query: string) => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/foodSecret/search?query=${query}`, {
+        withCredentials: true,
+      });
+      setRecipes(res.data.recipes || res.data); // update recipes list, adjust based on your backend response structure
+    } catch (err) {
+      console.error("Recipe search failed", err);
+      // Removed: toast.error("Recipe search failed.");
+    }
+  };
 
   const truncateText = (text: string, maxLength: number) =>
     text.length <= maxLength ? text : text.substring(0, maxLength) + "...";
+   if (isLoadingMain) {
+    return (
+      <div className="flex flex-col h-screen bg-gray-900 text-white font-sans items-center justify-center">
+        <Loading /> {/* Your Loading component */}
+      </div>
+    );
+  }
 
+  // If we reach here, main loading is complete, user is authenticated (or redirected)
+  // If there was an error during main loading (and no redirect), display it
+  if (errorMessage && !isLoadingMain) {
+    return (
+      <div className="flex flex-col h-screen bg-gray-900 text-white font-sans items-center justify-center">
+        <p className="text-red-500 text-center text-lg">{errorMessage}</p>
+        <button
+          onClick={() => router.push('/login')} // Provide an option to retry/login
+          className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Go to Login
+        </button>
+      </div>
+    );
+  }
+  
+  //Renderowanie widoku jadłospisu
   const renderMenuView = () => {
     if (!selectedMenu) return null;
+
     return (
       <div className="flex flex-col h-full">
         <div className="flex-1 overflow-x-auto overflow-y-hidden">
@@ -214,69 +333,88 @@ const MenuComponent: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {mealTypes.map((meal) => (
-                <tr key={meal} className="border-t border-gray-600 h-1/5">
-                  <td className="p-2 font-semibold whitespace-nowrap overflow-hidden text-ellipsis">{meal}</td>
-                  {selectedMenu.plan.map((day, dayIndex) => (
-                    <td key={dayIndex} className="p-2 align-top">
-                      <div
-                        className="h-full flex items-center justify-center cursor-pointer relative"
-                        onClick={() => day[meal] && handleShowDetails(day[meal]!)}
-                      >
-                        {day[meal] ? (
-                          <div className="flex flex-col items-center p-2 rounded hover:bg-gray-700 transition-transform duration-300 hover:scale-105 overflow-hidden w-full relative">
-                            <img src={day[meal]!.image || "/placeholder.jpg"} alt={day[meal]!.name} className="w-12 h-12 object-cover mb-2" />
-                            <p className="text-center text-sm w-full">{truncateText(day[meal]!.name, 13)}</p>
-                            <button
-                              className="absolute top-0 left-0 text-blue-500 hover:text-blue-700"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditMeal(dayIndex, meal);
-                              }}
-                            >
-                              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15.828l-5.657-5.657a2 2 0 112.828-2.828l2.829 2.829" />
-                              </svg>
-                            </button>
-                            <button
-                              className="absolute top-0 right-0 text-red-500 hover:text-red-700"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRemoveRecipe(dayIndex, meal);
-                              }}
-                            >
-                              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          </div>
-                        ) : (
-                          <div
-                            className="bg-gray-800 p-2 rounded hover:bg-gray-700 text-center text-sm"
-                            onClick={() => handleEditMeal(dayIndex, meal)}
-                          >
-                            Edit meal
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
+
+  {mealTypes.map((meal) => (
+    <tr key={meal} className="border-t border-gray-600 h-1/5">
+      <td className="p-2 font-semibold whitespace-nowrap overflow-hidden text-ellipsis">
+        {meal}
+      </td>
+      {Array.from({ length: selectedMenu.days }, (_, i) => {
+        const displayDayIndex = i + 1;
+        const dayPlanEntry = selectedMenu.plan[displayDayIndex];
+
+        return (
+          <td key={i} className="p-2 align-top">
+            <div
+              className="h-full flex items-center justify-center cursor-pointer relative"
+              onClick={() => dayPlanEntry && dayPlanEntry[meal] && handleShowDetails(dayPlanEntry[meal]!)}
+            >
+              {dayPlanEntry && dayPlanEntry[meal] ? ( 
+                <div className="flex flex-col items-center p-2 rounded hover:bg-gray-700 transition-transform duration-300 hover:scale-105 overflow-hidden w-full relative">
+                  <img
+                    src={dayPlanEntry[meal]!.image || "/placeholder.jpg"}
+                    alt={dayPlanEntry[meal]!.name}
+                    className="w-12 h-12 object-cover mb-2"
+                  />
+                  <p className="text-center text-sm w-full">
+                    {truncateText(dayPlanEntry[meal]!.name, 13)}
+                  </p>
+                  <button
+                    type="button"
+                    className="absolute top-0 left-0 text-blue-500 hover:text-blue-700"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditMeal(displayDayIndex, meal); 
+                    }}
+                    aria-label={`Edit ${meal} for day ${displayDayIndex}`}
+                  >
+                  </button>
+                  <button
+                    type="button"
+                    className="absolute top-0 right-0 text-red-500 hover:text-red-700"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemoveRecipe(displayDayIndex, meal); 
+                    }}
+                    aria-label={`Remove ${meal} for day ${displayDayIndex}`}
+                  >
+                  </button>
+                </div>
+              ) : (
+                <div
+                  className="bg-gray-800 p-2 rounded hover:bg-gray-700 text-center text-sm"
+                  onClick={() => handleEditMeal(displayDayIndex, meal)} 
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      handleEditMeal(displayDayIndex, meal);
+                    }
+                  }}
+                >
+                  Edit meal
+                </div>
+              )}
+            </div>
+          </td>
+        );
+      })}
+    </tr>
+  ))}
+</tbody>
           </table>
         </div>
       </div>
     );
   };
-
+  //Renderowanie strony wyboru jadłospisu
   return (
     <div className="flex flex-col h-screen bg-gray-900 text-white">
       <Navbar />
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar 
-          onCreateMenu={() => setIsCreateModalOpen(true)} 
-          onBack={selectedMenu ? () => setSelectedMenu(null) : undefined} 
+        <Sidebar
+          onCreateMenu={() => setIsCreateModalOpen(true)}
+          onBack={selectedMenu ? () => setSelectedMenu(null) : undefined}
           selectedMenu={selectedMenu}
           onShare={() => setIsShareModalOpen(true)}
         />
@@ -289,7 +427,10 @@ const MenuComponent: React.FC = () => {
                     key={menu.id}
                     menu={menu}
                     onSelect={handleSelectMenu}
-                    onDelete={() => setDeleteId(menu.id)}
+                    onDelete={() => {
+    console.log("Attempting to set deleteId to:", menu.id);
+    setDeleteId(menu.id);
+  }}
                     onShare={() => setIsShareModalOpen(true)}
                   />
                 ))}
@@ -308,6 +449,7 @@ const MenuComponent: React.FC = () => {
       <CreateMenuModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
+        onCreateSuccess={handleCreateMenuSuccess}
       />
       <DeleteConfirmModal
         isOpen={!!deleteId}
@@ -318,7 +460,8 @@ const MenuComponent: React.FC = () => {
         isOpen={isRecipeModalOpen}
         onClose={() => setIsRecipeModalOpen(false)}
         onSelect={handleSelectRecipe}
-        recipes={recipes}
+        initialRecipes={recipes}
+        onSearch={handleRecipeSearch}
       />
       <RecipeDetailsModal
         isOpen={isDetailsModalOpen}
@@ -335,6 +478,6 @@ const MenuComponent: React.FC = () => {
       <Footer />
     </div>
   );
-};
+}
 
 export default MenuComponent;

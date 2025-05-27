@@ -9,12 +9,13 @@ import foodSearch from './routes/fatSecret/search';
 import rateLimit from 'express-rate-limit';
 import mealPlanRoute from './routes/mealPlan'
 import passport from './config/passport';
+import auth from './routes/auth';
 
 export const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false,  // Disable the `X-RateLimit-*` headers
+  windowMs: 15 * 60 * 1000, 
+  max: 100,
+  standardHeaders: true, 
+  legacyHeaders: false,  
   message: 'Too many requests from this IP, please try again later.',
 });
 
@@ -23,7 +24,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 app.use(apiLimiter);
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
+    windowMs: 15 * 60 * 1000, 
     max: 100, 
     message: 'Too many requests, please try again later.'
 });
@@ -45,6 +46,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/login', loginRoutes);
 app.use('/api/logout', logoutRoute);
 app.use('/api/menuList', mealPlanRoute);
+app.use('/api/auth', auth)
 app.use('/foodSecret/search', foodSearch);
 
 app.listen(PORT, () => {

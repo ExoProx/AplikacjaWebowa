@@ -3,100 +3,25 @@
 import React, { useState, useEffect } from "react";
 import { HeartIcon, StarIcon } from "@heroicons/react/24/outline";
 import axios from "axios";
-import Navbar from "../components/Navbar"; 
+import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import Sidebar from "../components/Sidebar";
 import { useSearch } from "../../src/SearchContext"
 import Pagination from "../components/Pagination";
 import RecipeModal from "../components/RecipeModal";
+import Loading from '../components/Loading';
 import { Recipe } from "../types/Recipe";
-import { StarRatingProps } from "../types/StarRatingProps";
+import RecipeTile from "./RecipeTile";
 
-const StarRating: React.FC<StarRatingProps> = ({ rating, onRatingChange, readOnly = false }) => {
-  const [hoverRating, setHoverRating] = useState(0);
 
-  const handleMouseEnter = (index: number) => {
-    if (!readOnly) setHoverRating(index);
-  };
-
-  const handleMouseLeave = () => {
-    if (!readOnly) setHoverRating(0);
-  };
-
-  const handleClick = (index: number) => {
-    if (!readOnly && onRatingChange) onRatingChange(index);
-  };
-
-  return (
-    <div className="flex">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <StarIcon
-          key={star}
-          className={`w-16 h-6 ${readOnly ? "" : "cursor-pointer"} ${
-            star <= (hoverRating || rating) ? "text-yellow-500 fill-current" : "text-gray-400"
-          }`}
-          onMouseEnter={() => handleMouseEnter(star)}
-          onMouseLeave={handleMouseLeave}
-          onClick={() => handleClick(star)}
-        />
-      ))}
-    </div>
-  );
-};
-
-interface RecipeTileProps {
-  recipe: Recipe;
-  onSelect: (recipe: Recipe) => void;
-}
-
-const RecipeTile: React.FC<RecipeTileProps> = ({ recipe, onSelect }) => {
-  const [favoriteRecipes, setFavoriteRecipes] = useState<Recipe[]>([]);
-  const [ratings, setRatings] = useState<{ [key: number]: number }>({});
-
-  useEffect(() => {
-    const storedFavorites = localStorage.getItem("favoriteRecipes");
-    if (storedFavorites) setFavoriteRecipes(JSON.parse(storedFavorites));
-    const storedRatings = localStorage.getItem("recipeRatings");
-    if (storedRatings) setRatings(JSON.parse(storedRatings));
-  }, []);
-
-  const isFavorite = favoriteRecipes.some((fav) => fav.id === recipe.id);
-  const rating = ratings[recipe.id] || 0;
-
-  return (
-    <div
-      className="relative flex flex-col bg-gray-700 shadow-md rounded-lg overflow-hidden transform transition-transform hover:scale-105 duration-300 cursor-pointer h-full"
-      onClick={() => onSelect(recipe)}
-    >
-      {rating > 0 && (
-        <div className="absolute top-0 left-0 flex items-center bg-gray-800 px-2 py-1 rounded-br">
-          <span className="text-yellow-500 text-sm">{rating}</span>
-          <StarIcon className="w-5 h-5 text-yellow-500 fill-current ml-1" />
-        </div>
-      )}
-      <div className="flex-grow overflow-hidden">
-        <img
-          src={recipe.image || "/placeholder.jpg"}
-          alt={recipe.name}
-          className="w-full h-full object-cover"
-        />
-      </div>
-      <div className="flex-shrink-0 p-2 flex justify-between items-center text-white min-h-1/5">
-        <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold truncate">{recipe.name}</h3>
-        <button className={isFavorite ? "text-red-500" : "text-gray-500 hover:text-red-500"}>
-          <HeartIcon className={`w-6 h-6 ${isFavorite ? "fill-current" : ""}`} />
-        </button>
-      </div>
-    </div>
-  );
-};
-
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
 const RecipesList: React.FC = () => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [isLoadingRecipes, setIsLoadingRecipes] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [ratings, setRatings] = useState<{ [key: number]: number }>({});
 
   const recipesPerPage = 12;
@@ -109,24 +34,53 @@ const RecipesList: React.FC = () => {
   const { query } = useSearch();
 
   useEffect(() => {
-    if (!query) return;
+    if (!query) {
+      setRecipes([]);
+      setErrorMessage(null);
+      return;
+    }
 
     const fetchRecipes = async () => {
-      setLoading(true);
+      setIsLoadingRecipes(true);
+      setErrorMessage(null);
       try {
-        const response = await axios.get(`http://localhost:5000/foodSecret/search?query=${query}`, {
+        const response = await axios.get(`${API_BASE_URL}/foodSecret/search?query=${query}`, {
           withCredentials: true,
         });
-        setRecipes(response.data);
-      } catch (err) {
-        console.error("Fetch failed", err);
+        setRecipes(response.data.recipes || response.data);
+        setCurrentPage(1);
+      } catch (err: any) {
+        console.error("Fetch recipes failed:", err);
+        if (axios.isAxiosError(err) && err.response) {
+            if (err.response.status === 401) {
+                setErrorMessage("Session expired or unauthorized. Please log in again.");
+            } else if (err.response.status === 404) {
+                setErrorMessage("No recipes found for your search.");
+            } else {
+                setErrorMessage(`Error searching recipes: ${err.response.statusText || 'Unknown error'}`);
+            }
+        } else {
+            setErrorMessage("An unexpected error occurred while searching for recipes.");
+        }
+        setRecipes([]);
       } finally {
-        setLoading(false);
+        setIsLoadingRecipes(false);
       }
     };
 
-    fetchRecipes();
+    const debounceTimeout = setTimeout(() => {
+      fetchRecipes();
+    }, 500);
+
+    return () => clearTimeout(debounceTimeout);
   }, [query]);
+
+  useEffect(() => {
+    const storedRatings = localStorage.getItem("recipeRatings");
+    if (storedRatings) {
+      setRatings(JSON.parse(storedRatings));
+    }
+  }, []);
 
   const handleRatingChange = (recipeId: number, rating: number) => {
     const updatedRatings = { ...ratings, [recipeId]: rating };
@@ -147,27 +101,50 @@ const RecipesList: React.FC = () => {
       <Navbar />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <div className="flex-1 flex flex-col">
-          <div className="flex-1 p-2 overflow-hidden">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 h-full">
-              {currentRecipes.map((recipe) => (
-                <RecipeTile
-                  key={recipe.id}
-                  recipe={recipe}
-                  onSelect={handleSelectRecipe}
-                />
-              ))}
+        <div className="flex-1 flex flex-col p-2">
+          {errorMessage && (
+            <div className="bg-red-700 text-white p-3 rounded-md mb-4 text-center">
+              {errorMessage}
             </div>
-          </div>
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-          />
+          )}
+
+          {isLoadingRecipes ? (
+            <div className="flex-1 flex items-center justify-center">
+              <Loading />
+            </div>
+          ) : (
+            <>
+              {currentRecipes.length === 0 && query ? (
+                <div className="flex-1 flex items-center justify-center text-gray-400 text-lg">
+                  No recipes found for "{query}". Try a different search!
+                </div>
+              ) : currentRecipes.length === 0 && !query ? (
+                <div className="flex-1 flex items-center justify-center text-gray-400 text-lg">
+                  Start by searching for recipes using the search bar!
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 flex-1 overflow-y-auto pb-4 w-full">
+                  {currentRecipes.map((recipe) => (
+                    <RecipeTile
+                      key={recipe.id}
+                      recipe={recipe}
+                      onSelect={handleSelectRecipe}
+                    />
+                  ))}
+                </div>
+              )}
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
+            </>
+          )}
         </div>
       </div>
       {selectedRecipe && (
         <RecipeModal
+          isOpen={!!selectedRecipe}
           recipe={selectedRecipe}
           onClose={() => setSelectedRecipe(null)}
           rating={ratings[selectedRecipe.id] || 0}
