@@ -11,11 +11,12 @@ import { getFavoriteRecipes, removeFromFavorites } from "../api/favorites";
 import axios from "axios";
 import Loading from '../components/Loading';
 import RecipeModal from "../components/RecipeModal";
+import Image from "next/image";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
 const FavoriteRecipes: React.FC = () => {
-  const [favoriteRecipeIds, setFavoriteRecipeIds] = useState<string[]>([]);
+  const [, setFavoriteRecipeIds] = useState<string[]>([]);
   const [favoriteRecipes, setFavoriteRecipes] = useState<Recipe[]>([]);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [ratings, setRatings] = useState<{ [key: number]: number }>({});
@@ -47,6 +48,8 @@ const FavoriteRecipes: React.FC = () => {
         setError(null);
       } catch (_err) {
         setError("Nie udało się załadować ulubionych przepisów");
+        setIsLoading(false);
+        return;
       } finally {
         setIsLoading(false);
       }
@@ -63,6 +66,8 @@ const FavoriteRecipes: React.FC = () => {
       setSelectedRecipe(null);
     } catch (_err) {
       setError("Nie udało się usunąć przepisu z ulubionych");
+      setIsLoading(false);
+      return;
     }
   };
 
@@ -80,7 +85,7 @@ const FavoriteRecipes: React.FC = () => {
         className="group relative flex flex-col bg-gray-800 shadow-lg rounded-xl overflow-hidden hover:ring-2 hover:ring-blue-500 transition-all duration-200 h-[300px]"
         onClick={() => setSelectedRecipe(recipe)}
       >
-        <div className="aspect-w-16 aspect-h-9 relative w-full">
+        <div className="aspect-w-16 aspect-h-9 relative">
           <Image
             src={recipe.image || "/placeholder.jpg"}
             alt={recipe.name}

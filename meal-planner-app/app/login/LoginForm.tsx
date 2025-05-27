@@ -17,7 +17,7 @@ const LoginForm: React.FC = () => {
   const [formData, setFormData] = useState<LoginData>({ email: '', password: '' });
   const [message, setMessage] = useState<string>('');
   const router = useRouter();
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorMessage] = useState<string | null>(null);
   const [authRedirectMessage, setAuthRedirectMessage] = useState<string | null>(null);
   const searchParams = useSearchParams();
    useEffect(() => {
@@ -49,7 +49,6 @@ const LoginForm: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setMessage(''); // Clear previous success messages
-    setErrorMessage(null); // Clear previous error messages
 
     const data = {
       email: formData.email,
@@ -64,23 +63,17 @@ const LoginForm: React.FC = () => {
   
       setMessage('Login successful!');
       if (response.data.role == "user"){
-      router.push('/mainPage'); // Redirect after successful login
+      router.push('/mainPage'); 
       }else if (response.data.role == "admin"){
         router.push('/admin');
       }
   
-    } catch (e: unknown) {
-      console.error('Error during login:', e);
-      if (axios.isAxiosError(e)) {
-        if (e.response && e.response.data && e.response.data.error) {
-          setErrorMessage(e.response.data.error);
-        } else {
-          setErrorMessage('Something went wrong. Please try again.');
-        }
-      } else if (e instanceof Error) {
-        setErrorMessage(e.message);
+    } catch (err: Error | unknown) {
+      console.error('Error during login:', err);
+      if (axios.isAxiosError(err) && err.response && err.response.data && err.response.data.error) {
+        setMessage(err.response.data.error);
       } else {
-        setErrorMessage('An unexpected error occurred. Please try again.');
+        setMessage('An unexpected error occurred. Please try again.');
       }
     }
   };
