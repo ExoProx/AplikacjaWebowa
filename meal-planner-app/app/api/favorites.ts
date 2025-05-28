@@ -1,12 +1,12 @@
 import axios from 'axios';
 
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+
 
 export const getFavoriteRecipes = async (): Promise<string[]> => {
   try {
     console.log('Fetching favorite recipes...');
-    const response = await axios.get(`${API_BASE_URL}/api/favorites`, {
+    const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/favorites`, {
       withCredentials: true
     });
     console.log('Favorite recipes response:', response.data);
@@ -30,7 +30,7 @@ export const getFavoriteRecipes = async (): Promise<string[]> => {
 
 export const checkIsFavorite = async (recipeId: string): Promise<boolean> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/api/favorites/${recipeId}`, {
+    const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/favorites/${recipeId}`, {
       withCredentials: true
     });
     return response.data.isFavorite;
@@ -42,7 +42,7 @@ export const checkIsFavorite = async (recipeId: string): Promise<boolean> => {
 
 export const addToFavorites = async (recipeId: string): Promise<boolean> => {
   try {
-    await axios.post(`${API_BASE_URL}/api/favorites`, {
+    await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/favorites`, {
       recipeId: recipeId
     }, {
       withCredentials: true
@@ -56,7 +56,7 @@ export const addToFavorites = async (recipeId: string): Promise<boolean> => {
 
 export const removeFromFavorites = async (recipeId: string): Promise<boolean> => {
   try {
-    await axios.delete(`${API_BASE_URL}/api/favorites/${recipeId}`, {
+    await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/api/favorites/${recipeId}`, {
       withCredentials: true
     });
     return true;
