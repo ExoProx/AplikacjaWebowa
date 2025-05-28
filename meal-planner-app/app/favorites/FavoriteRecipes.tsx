@@ -1,171 +1,201 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { HeartIcon, HomeIcon } from "@heroicons/react/24/outline";
-import Link from "next/link";
+import Image from 'next/image';
+import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
+import { Recipe } from "../types/Recipe";
+import { getFavoriteRecipes, removeFromFavorites } from "../api/favorites";
+import axios from "axios";
+import Loading from '../components/Loading';
+import RecipeModal from "../components/RecipeModal";
+import { useRouter } from "next/navigation";
+import Pagination from "../components/Pagination"; // Import the Pagination component
 
-// Interfejs dla przepisu
-interface Recipe {
-  id: number;
-  name: string;
-  description: string;
-  ingredients: string[];
-  instructions: string;
-  image?: string;
-}
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
-// Komponent Sidebar
-const Sidebar: React.FC = () => {
-  return (
-    <div className="w-64 h-148 bg-gray-800 shadow-md  p-4">
-      <h2 className="text-lg font-semibold mb-4 mt-10 text-white">Filtry</h2>
-      <input
-        type="text"
-        placeholder="Szukaj przepisów"
-        className="w-full p-2 mb-4 border rounded bg-gray-700 text-white"
-      />
-      <h3 className="text-md font-semibold mb-2 text-white">Sortuj wg</h3>
-      <select className="w-full p-2 mb-4 border rounded bg-gray-700 text-white">
-        <option>Nazwa</option>
-        <option>Popularność</option>
-        <option>Ocena</option>
-      </select>
-      <h3 className="text-md font-semibold mb-2 text-white">Kategorie</h3>
-      <div className="space-y-2">
-        <label className="flex items-center text-white">
-          <input type="checkbox" className="mr-2" /> Śniadanie
-        </label>
-        <label className="flex items-center text-white">
-          <input type="checkbox" className="mr-2" /> Obiad
-        </label>
-        <label className="flex items-center text-white">
-          <input type="checkbox" className="mr-2" /> Kolacja
-        </label>
-      </div>
-    </div>
-  );
-};
-
-// Komponent RecipeTile
-interface RecipeTileProps {
-  recipe: Recipe;
-  onSelect: (recipe: Recipe) => void;
-}
-
-const RecipeTile: React.FC<RecipeTileProps> = ({ recipe, onSelect }) => {
-  return (
-    <div
-      className="bg-gray-700 shadow-md rounded-lg overflow-hidden transform transition-transform hover:scale-105 duration-300 cursor-pointer"
-      onClick={() => onSelect(recipe)}
-    >
-      <img
-        src={recipe.image || "/placeholder.jpg"}
-        alt={recipe.name}
-        className="w-full h-24.5 object-cover"
-      />
-      <div className="p-4 flex justify-between items-center text-white">
-        <h3 className="text-lg font-semibold">{recipe.name}</h3>
-        <button className="text-red-500">
-          <HeartIcon className="w-6 h-6 fill-current" />
-        </button>
-      </div>
-    </div>
-  );
-};
-
-// Komponent RecipeModal
-interface RecipeModalProps {
-  recipe: Recipe;
-  onClose: () => void;
-}
-
-const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose }) => {
-  return (
-    <div
-      className="fixed inset-0 flex items-center justify-center z-50"
-      style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}
-    >
-      <div className="bg-gray-800 p-6 rounded-lg max-w-lg w-full shadow-xl text-white">
-        <h2 className="text-2xl font-bold mb-4">{recipe.name}</h2>
-        <p className="mb-4">{recipe.description}</p>
-        <h3 className="text-xl font-semibold mb-2">Składniki:</h3>
-        <ul className="list-disc list-inside mb-4">
-          {recipe.ingredients.map((ingredient, index) => (
-            <li key={index}>{ingredient}</li>
-          ))}
-        </ul>
-        <h3 className="text-xl font-semibold mb-2">Instrukcje:</h3>
-        <p className="mb-4">{recipe.instructions}</p>
-        <button className="text-blue-500 hover:underline" onClick={onClose}>
-          Zamknij
-        </button>
-      </div>
-    </div>
-  );
-};
-
-// Główny komponent FavoriteRecipes
 const FavoriteRecipes: React.FC = () => {
+  const [, setFavoriteRecipeIds] = useState<string[]>([]);
   const [favoriteRecipes, setFavoriteRecipes] = useState<Recipe[]>([]);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [ratings, setRatings] = useState<{ [key: number]: number }>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1); // State for current page
+  const recipesPerPage = 12; // Define how many recipes per page
+
+  const router = useRouter();
 
   useEffect(() => {
-    const storedFavorites = localStorage.getItem("favoriteRecipes");
-    if (storedFavorites) {
-      setFavoriteRecipes(JSON.parse(storedFavorites));
-    }
-  }, []);
+    const fetchFavorites = async () => {
+      try {
+        setIsLoading(true);
+        const recipeIds = await getFavoriteRecipes();
+        setFavoriteRecipeIds(recipeIds);
 
-  const handleSelectRecipe = (recipe: Recipe) => {
-    setSelectedRecipe(recipe);
+        if (recipeIds.length > 0) {
+          const response = await axios.get<Recipe[]>(`${API_BASE_URL}/foodSecret/search/recipes`, {
+            params: { ids: recipeIds.join(',') },
+            withCredentials: true
+          });
+
+          setFavoriteRecipes(response.data);
+
+          const storedRatings = localStorage.getItem("recipeRatings");
+          if (storedRatings) {
+            setRatings(JSON.parse(storedRatings));
+          }
+        } else {
+          setFavoriteRecipes([]);
+        }
+        setError(null);
+      } catch (_err) {
+        if (axios.isAxiosError(_err)) {
+          if (_err.response?.status === 401) {
+            router.push('/login?error=auth');
+          }
+        }
+        setError("Nie udało się załadować ulubionych przepisów");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFavorites();
+  }, [router]);
+
+  const handleRemoveFromFavorites = async (recipeId: string) => {
+    try {
+      await removeFromFavorites(recipeId);
+      setFavoriteRecipeIds(prev => prev.filter(id => id !== recipeId));
+      setFavoriteRecipes(prev => {
+        const updatedRecipes = prev.filter(recipe => recipe.id.toString() !== recipeId);
+        const totalPagesAfterRemoval = Math.ceil(updatedRecipes.length / recipesPerPage);
+        if (currentPage > totalPagesAfterRemoval && totalPagesAfterRemoval > 0) {
+          setCurrentPage(totalPagesAfterRemoval);
+        } else if (updatedRecipes.length === 0) {
+          setCurrentPage(1);
+        }
+        return updatedRecipes;
+      });
+      setSelectedRecipe(null);
+    } catch (_err) {
+      console.log(_err)
+      setError("Nie udało się usunąć przepisu z ulubionych");
+    }
+  };
+
+  const handleRatingChange = (recipeId: number, rating: number) => {
+    const updatedRatings = { ...ratings, [recipeId]: rating };
+    setRatings(updatedRatings);
+    localStorage.setItem("recipeRatings", JSON.stringify(updatedRatings));
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const totalPages = Math.ceil(favoriteRecipes.length / recipesPerPage);
+  const currentRecipes = favoriteRecipes.slice(
+    (currentPage - 1) * recipesPerPage,
+    currentPage * recipesPerPage
+  );
+
+  const RecipeTile: React.FC<{ recipe: Recipe }> = ({ recipe }) => {
+    const recipeRating = ratings[recipe.id] || 0;
+
+    return (
+      <div
+        className="group relative flex flex-col bg-gray-800 shadow-lg rounded-xl overflow-hidden hover:ring-2 hover:ring-blue-500 transition-all duration-200 h-[300px]"
+        onClick={() => setSelectedRecipe(recipe)}
+      >
+        <div className="relative w-full pb-[56.25%]">
+          <Image
+            src={recipe.image || "/placeholder.jpg"}
+            alt={recipe.name}
+            fill
+            className="object-cover"
+            sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
+          />
+        </div>
+        <div className="flex-1 p-4 flex flex-col justify-between">
+          <h3 className="text-lg font-semibold text-white group-hover:text-blue-400 transition-colors duration-200 line-clamp-2">
+            {recipe.name}
+          </h3>
+          <div className="flex justify-between items-center mt-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRemoveFromFavorites(recipe.id.toString());
+              }}
+              className="text-pink-500 hover:text-pink-400 transition-colors duration-200"
+            >
+              <HeartIconSolid className="w-6 h-6" />
+            </button>
+            {recipeRating > 0 && (
+              <div className="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-500 fill-current" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                <span className="text-yellow-500 ml-1">{recipeRating}/5</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
-    <div className="min-h-screen flex flex-col w-full bg-gray-900 font-sans text-white">
-      <div className="bg-gray-800 py-4 shadow-md">
-        <div className="max-w-7xl mx-auto flex justify-between items-center px-6">
-          <Link href="/mainPage" className="text-white hover:text-gray-300">
-            <HomeIcon className="h-6 w-6" />
-          </Link>
-          <Link href="/recipes" className="text-white hover:text-gray-300">
-            Przepisy
-          </Link>
-          <Link href="/favorites" className="text-white hover:text-gray-300">
-            Ulubione przepisy
-          </Link>
-          <Link href="/menu" className="text-white hover:text-gray-300">
-            Jadłospisy
-          </Link>
-          <button className="text-white hover:text-gray-300">Wyloguj się</button>
-        </div>
-      </div>
-      <div className="flex flex-1">
-        <Sidebar />
-        <div className="flex-1 p-4">
-          {favoriteRecipes.length === 0 ? (
-            <p className="text-center text-gray-400">Brak ulubionych przepisów</p>
+    <div className="flex flex-col min-h-screen bg-gray-900 text-white font-sans">
+      <Navbar />
+      <div className="flex flex-1 overflow-hidden">
+        <div className="flex-1 flex flex-col p-6 overflow-hidden">
+          {isLoading ? (
+            <div className="flex-1 flex items-center justify-center">
+              <Loading />
+            </div>
+          ) : error ? (
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg mb-6 text-center backdrop-blur-sm">
+              {error}
+            </div>
+          ) : favoriteRecipes.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-gray-400 space-y-4">
+              <div className="text-6xl">❤️</div>
+              <p className="text-xl">No favorite recipes yet</p>
+              <p className="text-gray-500">Start adding recipes to your favorites!</p>
+            </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              {favoriteRecipes.map((recipe) => (
-                <RecipeTile
-                  key={recipe.id}
-                  recipe={recipe}
-                  onSelect={handleSelectRecipe}
-                />
-              ))}
+            <div className="flex-1 overflow-hidden flex flex-col">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-min flex-1 overflow-y-auto pb-6 px-2">
+                {currentRecipes.map((recipe) => (
+                  <RecipeTile key={recipe.id} recipe={recipe} />
+                ))}
+              </div>
+              {totalPages > 1 && (
+                <div className="mt-6 flex justify-center">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
       {selectedRecipe && (
         <RecipeModal
+          isOpen={!!selectedRecipe}
           recipe={selectedRecipe}
           onClose={() => setSelectedRecipe(null)}
+          rating={ratings[selectedRecipe.id] || 0}
+          onRatingChange={(rating) => handleRatingChange(selectedRecipe.id, rating)}
         />
       )}
-      <div className="bg-gray-800 py-4 text-center">
-        <p className="text-white">@MNIAMPLAN</p>
-      </div>
+      <Footer className="w-full bg-gray-800/50 backdrop-blur-sm border-t border-gray-700/50 p-4 text-white" />
     </div>
   );
 };

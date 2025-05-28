@@ -1,459 +1,280 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { HeartIcon, HomeIcon } from "@heroicons/react/24/outline";
-import Link from "next/link";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import axios from "axios";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
+import Sidebar from "../components/Sidebar";
+import { useSearch } from "../../src/SearchContext";
+import Pagination from "../components/Pagination";
+import RecipeModal from "../components/RecipeModal";
+import Loading from '../components/Loading';
+import { Recipe } from "../types/Recipe";
+import RecipeTile from "./RecipeTile";
+import { useRouter } from 'next/navigation';
+import { getFavoriteRecipes } from "../api/favorites";
 
-// Interfejs dla przepisu
-interface Recipe {
-  id: number;
-  name: string;
-  description: string;
-  ingredients: string[];
-  instructions: string;
-  image?: string;
-}
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
-// Mockowe dane przepisów
-const mockRecipes: Recipe[] = [
-  {
-    id: 1,
-    name: "Spaghetti Bolognese",
-    description: "Klasyczne włoskie danie z makaronem i sosem mięsnym.",
-    ingredients: ["makaron spaghetti", "mięso mielone", "pomidory", "cebula", "czosnek"],
-    instructions: "1. Ugotuj makaron. 2. Podsmaż mięso z cebulą i czosnkiem. 3. Dodaj pomidory i gotuj sos. 4. Połącz makaron z sosem.",
-    image: "/spaghetti.jpg",
-  },
-  {
-    id: 2,
-    name: "Sałatka Cezar",
-    description: "Świeża sałatka z kurczakiem, grzankami i sosem Cezar.",
-    ingredients: ["sałata rzymska", "kurczak", "grzanki", "parmezan", "sos Cezar"],
-    instructions: "1. Ugrilluj kurczaka. 2. Pokrój sałatę. 3. Dodaj grzanki i parmezan. 4. Polej sosem.",
-    image: "/cezar.webp",
-  },
-  {
-    id: 3,
-    name: "Pancakes",
-    description: "Puszyste naleśniki na śniadanie.",
-    ingredients: ["mąka", "mleko", "jajka", "cukier", "proszek do pieczenia"],
-    instructions: "1. Wymieszaj składniki. 2. Smaż na patelni. 3. Podawaj z syropem klonowym.",
-    image: "/images/pancakes.jpg",
-  },
-  {
-    id: 4,
-    name: "Zupa Pomidorowa",
-    description: "Klasyczna zupa pomidorowa z makaronem.",
-    ingredients: ["pomidory", "makaron", "cebula", "czosnek", "bulion"],
-    instructions: "1. Podsmaż cebulę i czosnek. 2. Dodaj pomidory i bulion. 3. Gotuj, dodaj makaron.",
-    image: "/images/tomato-soup.jpg",
-  },
-  {
-    id: 5,
-    name: "Kurczak Curry",
-    description: "Aromatyczne danie z kurczakiem i curry.",
-    ingredients: ["kurczak", "mleko kokosowe", "curry", "ryż", "cebula"],
-    instructions: "1. Podsmaż kurczaka z cebulą. 2. Dodaj curry i mleko kokosowe. 3. Podawaj z ryżem.",
-    image: "/images/chicken-curry.jpg",
-  },
-  {
-    id: 6,
-    name: "Tiramisu",
-    description: "Włoski deser z mascarpone i kawą.",
-    ingredients: ["mascarpone", "kawa", "biszkopty", "kakao", "cukier"],
-    instructions: "1. Ubij mascarpone z cukrem. 2. Namocz biszkopty w kawie. 3. Ułóż warstwy i posyp kakao.",
-    image: "/images/tiramisu.jpg",
-  },
-  {
-    id: 7,
-    name: "Pizza Margherita",
-    description: "Klasyczna pizza z pomidorami i mozzarellą.",
-    ingredients: ["ciasto na pizzę", "pomidory", "mozzarella", "bazylia", "oliwa"],
-    instructions: "1. Rozwałkuj ciasto. 2. Dodaj pomidory, mozzarellę i bazylię. 3. Piecz w 220°C.",
-    image: "/images/pizza.jpg",
-  },
-  {
-    id: 8,
-    name: "Guacamole",
-    description: "Meksykańska pasta z awokado.",
-    ingredients: ["awokado", "pomidor", "cebula", "limonka", "kolendra"],
-    instructions: "1. Rozgnieć awokado. 2. Dodaj pokrojony pomidor, cebulę i sok z limonki. 3. Wymieszaj.",
-    image: "/images/guacamole.jpg",
-  },
-  {
-    id: 9,
-    name: "Lasagne",
-    description: "Włoska zapiekanka z mięsem i beszamelem.",
-    ingredients: ["makaron lasagne", "mięso mielone", "pomidory", "beszamel", "parmezan"],
-    instructions: "1. Przygotuj sos mięsny. 2. Ułóż warstwy makaronu, sosu i beszamelu. 3. Piecz.",
-    image: "/images/lasagne.jpg",
-  },
-  {
-    id: 10,
-    name: "Sushi",
-    description: "Japońskie rolki z ryżem i łososiem.",
-    ingredients: ["ryż do sushi", "łosoś", "nori", "awokado", "soja"],
-    instructions: "1. Ugotuj ryż. 2. Zawiń składniki w nori. 3. Pokrój na kawałki.",
-    image: "/images/sushi.jpg",
-  },
-  {
-    id: 11,
-    name: "Tacos",
-    description: "Meksykańskie tacos z wołowiną.",
-    ingredients: ["tortille", "wołowina", "salsa", "sałata", "ser"],
-    instructions: "1. Podsmaż wołowinę. 2. Przygotuj salsę. 3. Napełnij tortille.",
-    image: "/images/tacos.jpg",
-  },
-  {
-    id: 12,
-    name: "Brownie",
-    description: "Czekoladowe ciasto brownie.",
-    ingredients: ["czekolada", "masło", "cukier", "jajka", "mąka"],
-    instructions: "1. Rozpuść czekoladę z masłem. 2. Wymieszaj z resztą składników. 3. Piecz.",
-    image: "/images/brownie.jpg",
-  },
-  {
-    id: 13,
-    name: "Pad Thai",
-    description: "Tajskie danie z makaronem ryżowym.",
-    ingredients: ["makaron ryżowy", "krewetki", "orzechy", "limonka", "sos sojowy"],
-    instructions: "1. Podsmaż krewetki. 2. Dodaj makaron i sos. 3. Posyp orzechami.",
-    image: "/images/pad-thai.jpg",
-  },
-  {
-    id: 14,
-    name: "Hummus",
-    description: "Pasta z ciecierzycy.",
-    ingredients: ["ciecierzyca", "tahini", "cytryna", "czosnek", "oliwa"],
-    instructions: "1. Zmiksuj ciecierzycę z tahini. 2. Dodaj cytrynę i czosnek. 3. Polej oliwą.",
-    image: "/images/hummus.jpg",
-  },
-];
-
-// Dni tygodnia i typy posiłków
-const daysOfWeek = [
-  "Poniedziałek",
-  "Wtorek",
-  "Środa",
-  "Czwartek",
-  "Piątek",
-  "Sobota",
-  "Niedziela",
-] as const;
-type DayOfWeek = typeof daysOfWeek[number];
-
-const mealTypes = [
-  { key: "breakfast", label: "Śniadanie" },
-  { key: "secondBreakfast", label: "II Śniadanie" },
-  { key: "lunch", label: "Obiad" },
-  { key: "afternoonSnack", label: "Podwieczorek" },
-  { key: "dinner", label: "Kolacja" },
-] as const;
-type MealType = typeof mealTypes[number]["key"];
-
-// Struktura jadłospisu
-type MealPlan = {
-  [key in MealType]: Recipe | null;
-};
-
-type MealPlans = {
-  [key in DayOfWeek]: MealPlan;
-};
-
-// Inicjalizacja pustych jadłospisów
-const initializeMealPlans = (): MealPlans => {
-  return daysOfWeek.reduce((acc, day) => {
-    acc[day] = mealTypes.reduce((mealAcc, meal) => {
-      mealAcc[meal.key] = null;
-      return mealAcc;
-    }, {} as MealPlan);
-    return acc;
-  }, {} as MealPlans);
-};
-
-// Komponent Sidebar
-const Sidebar: React.FC = () => {
-  return (
-    <div className="w-64 h-148 bg-gray-800 shadow-md p-4">
-      <h2 className="text-lg font-semibold mb-4 mt-10 text-white">Filtry</h2>
-      <input
-        type="text"
-        placeholder="Szukaj przepisów"
-        className="w-full p-2 mb-4 border rounded bg-gray-700 text-white"
-      />
-      <h3 className="text-md font-semibold mb-2 text-white">Sortuj wg</h3>
-      <select className="w-full p-2 mb-4 border rounded bg-gray-700 text-white">
-        <option>Nazwa</option>
-        <option>Popularność</option>
-        <option>Ocena</option>
-      </select>
-      <h3 className="text-md font-semibold mb-2 text-white">Kategorie</h3>
-      <div className="space-y-2">
-        <label className="flex items-center text-white">
-          <input type="checkbox" className="mr-2" /> Śniadanie
-        </label>
-        <label className="flex items-center text-white">
-          <input type="checkbox" className="mr-2" /> Obiad
-        </label>
-        <label className="flex items-center text-white">
-          <input type="checkbox" className="mr-2" /> Kolacja
-        </label>
-      </div>
-    </div>
-  );
-};
-
-// Komponent RecipeTile
-interface RecipeTileProps {
-  recipe: Recipe;
-  onSelect: (recipe: Recipe) => void;
-}
-
-const RecipeTile: React.FC<RecipeTileProps> = ({ recipe, onSelect }) => {
-  const [favoriteRecipes, setFavoriteRecipes] = useState<Recipe[]>([]);
-
-  useEffect(() => {
-    const storedFavorites = localStorage.getItem("favoriteRecipes");
-    if (storedFavorites) {
-      setFavoriteRecipes(JSON.parse(storedFavorites));
-    }
-  }, []);
-
-  const isFavorite = favoriteRecipes.some((fav) => fav.id === recipe.id);
-
-  return (
-    <div
-      className="bg-gray-700 shadow-md rounded-lg overflow-hidden transform transition-transform hover:scale-105 duration-300 cursor-pointer"
-      onClick={() => onSelect(recipe)}
-    >
-      <img
-        src={recipe.image || "/placeholder.jpg"}
-        alt={recipe.name}
-        className="w-full h-24.5 object-cover"
-      />
-      <div className="p-4 flex justify-between items-center text-white">
-        <h3 className="text-lg font-semibold">{recipe.name}</h3>
-        <button className={isFavorite ? "text-red-500" : "text-gray-500 hover:text-red-500"}>
-          <HeartIcon className={`w-6 h-6 ${isFavorite ? "fill-current" : ""}`} />
-        </button>
-      </div>
-    </div>
-  );
-};
-
-// Komponent RecipeModal
-interface RecipeModalProps {
-  recipe: Recipe;
-  onClose: () => void;
-}
-
-const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose }) => {
-  const [selectedDay, setSelectedDay] = useState<DayOfWeek>(daysOfWeek[0]);
-  const [selectedMeal, setSelectedMeal] = useState<MealType>(mealTypes[0].key);
-  const [message, setMessage] = useState<string | null>(null);
-
-  const handleAddToMealPlan = () => {
-    const stored = localStorage.getItem("mealPlans");
-    let mealPlans: MealPlans = stored ? JSON.parse(stored) : initializeMealPlans();
-
-    mealPlans[selectedDay][selectedMeal] = recipe;
-
-    localStorage.setItem("mealPlans", JSON.stringify(mealPlans));
-    onClose();
-    window.location.href = "/menu";
-  };
-
-  const handleAddToFavorites = (recipe: Recipe) => {
-    const storedFavorites = localStorage.getItem("favoriteRecipes");
-    const currentFavorites: Recipe[] = storedFavorites ? JSON.parse(storedFavorites) : [];
-    if (!currentFavorites.some((fav) => fav.id === recipe.id)) {
-      const updatedFavorites = [...currentFavorites, recipe];
-      localStorage.setItem("favoriteRecipes", JSON.stringify(updatedFavorites));
-      setMessage("Dodano przepis do ulubionych!");
-      setTimeout(() => setMessage(null), 2000);
-    }
-  };
-
-  return (
-    <div
-      className="fixed inset-0 flex items-center justify-center z-50"
-      style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}
-    >
-      <div className="bg-gray-800 p-6 rounded-lg max-w-lg w-full shadow-xl text-white">
-        <h2 className="text-2xl font-bold mb-4">{recipe.name}</h2>
-        <p className="mb-4">{recipe.description}</p>
-        <h3 className="text-xl font-semibold mb-2">Składniki:</h3>
-        <ul className="list-disc list-inside mb-4">
-          {recipe.ingredients.map((ingredient, index) => (
-            <li key={index}>{ingredient}</li>
-          ))}
-        </ul>
-        <h3 className="text-xl font-semibold mb-2">Instrukcje:</h3>
-        <p className="mb-4">{recipe.instructions}</p>
-        <div className="mb-4">
-          <label className="block mb-2">Wybierz dzień:</label>
-          <select
-            value={selectedDay}
-            onChange={(e) => setSelectedDay(e.target.value as DayOfWeek)}
-            className="w-full p-2 border rounded bg-gray-700 text-white mb-2"
-          >
-            {daysOfWeek.map((day) => (
-              <option key={day} value={day}>
-                {day}
-              </option>
-            ))}
-          </select>
-          <label className="block mb-2">Wybierz posiłek:</label>
-          <select
-            value={selectedMeal}
-            onChange={(e) => setSelectedMeal(e.target.value as MealType)}
-            className="w-full p-2 border rounded bg-gray-700 text-white mb-2"
-          >
-            {mealTypes.map((meal) => (
-              <option key={meal.key} value={meal.key}>
-                {meal.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex justify-between mb-4">
-          <button
-            onClick={handleAddToMealPlan}
-            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-          >
-            Dodaj do jadłospisu
-          </button>
-          <button
-            onClick={() => handleAddToFavorites(recipe)}
-            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-          >
-            Dodaj do ulubionych
-          </button>
-        </div>
-        {message && <p className="text-green-400 mb-4">{message}</p>}
-        <button className="text-blue-500 hover:underline" onClick={onClose}>
-          Zamknij
-        </button>
-      </div>
-    </div>
-  );
-};
-
-// Komponent Pagination
-interface PaginationProps {
-  currentPage: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
-}
-
-const Pagination: React.FC<PaginationProps> = ({
-  currentPage,
-  totalPages,
-  onPageChange,
-}) => {
-  return (
-    <div className="flex justify-center mt-4">
-      <button
-        className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50 text-white"
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage === 1}
-      >
-        {"<"}
-      </button>
-      {Array.from({ length: totalPages }, (_, index) => index + 1).map(
-        (page) => (
-          <button
-            key={page}
-            className={`px-3 py-1 rounded mx-1 ${
-              currentPage === page
-                ? "bg-blue-500 text-white"
-                : "bg-gray-700 hover:bg-gray-600 text-white"
-            }`}
-            onClick={() => onPageChange(page)}
-          >
-            {page}
-          </button>
-        )
-      )}
-      <button
-        className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50 text-white"
-        onClick={() => onPageChange(currentPage + 1)}
-        disabled={currentPage === totalPages}
-      >
-        {">"}
-      </button>
-    </div>
-  );
-};
-
-// Główny komponent RecipesList
 const RecipesList: React.FC = () => {
-  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
+    const [recipes, setRecipes] = useState<Recipe[]>([]);
+    const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [isLoadingPage, setIsLoadingPage] = useState(true);
+    const [isLoadingRecipes, setIsLoadingRecipes] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [ratings, setRatings] = useState<{ [key: number]: number }>({});
+    const [favoriteRecipeIds, setFavoriteRecipeIds] = useState<string[]>([]);
+    const [isFavoritesLoading, setIsFavoritesLoading] = useState(false);
 
-  const recipesPerPage = 12;
-  const totalPages = Math.ceil(mockRecipes.length / recipesPerPage);
-  const startIndex = (currentPage - 1) * recipesPerPage;
-  const endIndex = startIndex + recipesPerPage;
-  const currentRecipes = mockRecipes.slice(startIndex, endIndex);
+    const isFavoritesLoadingRef = useRef(isFavoritesLoading);
+    useEffect(() => {
+        isFavoritesLoadingRef.current = isFavoritesLoading;
+    }, [isFavoritesLoading]);
 
-  const handleSelectRecipe = (recipe: Recipe) => {
-    setSelectedRecipe(recipe);
-  };
+    const fetchFavoritesTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
+    const recipesPerPage = 12;
+    const { query } = useSearch();
+    const router = useRouter();
 
-  return (
-    <div className="min-h-screen flex flex-col w-full bg-gray-900 font-sans text-white">
-      <div className="bg-gray-800 py-4 shadow-md">
-        <div className="max-w-7xl mx-auto flex justify-between items-center px-6">
-          <Link href="/mainPage" className="text-white hover:text-gray-300">
-            <HomeIcon className="h-6 w-6" />
-          </Link>
-          <Link href="/recipes" className="text-white hover:text-gray-300">
-            Przepisy
-          </Link>
-          <Link href="/favorites" className="text-white hover:text-gray-300">
-            Ulubione przepisy
-          </Link>
-          <Link href="/menu" className="text-white hover:text-gray-300">
-            Jadłospisy
-          </Link>
-          <button className="text-white hover:text-gray-300">Wyloguj się</button>
+    const stableFetchFavorites = useCallback(async () => {
+        if (isFavoritesLoadingRef.current) return;
+
+        setIsFavoritesLoading(true);
+        try {
+            const favorites = await getFavoriteRecipes();
+            const favoritesArray = Array.from(favorites).map(id => id.toString());
+            setFavoriteRecipeIds(favoritesArray);
+        } catch (error) {
+            console.error("Failed to fetch favorite recipes:", error);
+        } finally {
+            setIsFavoritesLoading(false);
+        }
+    }, []);
+
+    const refreshFavoritesOptimized = useCallback(() => {
+        if (fetchFavoritesTimeout.current) {
+            clearTimeout(fetchFavoritesTimeout.current);
+        }
+        fetchFavoritesTimeout.current = setTimeout(() => {
+            stableFetchFavorites();
+        }, 300);
+    }, [stableFetchFavorites]);
+
+    const fetchRecipes = useCallback(async (currentQuery: string) => {
+        if (!currentQuery) {
+            setRecipes([]);
+            setIsLoadingRecipes(false);
+            setErrorMessage(null);
+            return;
+        }
+
+        setIsLoadingRecipes(true);
+        setErrorMessage(null);
+        try {
+            const response = await axios.get<{ recipes: Recipe[] }>(`${API_BASE_URL}/foodSecret/search?query=${currentQuery}`, {
+                withCredentials: true,
+            });
+
+            const fetchedRecipes: Recipe[] = Array.isArray(response.data.recipes)
+                ? response.data.recipes
+                : (Array.isArray(response.data) ? response.data : []);
+
+            setRecipes(fetchedRecipes);
+            setCurrentPage(1);
+        } catch (err: Error | unknown) {
+            console.error("Fetch recipes failed:", err);
+            if (axios.isAxiosError(err) && err.response) {
+                if (err.response.status === 401) {
+                    setErrorMessage("Session expired or unauthorized. Please log in again.");
+                    router.push('/login');
+                } else if (err.response.status === 404) {
+                    setErrorMessage("No recipes found for your search.");
+                } else if (err.response.status === 429) {
+                    setErrorMessage("Too many requests. Please wait a moment before trying again.");
+                } else {
+                    setErrorMessage(`Error searching recipes: ${err.response.statusText || 'Unknown error'}`);
+                }
+            } else {
+                setErrorMessage("An unexpected error occurred while searching for recipes.");
+            }
+            setRecipes([]);
+        } finally {
+            setIsLoadingRecipes(false);
+        }
+    }, [router]);
+
+    useEffect(() => {
+        const authenticateAndLoad = async () => {
+            setIsLoadingPage(true);
+            setErrorMessage(null);
+
+            try {
+                await axios.get(`${API_BASE_URL}/api/users/userdata`, {
+                    withCredentials: true,
+                });
+                await stableFetchFavorites();
+
+                const storedRatings = localStorage.getItem("recipeRatings");
+                if (storedRatings) {
+                    try {
+                        const parsedRatings = JSON.parse(storedRatings);
+                        if (typeof parsedRatings === 'object' && parsedRatings !== null && !Array.isArray(parsedRatings)) {
+                            setRatings(parsedRatings);
+                        } else {
+                            console.warn("localStorage 'recipeRatings' contained non-object data, resetting.");
+                            setRatings({});
+                        }
+                    } catch (jsonError) {
+                        console.error("Error parsing recipeRatings from localStorage:", jsonError);
+                        setRatings({});
+                    }
+                }
+            } catch (err: Error | unknown) {
+                console.error("Initial authentication or data load failed:", err);
+                if (axios.isAxiosError(err) && err.response) {
+                    if (err.response.status === 401) {
+                        setErrorMessage("Session expired or unauthorized. Please log in again.");
+                        router.push('/login?error=auth');
+                    } else {
+                        setErrorMessage(`Error loading initial data: ${err.response.statusText || 'Unknown error'}`);
+                    }
+                } else {
+                    setErrorMessage("An unexpected error occurred during initial page load.");
+                }
+                setRecipes([]);
+            } finally {
+                setIsLoadingPage(false);
+            }
+        };
+
+        authenticateAndLoad();
+
+        return () => {
+            if (fetchFavoritesTimeout.current) {
+                clearTimeout(fetchFavoritesTimeout.current);
+            }
+        };
+    }, [router, stableFetchFavorites]);
+
+    useEffect(() => {
+        if (!query) {
+            setRecipes([]);
+            setErrorMessage(null);
+            return;
+        }
+
+        const debounceTimeout = setTimeout(() => {
+            fetchRecipes(query);
+        }, 500);
+
+        return () => clearTimeout(debounceTimeout);
+
+    }, [query, fetchRecipes]);
+
+    const totalPages = Math.ceil(recipes.length / recipesPerPage);
+    const currentRecipes = recipes.slice(
+        (currentPage - 1) * recipesPerPage,
+        currentPage * recipesPerPage
+    );
+
+    const handleRatingChange = (recipeId: number, rating: number) => {
+        const updatedRatings = { ...ratings, [recipeId]: rating };
+        setRatings(updatedRatings);
+        localStorage.setItem("recipeRatings", JSON.stringify(updatedRatings));
+    };
+
+    const handleSelectRecipe = (recipe: Recipe) => {
+        setSelectedRecipe(recipe);
+    };
+
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+    };
+
+    if (isLoadingPage) {
+        return (
+            <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(21, 32, 43, 0.9)" }}>
+                <Loading />
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex flex-col min-h-screen bg-gray-900 text-white font-sans">
+            <Navbar />
+            <div className="flex flex-1 overflow-hidden">
+                <Sidebar />
+                <div className="flex-1 flex flex-col p-6 overflow-hidden relative">
+                    {errorMessage && (
+                        <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg mb-6 text-center backdrop-blur-sm">
+                            {errorMessage}
+                        </div>
+                    )}
+
+                    {isLoadingRecipes ? (
+                        <div className="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-75 rounded-lg z-10">
+                            <Loading />
+                        </div>
+                    ) : (
+                        <>
+                            {currentRecipes.length === 0 && query ? (
+                                <div className="flex-1 flex flex-col items-center justify-center text-gray-400 space-y-4">
+                                    <div className="text-6xl">🔍</div>
+                                    <p className="text-xl">No recipes found for &quot;{query.replace('query=', '')}&quot;</p>
+                                    <p className="text-gray-500">Try a different search term!</p>
+                                </div>
+                            ) : currentRecipes.length === 0 && !query ? (
+                                <div className="flex-1 flex flex-col items-center justify-center text-gray-400 space-y-4">
+                                    <div className="text-6xl">👨‍🍳</div>
+                                    <p className="text-xl">Ready to find some delicious recipes?</p>
+                                    <p className="text-gray-500">Start by searching using the search bar above!</p>
+                                </div>
+                            ) : (
+                                <div className="flex-1 overflow-hidden flex flex-col">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-min flex-1 overflow-y-auto pb-6 px-2">
+                                        {currentRecipes.map((recipe) => {
+                                            const recipeIdStr = recipe.id.toString();
+                                            const isRecipeFavorite = favoriteRecipeIds.includes(recipeIdStr);
+                                            const recipeRating = ratings[recipe.id] || 0;
+                                            return (
+                                                <RecipeTile
+                                                    key={recipe.id}
+                                                    recipe={recipe}
+                                                    onSelect={handleSelectRecipe}
+                                                    isFavorite={isRecipeFavorite}
+                                                    onFavoriteChange={refreshFavoritesOptimized}
+                                                    rating={recipeRating}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                    <div className="mt-6 flex justify-center">
+                                        <Pagination
+                                            currentPage={currentPage}
+                                            totalPages={totalPages}
+                                            onPageChange={handlePageChange}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
+            </div>
+            {selectedRecipe && (
+                <RecipeModal
+                    isOpen={!!selectedRecipe}
+                    recipe={selectedRecipe}
+                    onClose={() => setSelectedRecipe(null)}
+                    rating={ratings[selectedRecipe.id] || 0}
+                    onRatingChange={(rating) => handleRatingChange(selectedRecipe.id, rating)}
+                />
+            )}
+            <Footer className="w-full bg-gray-800/50 backdrop-blur-sm border-t border-gray-700/50 p-4 text-white" />
         </div>
-      </div>
-      <div className="flex flex-1">
-        <Sidebar />
-        <div className="flex-1 p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            {currentRecipes.map((recipe) => (
-              <RecipeTile
-                key={recipe.id}
-                recipe={recipe}
-                onSelect={handleSelectRecipe}
-              />
-            ))}
-          </div>
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-          />
-        </div>
-      </div>
-      {selectedRecipe && (
-        <RecipeModal
-          recipe={selectedRecipe}
-          onClose={() => setSelectedRecipe(null)}
-        />
-      )}
-      <div className="bg-gray-800 py-4 text-center">
-        <p className="text-white">@MNIAMPLAN</p>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default RecipesList;

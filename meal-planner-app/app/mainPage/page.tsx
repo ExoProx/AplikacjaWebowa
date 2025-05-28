@@ -1,21 +1,12 @@
-// MainPage/page.tsx
+// app/mainPage/page.tsx
+
+import MainPage from './MainPage'
 
 
-import React from 'react';
-import MainPage from './MainPage';
-
-const MainPageU: React.FC = () => {
+export default async function Page() {
   return (
-    <div className="min-h-screen" 
-    style={{
-      backgroundImage: 'url("/jedzenie.jpg")',
-      backgroundSize: "cover",
-      backgroundRepeat: "no-repeat",
-    }}
-    >
+    <div className="min-h-screen">
       <MainPage />
     </div>
-  );
-};
-
-export default MainPageU;
+  )
+}

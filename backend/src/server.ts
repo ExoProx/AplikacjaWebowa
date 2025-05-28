@@ -1,27 +1,47 @@
 import express from 'express';
 import cors from 'cors';
-import bodyParser from 'body-parser';
-import userRoutes from './routes/user'; // Make sure you are correctly importing the userRoutes
+import userRoutes from './routes/user'; 
 import loginRoutes from './routes/login';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
+import logoutRoute from './routes/logout';
+import foodSearch from './routes/fatSecret/search';
+import rateLimit from 'express-rate-limit';
+import mealPlanRoute from './routes/mealPlan'
+import passport from './config/passport';
+import auth from './routes/auth';
+import favoritesRoute from './routes/favorites';
+
+export const apiLimiter = rateLimit({
+   windowMs: 1 * 60 * 1000,
+  max: 100, 
+  standardHeaders: true, 
+  legacyHeaders: false,  
+  message: 'Too many requests from this IP, please try again later.',
+});
 
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
+app.use(apiLimiter);
 
-// Middleware
-app.use(cors());
-app.use(bodyParser.json());  // Make sure the body parser middleware is correctly in place
+app.use(cors({
+  origin: 'http://localhost:3000', 
+  credentials: true 
+}));
+app.use(cookieParser());
+app.use(passport.initialize());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Register /api/users route with the userRoutes from user.ts
-app.use('/api/users', userRoutes);  // The '/api/users' endpoint will be handled by the userRoutes
+app.use('/api/users', userRoutes);  
 app.use('/api/login', loginRoutes);
-// Test route
-app.get('/test', (req, res) => {
-  res.send('Test route is working!');
-});
+app.use('/api/logout', logoutRoute);
+app.use('/api/menuList', mealPlanRoute);
+app.use('/api/auth', auth)
+app.use('/api/favorites', favoritesRoute)
+app.use('/foodSecret/search', foodSearch);
 
-// Start the server
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });

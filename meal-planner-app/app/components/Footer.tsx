@@ -1,12 +1,16 @@
 'use client'
 import React from "react";
+import clsx from "clsx";
 
+interface FooterProps {
+  className?: string;
+}
 
-const Footer: React.FC = () => {
-    return (
-      <footer className="w-full text-center py-4 bg-emerald-300">
-        <p className="text-green-600">&copy; 2025 mniamPlan</p>
-      </footer>
+const Footer: React.FC<FooterProps> = ({ className }) => {
+  return (
+    <footer className={clsx("bg-gray-800 py-4 shadow-md", className)}>
+      <p className="text-white text-center">© 2025 mniamPlan</p>
+    </footer>
   );
 };
 

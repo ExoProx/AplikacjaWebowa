@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { SearchProvider } from '../src/SearchContext';
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Mealio",
+  title: "mniamPlan",
   icons: {
     icon: {
       url: "/logo.svg",
@@ -32,7 +34,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+          <SearchProvider>
+          {children}
+          </SearchProvider>
       </body>
     </html>
   );

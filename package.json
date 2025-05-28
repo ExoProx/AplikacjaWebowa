@@ -1,7 +1,9 @@
 {
   "dependencies": {
     "add": "^2.0.6",
+    "axios": "^1.9.0",
     "clsx": "^2.1.1",
+    "react-datepicker": "^8.3.0",
     "react-responsive-carousel": "^3.2.23",
     "yarn": "^1.22.22"
   }
