@@ -71,7 +71,6 @@ router.get('/', passport_1.default.authenticate('jwt', { session: false }), (req
         return res.status(200).json(detailedRecipes);
     }
     catch (error) {
-        console.error('Error fetching data from FatSecret API:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 }));
@@ -111,7 +110,6 @@ router.get('/recipes', passport_1.default.authenticate('jwt', { session: false }
         return res.status(200).json(detailedRecipes);
     }
     catch (error) {
-        console.error('Error fetching multiple recipe details:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 }));
@@ -119,18 +117,13 @@ router.get('/random', passport_1.default.authenticate('jwt', { session: false })
     var _p, _q, _r, _s, _t, _u, _v;
     try {
         const token = yield (0, fatSecretAuth_1.getAccessToken)();
-        // Step 1 & 2: Search for a broad category to get a list of potential recipe IDs
-        // Use a very general search term or a common cuisine to ensure a wide range of results.
-        // You might need to experiment with 'search_expression' for best results.
-        // 'max_results' can be set to a reasonable number to get a pool of IDs.
-        // 'page_number' could also be randomized for more variety if you get many pages.
         const searchParams = new URLSearchParams();
         searchParams.append('method', 'recipes.search.v3');
-        searchParams.append('search_expression', 'food'); // Broad search term
+        searchParams.append('search_expression', 'food');
         searchParams.append('format', 'json');
-        searchParams.append('must_have_images', 'true'); // Only recipes with images
-        searchParams.append('max_results', '50'); // Get up to 50 results
-        searchParams.append('page_number', '0'); // Start from the first page
+        searchParams.append('must_have_images', 'true');
+        searchParams.append('max_results', '50');
+        searchParams.append('page_number', '0');
         const searchResponse = yield axios_1.default.post('https://platform.fatsecret.com/rest/server.api', searchParams, {
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -141,10 +134,8 @@ router.get('/random', passport_1.default.authenticate('jwt', { session: false })
         if (!recipesList || !Array.isArray(recipesList) || recipesList.length === 0) {
             return res.status(404).json({ error: 'No recipes found for random selection.' });
         }
-        // Step 3: Pick one recipe_id randomly from the list
         const randomIndex = Math.floor(Math.random() * recipesList.length);
         const randomRecipeId = recipesList[randomIndex].recipe_id;
-        // Step 4: Fetch detailed information for the randomly selected recipe
         const detailParams = new URLSearchParams();
         detailParams.append('method', 'recipe.get.v2');
         detailParams.append('recipe_id', randomRecipeId);
@@ -159,7 +150,6 @@ router.get('/random', passport_1.default.authenticate('jwt', { session: false })
         if (!details) {
             return res.status(404).json({ error: 'Details for random recipe not found.' });
         }
-        // Format the detailed recipe as per your Recipe interface
         const formattedRecipe = {
             id: parseInt(details.recipe_id),
             name: details.recipe_name,
@@ -171,10 +161,8 @@ router.get('/random', passport_1.default.authenticate('jwt', { session: false })
         return res.status(200).json(formattedRecipe);
     }
     catch (error) {
-        console.error('Error fetching a random recipe from FatSecret API:', error);
-        // Check if it's an Axios error and log response data if available
         if (axios_1.default.isAxiosError(error) && error.response) {
-            console.error('FatSecret API error response:', error.response.data);
+            return res.status(500).json({ error: 'Internal Server Error' });
         }
         res.status(500).json({ error: 'Internal Server Error' });
     }

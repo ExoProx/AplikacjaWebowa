@@ -15,7 +15,7 @@ export const getFavoriteRecipes = async (): Promise<string[]> => {
     if (Array.isArray(response.data)) {
       favorites = response.data.map((id) => String(id));
     } else if (response.data && typeof response.data === 'object') {
-      favorites = Array.from(response.data as Set).map((id) => String(id));
+      favorites = Array.from(response.data as Set<number>).map((id) => String(id));
     } else {
       favorites = [];
     }

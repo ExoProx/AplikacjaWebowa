@@ -3,8 +3,6 @@
 
 import React, { useState, useEffect } from "react";
 import { User, Mail, Phone, Save, X } from "lucide-react"; 
-import InputField from "../components/InputField";
-import SubmitButton from "../components/SubmitButton";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import Loading from "../components/Loading"; // Import the Loading component

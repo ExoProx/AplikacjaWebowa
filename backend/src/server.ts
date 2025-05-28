@@ -13,8 +13,8 @@ import auth from './routes/auth';
 import favoritesRoute from './routes/favorites';
 
 export const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, 
-  max: 100,
+   windowMs: 1 * 60 * 1000,
+  max: 100, 
   standardHeaders: true, 
   legacyHeaders: false,  
   message: 'Too many requests from this IP, please try again later.',
@@ -29,10 +29,11 @@ app.use(cors({
   origin: 'http://localhost:3000', 
   credentials: true 
 }));
-
+app.use(cookieParser());
 app.use(passport.initialize());
 app.use(express.json());
-app.use(cookieParser());
+app.use(express.urlencoded({ extended: true }));
+
 app.use('/api/users', userRoutes);  
 app.use('/api/login', loginRoutes);
 app.use('/api/logout', logoutRoute);

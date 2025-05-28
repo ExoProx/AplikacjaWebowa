@@ -16,41 +16,67 @@ const express_1 = __importDefault(require("express"));
 const passport_1 = __importDefault(require("passport"));
 const db_1 = __importDefault(require("../db"));
 const router = express_1.default.Router();
+// mealPlans.ts
 router.post('/', passport_1.default.authenticate('jwt', { session: false }), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log('req.user:', req.user);
     const user = req.user;
     if (!user || !user.userId) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
     const userId = user.userId;
     const client = yield db_1.default.connect();
-    const { name, number } = req.body;
+    // ⭐ REMOVE 'description' from destructuring
+    const { name, days } = req.body; // Changed from 'number' to 'days' in previous step
+    // ⭐ Add console logs for debugging backend input
+    console.log("Backend POST /api/menuList: Received name:", name);
+    console.log("Backend POST /api/menuList: Received days:", days); // Should be a number
+    // Validation (ensure 'days' is being validated, not 'number')
     if (typeof name !== 'string' ||
         !name.trim() ||
-        typeof number !== 'number' ||
-        number < 1 ||
-        number > 31) {
+        typeof days !== 'number' || // Validate 'days'
+        days < 1 ||
+        days > 31) {
         client.release();
-        return res.status(400).json({ error: 'Invalid name or day count' });
+        return res.status(400).json({ error: 'Invalid name or day count. Name must be a non-empty string, days must be a number between 1 and 31.' });
     }
     try {
         yield client.query("BEGIN");
-        yield client.query(`INSERT INTO meal_plans (name, created_at, id_account, day_count) 
-         VALUES ($1, Now(), $2, $3)`, [name.trim(), userId, number]);
+        // ⭐ REMOVE 'description' from the INSERT column list
+        // ⭐ Adjust values ($) to match the remaining parameters
+        const result = yield client.query(`INSERT INTO meal_plans (name, created_at, id_account, day_count)
+         VALUES ($1, Now(), $2, $3)
+         RETURNING id_meal_plans AS id, name, day_count AS days;`, // ⭐ REMOVE 'description' from RETURNING
+        [name.trim(), userId, days] // ⭐ REMOVE 'description' from parameters
+        );
         yield client.query("COMMIT");
-        return res.status(201).json({ message: "Mealplan Added" });
+        if (result.rows.length > 0) {
+            return res.status(201).json(result.rows[0]);
+        }
+        else {
+            return res.status(500).json({ error: "Failed to create meal plan: No data returned from database." });
+        }
     }
     catch (err) {
         yield client.query("ROLLBACK");
-        console.error('DB Insert Error:', err);
-        return res.status(500).json({ error: "Internal server error" });
+        console.error("Backend Error creating meal plan:", err);
+        if (err instanceof Error) {
+            if ('code' in err && typeof err.code === 'string') {
+                console.error("PostgreSQL Error Code:", err.code);
+                // Specific error handling for database errors
+                if (err.code === '23502') { // Not null violation
+                    return res.status(500).json({ error: "Database error: A required field is missing (check name or days)." });
+                }
+                if (err.code === '23503') { // Foreign key violation
+                    return res.status(500).json({ error: "Database error: Invalid account ID." });
+                }
+            }
+        }
+        return res.status(500).json({ error: "Internal server error during meal plan creation." });
     }
     finally {
         client.release();
     }
 }));
 router.put('/updateMeal', passport_1.default.authenticate('jwt', { session: false }), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log('req.user:', req.user);
     const user = req.user;
     if (!user || !user.userId) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -81,7 +107,6 @@ router.put('/updateMeal', passport_1.default.authenticate('jwt', { session: fals
     }
     catch (err) {
         yield client.query("ROLLBACK");
-        console.error('DB Insert Error:', err);
         return res.status(500).json({ error: "Internal server error" });
     }
     finally {
@@ -89,7 +114,6 @@ router.put('/updateMeal', passport_1.default.authenticate('jwt', { session: fals
     }
 }));
 router.get('/', passport_1.default.authenticate('jwt', { session: false }), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log('req.user:', req.user);
     const user = req.user;
     if (!user || !user.userId) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -103,7 +127,6 @@ router.get('/', passport_1.default.authenticate('jwt', { session: false }), (req
     }
     catch (err) {
         yield client.query("ROLLBACK");
-        console.error('DB Select Error:', err);
         return res.status(500).json({ error: "Internal server error" });
     }
     finally {
@@ -111,32 +134,20 @@ router.get('/', passport_1.default.authenticate('jwt', { session: false }), (req
     }
 }));
 router.get('/fetch', passport_1.default.authenticate('jwt', { session: false }), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log('--- FETCH ENDPOINT HIT ---');
-    console.log('Full Request URL:', req.originalUrl); // This will show the full URL as Express sees it
-    console.log('req.query object:', req.query);
-    console.log('req.query.menuId (raw from query):', req.query.menuId);
-    const user = req.user; // Keep this for later if userId is needed
+    const user = req.user;
     const menuId = Number(req.query.menuId);
-    console.log('menuId (after Number() conversion):', menuId);
-    console.log('isNaN(menuId):', isNaN(menuId));
-    console.log('menuId <= 0:', menuId <= 0);
     if (isNaN(menuId) || menuId <= 0) {
-        console.error('Validation failed for menuId. Sending 400 error.'); // Use error for clarity
         return res.status(400).json({ error: 'Invalid or missing menuId' });
     }
-    console.log('Validation passed for menuId:', menuId);
     const client = yield db_1.default.connect();
     try {
         yield client.query("BEGIN");
         const result = yield client.query(`SELECT id_recipe as id, meal_plans_recipes.id_meal_plans as menuId, dayindex as dayIndex, meal_type as mealType
          FROM meal_plans_recipes
-         WHERE meal_plans_recipes.id_meal_plans = $1`, // Or with JOIN and user_id if applicable
-        [menuId]);
-        console.log('Database query executed. Rows found:', result.rows.length);
+         WHERE meal_plans_recipes.id_meal_plans = $1`, [menuId]);
         return res.status(200).json(result.rows);
     }
     catch (err) {
-        console.error("Error fetching meals from DB:", err);
         res.status(500).json({ error: "Failed to fetch meals." });
     }
     finally {
@@ -147,7 +158,6 @@ router.delete('/delete', passport_1.default.authenticate('jwt', { session: false
     const user = req.user;
     const menuId = Number(req.query.menuId);
     if (isNaN(menuId) || menuId <= 0) {
-        console.error('Validation failed for menuId. Sending 400 error.'); // Use error for clarity
         return res.status(400).json({ error: 'Invalid or missing menuId' });
     }
     const client = yield db_1.default.connect();
@@ -160,7 +170,6 @@ router.delete('/delete', passport_1.default.authenticate('jwt', { session: false
     }
     catch (err) {
         yield client.query("ROLLBACK");
-        console.error('DB DELETE Error:', err);
         return res.status(500).json({ error: "Internal server error" });
     }
     finally {
@@ -174,15 +183,12 @@ router.post('/deleteRecipe', passport_1.default.authenticate('jwt', { session: f
     const mealTypes = ["Breakfast", "Second Breakfast", "Lunch", "Snack", "Dinner"];
     const dayIndex = Number(req.query.dayIndex);
     if (isNaN(menuId) || menuId <= 0) {
-        console.error('Validation failed for menuId. Sending 400 error.');
         return res.status(400).json({ error: 'Invalid or missing menuId' });
     }
     if (!mealTypes.includes(mealType)) {
-        console.error('Validation failed for mealTypes. Sending 400 error.');
         return res.status(400).json({ error: 'Invalid or missing menuId' });
     }
     if (isNaN(dayIndex) || dayIndex <= 0) {
-        console.error('Validation failed for menuId. Sending 400 error.');
         return res.status(400).json({ error: 'Invalid or missing menuId' });
     }
     const client = yield db_1.default.connect();
@@ -194,7 +200,6 @@ router.post('/deleteRecipe', passport_1.default.authenticate('jwt', { session: f
     }
     catch (err) {
         yield client.query("ROLLBACK");
-        console.error('DB DELETE Error:', err);
         return res.status(500).json({ error: "Internal server error" });
     }
     finally {
@@ -202,7 +207,6 @@ router.post('/deleteRecipe', passport_1.default.authenticate('jwt', { session: f
     }
 }));
 router.put('/extend', passport_1.default.authenticate('jwt', { session: false }), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log('req.user:', req.user);
     const user = req.user;
     if (!user || !user.userId) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -229,7 +233,6 @@ router.put('/extend', passport_1.default.authenticate('jwt', { session: false })
     }
     catch (err) {
         yield client.query("ROLLBACK");
-        console.error('DB Update Error:', err);
         return res.status(500).json({ error: "Internal server error" });
     }
     finally {
@@ -260,7 +263,6 @@ router.post('/share', passport_1.default.authenticate('jwt', { session: false })
     }
     catch (err) {
         yield client.query("ROLLBACK");
-        console.error('Share Error:', err);
         return res.status(500).json({ error: "Internal server error" });
     }
     finally {
@@ -292,7 +294,6 @@ router.post('/unshare', passport_1.default.authenticate('jwt', { session: false 
     }
     catch (err) {
         yield client.query("ROLLBACK");
-        console.error('Stop Sharing Error:', err);
         return res.status(500).json({ error: "Internal server error" });
     }
     finally {
@@ -300,7 +301,6 @@ router.post('/unshare', passport_1.default.authenticate('jwt', { session: false 
     }
 }));
 router.get('/check-share/:menuId', passport_1.default.authenticate('jwt', { session: false }), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log('Checking sharing status for menuId:', req.params.menuId);
     const user = req.user;
     if (!user || !user.userId) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -313,7 +313,6 @@ router.get('/check-share/:menuId', passport_1.default.authenticate('jwt', { sess
     try {
         const menuCheck = yield client.query(`SELECT id_meal_plans AS id, name, day_count AS days, shared_token AS token 
          FROM meal_plans WHERE id_meal_plans = $1 AND id_account = $2`, [menuId, user.userId]);
-        console.log('Menu check result:', menuCheck.rows[0]);
         if (menuCheck.rows.length === 0) {
             return res.status(404).json({ error: "Menu not found" });
         }
@@ -322,29 +321,48 @@ router.get('/check-share/:menuId', passport_1.default.authenticate('jwt', { sess
         });
     }
     catch (err) {
-        console.error('Get Menu Sharing Status Error:', err);
         return res.status(500).json({ error: "Internal server error" });
     }
     finally {
         client.release();
     }
 }));
-router.get('/shared/:token', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    if (!req.user) {
-        return res.status(401).json({ error: 'Unauthorized' });
+router.get('/shared/:token', 
+// Passport authentication middleware. 'jwt' strategy from passport.ts.
+// `session: false` is standard for stateless JWT authentication.
+passport_1.default.authenticate('jwt', { session: false }), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    // This route handler is only reached if passport.authenticate('jwt') SUCCEEDS.
+    // If you see a 401, it means passport.authenticate failed *before* this.
+    // --- DEBUGGING LINE ---
+    console.log("Server-side DEBUG: In /shared/:token route handler.");
+    console.log("Server-side DEBUG: req.user from Passport:", req.user); // Should show your user object if authenticated
+    const user = req.user;
+    if (!user) {
+        // This check *should* ideally not be hit if `passport.authenticate` passed.
+        // If it is, it indicates a highly unusual Passport setup issue where it authenticates
+        // but fails to attach the user object.
+        console.error("Server-side DEBUG: req.user was unexpectedly undefined after passport.authenticate!");
+        return res.status(401).json({ error: 'Unauthorized: User object not found after authentication' });
     }
+    // ⭐ Your existing route logic continues from here, now with an authenticated `req.user`
     const { token } = req.params;
     if (!token) {
         return res.status(400).json({ error: 'Missing token' });
     }
-    const client = yield db_1.default.connect();
+    const client = yield db_1.default.connect(); // Assuming db.connect() exists
     try {
-        const mealPlan = yield client.query(`SELECT id_meal_plans AS id, name, day_count AS days, shared_token AS token 
+        const mealPlan = yield client.query(`SELECT id_meal_plans AS id, name, day_count AS days, shared_token AS token
          FROM meal_plans WHERE shared_token = $1`, [token]);
         if (mealPlan.rows.length === 0) {
             return res.status(404).json({ error: "Shared meal plan not found" });
         }
-        const recipes = yield client.query(`SELECT id_recipe as id, meal_plans_recipes.id_meal_plans as menuId, 
+        // Ensure that only the correct user can access their shared meal plan
+        // This check is in addition to just being logged in.
+        // E.g., if meal_plans also has a 'user_id' column:
+        // if (mealPlan.rows[0].user_id !== user.userId) {
+        //   return res.status(403).json({ error: 'Forbidden: You do not own this meal plan.' });
+        // }
+        const recipes = yield client.query(`SELECT id_recipe as id, meal_plans_recipes.id_meal_plans as menuId,
                 dayindex as dayIndex, meal_type as mealType
          FROM meal_plans_recipes
          WHERE meal_plans_recipes.id_meal_plans = $1`, [mealPlan.rows[0].id]);
@@ -354,7 +372,7 @@ router.get('/shared/:token', (req, res) => __awaiter(void 0, void 0, void 0, fun
         });
     }
     catch (err) {
-        console.error('Get Shared Plan Error:', err);
+        console.error('Error fetching shared meal plan in route handler:', err);
         return res.status(500).json({ error: "Internal server error" });
     }
     finally {
@@ -362,44 +380,30 @@ router.get('/shared/:token', (req, res) => __awaiter(void 0, void 0, void 0, fun
     }
 }));
 router.post('/copy-shared', passport_1.default.authenticate('jwt', { session: false }), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log('Copy-shared endpoint called with token:', req.body.token);
     const user = req.user;
     if (!user || !user.userId) {
-        console.log('Unauthorized - no user or userId');
         return res.status(401).json({ error: 'Unauthorized' });
     }
-    console.log('User authenticated:', user.userId);
     const { token } = req.body;
     if (!token) {
-        console.log('Missing token in request body');
         return res.status(400).json({ error: 'Missing token' });
     }
     const client = yield db_1.default.connect();
     try {
-        console.log('Starting transaction');
         yield client.query("BEGIN");
-        console.log('Fetching original plan with token:', token);
         const originalPlan = yield client.query(`SELECT id_meal_plans, name, day_count 
          FROM meal_plans WHERE shared_token = $1`, [token]);
-        console.log('Original plan query result:', originalPlan.rows);
         if (originalPlan.rows.length === 0) {
-            console.log('No meal plan found with token:', token);
             yield client.query("ROLLBACK");
             return res.status(404).json({ error: "Shared meal plan not found" });
         }
         const original = originalPlan.rows[0];
-        console.log('Found original plan:', original);
-        console.log('Creating new plan');
         const newPlan = yield client.query(`INSERT INTO meal_plans (name, created_at, id_account, day_count) 
          VALUES ($1, Now(), $2, $3) RETURNING id_meal_plans`, [`Copy of ${original.name}`, user.userId, original.day_count]);
-        console.log('New plan created:', newPlan.rows[0]);
-        console.log('Copying recipes');
         yield client.query(`INSERT INTO meal_plans_recipes (id_meal_plans, meal_type, dayindex, id_recipe)
          SELECT $1, meal_type, dayindex, id_recipe
          FROM meal_plans_recipes
          WHERE id_meal_plans = $2`, [newPlan.rows[0].id_meal_plans, original.id_meal_plans]);
-        console.log('Recipes copied successfully');
-        console.log('Committing transaction');
         yield client.query("COMMIT");
         return res.status(201).json({
             message: "Meal plan copied successfully",
@@ -407,12 +411,10 @@ router.post('/copy-shared', passport_1.default.authenticate('jwt', { session: fa
         });
     }
     catch (err) {
-        console.error('Copy Shared Plan Error - Full error:', err);
         yield client.query("ROLLBACK");
-        console.error('Copy Shared Plan Error:', err);
         return res.status(500).json({
             error: "Internal server error",
-            details: err.message
+            details: err instanceof Error ? err.message : 'An unknown error occurred'
         });
     }
     finally {

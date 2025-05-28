@@ -43,14 +43,7 @@ const Sidebar: React.FC = () => {
           </div>
         </div>
 
-        <div>
-          <h3 className="text-md font-semibold text-white mb-3">Sort by</h3>
-          <select className="w-full px-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-blue-500 transition-colors duration-200">
-            <option>Name</option>
-            <option>Popularity</option>
-            <option>Rating</option>
-          </select>
-        </div>
+      
 
         <div>
           <h3 className="text-md font-semibold text-white mb-3">Categories</h3>

@@ -3,15 +3,15 @@
 import React, { useState, useEffect } from "react";
 import Image from 'next/image';
 import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid";
-import Navbar from "../components/Navbar"; 
+import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import Sidebar from "../components/Sidebar";
 import { Recipe } from "../types/Recipe";
 import { getFavoriteRecipes, removeFromFavorites } from "../api/favorites";
 import axios from "axios";
 import Loading from '../components/Loading';
 import RecipeModal from "../components/RecipeModal";
-import Image from "next/image";
+import { useRouter } from "next/navigation";
+import Pagination from "../components/Pagination"; // Import the Pagination component
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
@@ -22,6 +22,10 @@ const FavoriteRecipes: React.FC = () => {
   const [ratings, setRatings] = useState<{ [key: number]: number }>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1); // State for current page
+  const recipesPerPage = 12; // Define how many recipes per page
+
+  const router = useRouter();
 
   useEffect(() => {
     const fetchFavorites = async () => {
@@ -29,15 +33,15 @@ const FavoriteRecipes: React.FC = () => {
         setIsLoading(true);
         const recipeIds = await getFavoriteRecipes();
         setFavoriteRecipeIds(recipeIds);
-        
+
         if (recipeIds.length > 0) {
-          const response = await axios.get(`${API_BASE_URL}/foodSecret/search/recipes`, {
+          const response = await axios.get<Recipe[]>(`${API_BASE_URL}/foodSecret/search/recipes`, {
             params: { ids: recipeIds.join(',') },
             withCredentials: true
           });
-          
+
           setFavoriteRecipes(response.data);
-          
+
           const storedRatings = localStorage.getItem("recipeRatings");
           if (storedRatings) {
             setRatings(JSON.parse(storedRatings));
@@ -47,27 +51,38 @@ const FavoriteRecipes: React.FC = () => {
         }
         setError(null);
       } catch (_err) {
+        if (axios.isAxiosError(_err)) {
+          if (_err.response?.status === 401) {
+            router.push('/login?error=auth');
+          }
+        }
         setError("Nie udało się załadować ulubionych przepisów");
-        setIsLoading(false);
-        return;
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchFavorites();
-  }, []);
+  }, [router]);
 
   const handleRemoveFromFavorites = async (recipeId: string) => {
     try {
       await removeFromFavorites(recipeId);
       setFavoriteRecipeIds(prev => prev.filter(id => id !== recipeId));
-      setFavoriteRecipes(prev => prev.filter(recipe => recipe.id.toString() !== recipeId));
+      setFavoriteRecipes(prev => {
+        const updatedRecipes = prev.filter(recipe => recipe.id.toString() !== recipeId);
+        const totalPagesAfterRemoval = Math.ceil(updatedRecipes.length / recipesPerPage);
+        if (currentPage > totalPagesAfterRemoval && totalPagesAfterRemoval > 0) {
+          setCurrentPage(totalPagesAfterRemoval);
+        } else if (updatedRecipes.length === 0) {
+          setCurrentPage(1);
+        }
+        return updatedRecipes;
+      });
       setSelectedRecipe(null);
     } catch (_err) {
+      console.log(_err)
       setError("Nie udało się usunąć przepisu z ulubionych");
-      setIsLoading(false);
-      return;
     }
   };
 
@@ -77,20 +92,31 @@ const FavoriteRecipes: React.FC = () => {
     localStorage.setItem("recipeRatings", JSON.stringify(updatedRatings));
   };
 
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const totalPages = Math.ceil(favoriteRecipes.length / recipesPerPage);
+  const currentRecipes = favoriteRecipes.slice(
+    (currentPage - 1) * recipesPerPage,
+    currentPage * recipesPerPage
+  );
+
   const RecipeTile: React.FC<{ recipe: Recipe }> = ({ recipe }) => {
     const recipeRating = ratings[recipe.id] || 0;
-    
+
     return (
       <div
         className="group relative flex flex-col bg-gray-800 shadow-lg rounded-xl overflow-hidden hover:ring-2 hover:ring-blue-500 transition-all duration-200 h-[300px]"
         onClick={() => setSelectedRecipe(recipe)}
       >
-        <div className="aspect-w-16 aspect-h-9 relative">
+        <div className="relative w-full pb-[56.25%]">
           <Image
             src={recipe.image || "/placeholder.jpg"}
             alt={recipe.name}
-            layout="fill"
-            objectFit="cover"
+            fill
+            className="object-cover"
+            sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
           />
         </div>
         <div className="flex-1 p-4 flex flex-col justify-between">
@@ -98,7 +124,7 @@ const FavoriteRecipes: React.FC = () => {
             {recipe.name}
           </h3>
           <div className="flex justify-between items-center mt-2">
-            <button 
+            <button
               onClick={(e) => {
                 e.stopPropagation();
                 handleRemoveFromFavorites(recipe.id.toString());
@@ -125,7 +151,6 @@ const FavoriteRecipes: React.FC = () => {
     <div className="flex flex-col min-h-screen bg-gray-900 text-white font-sans">
       <Navbar />
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
         <div className="flex-1 flex flex-col p-6 overflow-hidden">
           {isLoading ? (
             <div className="flex-1 flex items-center justify-center">
@@ -144,10 +169,19 @@ const FavoriteRecipes: React.FC = () => {
           ) : (
             <div className="flex-1 overflow-hidden flex flex-col">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-min flex-1 overflow-y-auto pb-6 px-2">
-                {favoriteRecipes.map((recipe) => (
+                {currentRecipes.map((recipe) => (
                   <RecipeTile key={recipe.id} recipe={recipe} />
                 ))}
               </div>
+              {totalPages > 1 && (
+                <div className="mt-6 flex justify-center">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>

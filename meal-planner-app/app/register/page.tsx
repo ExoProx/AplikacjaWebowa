@@ -1,6 +1,5 @@
 // app/register/page.tsx
 import React from "react";
-import Link from "next/link";
 import RegisterForm from "./RegisterForm"; // Import the client component
 
 const RegisterPage = () => {

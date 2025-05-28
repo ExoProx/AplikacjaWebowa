@@ -18,7 +18,7 @@ const passport_1 = __importDefault(require("./config/passport"));
 const auth_1 = __importDefault(require("./routes/auth"));
 const favorites_1 = __importDefault(require("./routes/favorites"));
 exports.apiLimiter = (0, express_rate_limit_1.default)({
-    windowMs: 15 * 60 * 1000,
+    windowMs: 1 * 60 * 1000,
     max: 100,
     standardHeaders: true,
     legacyHeaders: false,
@@ -32,9 +32,10 @@ app.use((0, cors_1.default)({
     origin: 'http://localhost:3000',
     credentials: true
 }));
+app.use((0, cookie_parser_1.default)());
 app.use(passport_1.default.initialize());
 app.use(express_1.default.json());
-app.use((0, cookie_parser_1.default)());
+app.use(express_1.default.urlencoded({ extended: true }));
 app.use('/api/users', user_1.default);
 app.use('/api/login', login_1.default);
 app.use('/api/logout', logout_1.default);

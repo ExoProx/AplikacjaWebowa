@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  images: {
+    domains: ['m.ftscrt.com'], // Add your hostname here
+  },
   async rewrites() {
     return [
       {

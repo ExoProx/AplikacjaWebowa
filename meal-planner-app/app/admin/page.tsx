@@ -1,14 +1,15 @@
+// D:\Projekty\AplikacjaWebowa\meal-planner-app\app\admin\page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import Loading from "../components/Loading";
 import { Plus, Edit, Trash2, CheckCircle, XCircle } from "lucide-react";
 import { useRouter } from 'next/navigation';
 
 interface User {
-    id : number;
-    name : string;
+    id: number;
+    name: string;
     email: string;
     phone_number: number;
     password?: string;
@@ -23,33 +24,50 @@ const AdminPage = () => {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
-    const fetchUsers = async () => {
-            setIsLoading(true);
-            try {
-                const response = await axios.get("http://localhost:5000/api/users", {
-                    withCredentials: true,
-                });
-                console.log("Response: ", response.data);
-                setUsers(response.data);
-            } catch (error) {
-                if (axios.isAxiosError(error) && error.response && error.response.status === 401) {
-                    console.log('fetchUsers: Unauthorized, redirecting to login.');
-                    router.push('/login?error=auth');
-                } else {
-                    console.error("Error fetching users:", error);
-                    alert("Failed to fetch users from the server.");
-                }
-            } finally {
-                setIsLoading(false);
+
+    // Wrap fetchUsers in useCallback
+    const fetchUsers = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const response = await axios.get("http://localhost:5000/api/users", {
+                withCredentials: true,
+            });
+            console.log("Response: ", response.data);
+            setUsers(response.data);
+        } catch (error) {
+            if (axios.isAxiosError(error) && error.response && error.response.status === 401) {
+                console.log('fetchUsers: Unauthorized, redirecting to login.');
+                router.push('/login?error=auth');
+            } else {
+                console.error("Error fetching users:", error);
+                alert("Failed to fetch users from the server.");
             }
-        };
+        } finally {
+            setIsLoading(false);
+        }
+    }, [router]);
     useEffect(() => {
         fetchUsers();
-    }, [router, fetchUsers()]);
+    }, [fetchUsers]); 
 
+    const handleLogout = useCallback(async () => { // <--- Wrap handleLogout in useCallback
+        try {
+            await axios.post(
+                "http://localhost:5000/api/logout",
+                {},
+                {
+                    withCredentials: true,
+                }
+            );
+        } catch (err) {
+            console.error("Logout error:", err);
+        } finally {
+            localStorage.removeItem("token");
+            router.push("/login");
+        }
+    }, [router]);
 
     const handleAddUser = async (userData: User) => {
-        // Now also check for password if adding a user
         if (!userData.name || !userData.email || !userData.password) {
             alert("Please fill in all fields, including password.");
             return false;
@@ -69,7 +87,7 @@ const AdminPage = () => {
             await axios.post("http://localhost:5000/api/users/add", dataToSend, {
                 withCredentials: true,
             });
-            await fetchUsers();
+            await fetchUsers(); // Refresh the list
             alert("User added successfully!");
             setShowAddUserForm(false);
             return true;
@@ -90,23 +108,8 @@ const AdminPage = () => {
             return false;
         }
     };
-    const handleLogout = async () => {
-        try {
-            await axios.post(
-                "http://localhost:5000/api/logout",
-                {},
-                {
-                    withCredentials: true,
-                }
-            );
-        } catch (err) {
-            console.error("Logout error:", err);
-        } finally {
-            localStorage.removeItem("token");
-            router.push("/login");
-        }
-    };
-    const handleEditUser = async (userData : User) => {
+
+    const handleEditUser = async (userData: User) => {
         if (!userData.name || !userData.email) {
             alert("Please fill in all fields.");
             return false;
@@ -116,7 +119,7 @@ const AdminPage = () => {
             return false;
         }
         try {
-            const dataToSend={
+            const dataToSend = {
                 id_account: userData.id,
                 email: userData.email,
                 name: userData.name,
@@ -124,9 +127,8 @@ const AdminPage = () => {
             }
             await axios.put(`http://localhost:5000/api/users/change`, dataToSend, {
                 withCredentials: true,
-
             });
-            await fetchUsers();
+            await fetchUsers(); // Refresh the list
             setShowEditUserForm(false);
             return true;
         } catch (error) {
@@ -199,7 +201,7 @@ const AdminPage = () => {
                                 Add user
                             </button>
                             <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
-                            onClick={handleLogout}
+                                onClick={handleLogout}
                             >
                                 Logout
                             </button>
@@ -365,19 +367,15 @@ const UserForm: React.FC<UserFormProps> = ({ title, initialData = { name: "", em
             name,
             email,
             phone_number: phoneNumberForAPI,
-            status: 'activated'
+            status: 'activated' 
         };
 
-        const isAddingUser = !initialData.id;
+        const isAddingUser = initialData.id === undefined; 
         if (isAddingUser) {
             dataToSubmit.password = password;
         }
 
-        const success = await onSubmit(dataToSubmit);
-
-        if (success) {
-            onCancel();
-        }
+        await onSubmit(dataToSubmit);
     };
 
 

@@ -6,7 +6,6 @@ import { checkIsFavorite, addToFavorites, removeFromFavorites } from "../api/fav
 import { HeartIcon } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid";
 import { StarIcon } from "@heroicons/react/24/outline";
-import Image from "next/image";
 interface RecipeModalProps {
   recipe: Recipe;
   onClose: () => void;

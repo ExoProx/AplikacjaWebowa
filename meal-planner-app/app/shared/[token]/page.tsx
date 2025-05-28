@@ -1,3 +1,4 @@
+// app/shared/[token]/page.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -9,6 +10,8 @@ import Loading from "../../components/Loading";
 import { Menu } from "../../types/Menu";
 import { Recipe } from "../../types/Recipe";
 import { PlusIcon } from "lucide-react";
+import Image from "next/image"; // Import Image component for better optimization
+import { Meal } from "@/app/types/Meal";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
@@ -18,39 +21,43 @@ interface DayPlan {
   [key: string]: Recipe | null;
 }
 
-interface SharedMeal {
-  id: number;
-  dayindex: number;
-  mealtype: string;
-}
-
 const SharedMealPlan = () => {
   const params = useParams();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mealPlan, setMealPlan] = useState<Menu | null>(null);
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [, setRecipes] = useState<Recipe[]>([]);
   const [isCopying, setIsCopying] = useState(false);
 
   useEffect(() => {
     const fetchSharedPlan = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        const response = await axios.get(`${API_BASE_URL}/api/menuList/shared/${params.token}`);
-        const { mealPlan: planData, recipes: recipesData } = response.data;
-        
-        console.log('Received plan data:', planData);
-        console.log('Received recipes data:', recipesData);
+        const response = await axios.get(`${API_BASE_URL}/api/menuList/shared/${params.token}`, {
 
-        const recipeIds = recipesData.map((meal: SharedMeal) => meal.id).join(',');
-        console.log('Recipe IDs to fetch:', recipeIds);
-        
-        const recipeResponse = await axios.get(`${API_BASE_URL}/foodSecret/search/recipes?ids=${recipeIds}`, {
-          withCredentials: true
+          withCredentials: true 
         });
-        const recipeDetails = recipeResponse.data;
-        console.log('Fetched recipe details:', recipeDetails);
+        const { mealPlan: planData, recipes: recipesData } = response.data;
 
+        // Extract all unique recipe IDs from the received data
+        const recipeIds = recipesData.map((meal: Meal) => meal.id).join(',');
+
+        let recipeDetails: Recipe[] = [];
+        if (recipeIds) {
+          // Second API call to get full recipe details for the extracted IDs
+          const recipeResponse = await axios.get(`${API_BASE_URL}/foodSecret/search/recipes?ids=${recipeIds}`, {
+            // ***** REMOVED Authorization HEADER *****
+            // headers: {
+            //   Authorization: `Bearer ${authToken}`,
+            // },
+            withCredentials: true // KEEP THIS!
+          });
+          recipeDetails = recipeResponse.data;
+        }
+
+        // Initialize the meal plan structure based on day_count
         const plan: DayPlan[] = [];
         for (let i = 0; i < planData.days; i++) {
           const dayPlan: DayPlan = {};
@@ -59,74 +66,78 @@ const SharedMealPlan = () => {
           });
           plan.push(dayPlan);
         }
-        console.log('Initial empty plan structure:', plan);
 
+        // Populate the plan with actual recipe details
         for (const meal of recipesData) {
-          console.log('Processing meal:', meal);
           const recipe = recipeDetails.find((r: Recipe) => r.id === Number(meal.id));
-          console.log('Found recipe:', recipe);
-          
           const dayIndex = meal.dayindex;
           const mealType = meal.mealtype.trim();
-          console.log('Day index:', dayIndex, 'Plan length:', plan.length, 'Meal type:', mealType);
-          
+
           if (recipe && dayIndex >= 0 && dayIndex < plan.length && mealTypes.includes(mealType)) {
-            console.log('Assigning recipe to day', dayIndex, 'meal type', mealType);
             plan[dayIndex][mealType] = recipe;
-            console.log('Plan after assignment:', JSON.parse(JSON.stringify(plan)));
-          } else {
-            console.log('Failed to assign recipe.', {
-              recipeFound: !!recipe,
-              dayIndexValid: dayIndex >= 0 && dayIndex < plan.length,
-              mealTypeValid: mealTypes.includes(mealType),
-              dayIndex,
-              mealType,
-              planLength: plan.length
-            });
           }
         }
 
-        console.log('Final plan structure:', JSON.parse(JSON.stringify(plan)));
         setMealPlan({ ...planData, plan });
         setRecipes(recipeDetails);
-      } catch (err: Error | unknown) {
+      } catch (err) {
         if (axios.isAxiosError(err)) {
-          if (err.response?.status === 401) {
+          if (err.response?.status === 401 || err.response?.status === 403) {
+            // This 401/403 now means the cookie was not sent, was invalid, or expired
+            // (handled by the browser/backend, not client-side JS)
             router.push('/login?error=auth');
+          } else if (err.response?.status === 404) {
+            setError("Shared meal plan not found.");
+          } else {
+            setError(err.response?.data?.error || "Failed to load shared meal plan");
           }
-          setError(err.response?.data?.error || "Failed to load shared meal plan");
         } else {
-          console.error('Error loading shared plan:', err);
-          setError("Failed to load shared meal plan");
+          setError("Network error or unexpected issue.");
         }
+        console.error('Error loading shared plan:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchSharedPlan();
-  }, [params.token]);
+    if (params.token) {
+      fetchSharedPlan();
+    }
+  }, [params.token, router]);
 
   const handleCopyToMyPlans = async () => {
     try {
       setIsCopying(true);
-      const response = await axios.post(
+
+      await axios.post(
         `${API_BASE_URL}/api/menuList/copy-shared`,
         { token: params.token },
-        { withCredentials: true }
+        {
+
+          withCredentials: true
+        }
       );
       router.push('/menu');
-    } catch (err: Error | unknown) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || "Failed to copy meal plan");
-      } else {
-        setError("Failed to copy meal plan");
-      }
-    } finally {
-      setIsCopying(false);
-    }
-  };
+    } catch (err: unknown) { 
+     if (axios.isAxiosError(err)) { 
+       if (err.response?.status === 401 || err.response?.status === 403) {
+         setError('Unauthorized. Please log in again to copy this plan.');
+         router.push('/login?error=auth');
+       } else {
+         setError(err.response?.data?.error || "Failed to copy meal plan");
+       }
+     } else if (err instanceof Error) {
+       setError(err.message || "An unexpected error occurred.");
+     } else {
+       setError("An unknown error occurred.");
+     }
+     console.error('Error copying plan:', err);
+   } finally {
+     setIsCopying(false);
+   }
+ };
 
+  // --- Loading State ---
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 flex flex-col">
@@ -139,6 +150,7 @@ const SharedMealPlan = () => {
     );
   }
 
+  // --- Error State (or Meal Plan Not Found) ---
   if (error || !mealPlan) {
     return (
       <div className="min-h-screen bg-gray-900 flex flex-col">
@@ -146,7 +158,7 @@ const SharedMealPlan = () => {
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-white mb-4">
-              {error || "Meal plan not found"}
+              {error || "Meal plan not found or inaccessible."}
             </h1>
             <button
               onClick={() => router.push('/menu')}
@@ -161,6 +173,7 @@ const SharedMealPlan = () => {
     );
   }
 
+  // --- Main Content Display ---
   return (
     <div className="min-h-screen bg-gray-900 flex flex-col">
       <Navbar />
@@ -188,16 +201,18 @@ const SharedMealPlan = () => {
                 {mealTypes.map((mealType) => {
                   const recipe = dayPlan[mealType];
                   return (
-                    <div 
+                    <div
                       key={mealType}
                       className="flex items-center p-4 bg-gray-700/50 rounded-lg"
                     >
                       <div className="w-12 h-12 flex items-center justify-center bg-gray-600 rounded-lg overflow-hidden mr-4">
                         {recipe && (
-                          <img
+                          <Image
                             src={recipe.image || "/placeholder.jpg"}
                             alt={recipe.name}
-                            className="w-full h-full object-cover"
+                            width={48}
+                            height={48}
+                            className="object-cover"
                           />
                         )}
                       </div>
@@ -220,4 +235,4 @@ const SharedMealPlan = () => {
   );
 };
 
-export default SharedMealPlan; 
+export default SharedMealPlan;

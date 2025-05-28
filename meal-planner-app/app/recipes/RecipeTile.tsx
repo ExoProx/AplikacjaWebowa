@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { RecipeTileProps } from "../types/RecipeTileProps";
-import { Recipe } from "../types/Recipe";
 import { StarIcon } from "lucide-react";
 import { HeartIcon } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid";

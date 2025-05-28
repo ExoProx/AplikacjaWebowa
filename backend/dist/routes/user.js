@@ -240,8 +240,11 @@ router.put('/change', passport_1.default.authenticate('jwt', { session: false })
     catch (err) {
         yield client.query("ROLLBACK");
         console.error('Error fetching users:', err);
-        if (err.code === '23505' && err.detail && err.detail.includes('email')) {
-            return res.status(400).json({ error: 'The provided email is already in use by another account.' });
+        if (typeof err === "object" && err !== null && "code" in err) {
+            const pgError = err;
+            if (pgError.code === "23505" && pgError.detail && pgError.detail.includes('email')) {
+                return res.status(400).json({ error: 'The provided email is already in use by another account.' });
+            }
         }
         res.status(500).json({ error: 'Internal server error' });
     }

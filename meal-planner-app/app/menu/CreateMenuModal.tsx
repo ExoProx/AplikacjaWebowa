@@ -4,46 +4,53 @@ import { Menu } from "../types/Menu";
 import { X, Calendar, Type, AlertCircle } from "lucide-react";
 
 const CreateMenuModal: React.FC<{
-  isOpen: boolean;
-  onClose: () => void;
-  onCreateSuccess: (newMenu: Menu) => void;
+    isOpen: boolean;
+    onClose: () => void;
+    onCreateSuccess: (newMenu: Menu) => void;
 }> = ({ isOpen, onClose, onCreateSuccess }) => {
-  const [name, setName] = useState("");
-  const [days, setDays] = useState(1);
-  const [message, setMessage] = useState("");
+    const [name, setName] = useState("");
+    const [days, setDays] = useState(1);
+    const [message, setMessage] = useState("");
 
-  if (!isOpen) return null;
+    if (!isOpen) return null;
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
 
-    setMessage("");
-    if (!name.trim() || days < 1 || days > 31) {
-      setMessage("Please enter a valid name and number of days (1–31).");
-      return;
-    }
-
-    try {
-      const response = await axios.post(
-        "http://localhost:5000/api/menuList",
-        { name, number: days },
-        {
-          headers: { "Content-Type": "application/json" },
-          withCredentials: true,
+        setMessage("");
+        if (!name.trim() || days < 1 || days > 31) {
+            setMessage("Please enter a valid name and number of days (1–31).");
+            return;
         }
-      );
-      const newMenu: Menu = response.data;
-      onCreateSuccess(newMenu);
-      onClose();
-    } catch (err: Error | unknown) {
-      console.error("Error during submission:", err);
-      if (axios.isAxiosError(err) && err.response?.data?.error) {
-        setMessage(err.response.data.error);
-      } else {
-        setMessage("Something went wrong. Please try again.");
-      }
-    }
-  };
+
+        try {
+            const response = await axios.post(
+                "http://localhost:5000/api/menuList",
+                {
+                    name,
+                    days: days, // Correctly sending 'days'
+                    // ⭐ REMOVE THIS LINE: description: ""
+                },
+                {
+                    headers: { "Content-Type": "application/json" },
+                    withCredentials: true,
+                }
+            );
+
+            console.log("CreateMenuModal: Backend create menu response.data:", response.data);
+
+            const newMenu: Menu = response.data;
+            onCreateSuccess(newMenu);
+            onClose();
+        } catch (err: Error | unknown) {
+            console.error("Error during submission:", err);
+            if (axios.isAxiosError(err) && err.response?.data?.error) {
+                setMessage(err.response.data.error);
+            } else {
+                setMessage("Something went wrong. Please try again.");
+            }
+        }
+    };
 
   return (
     <div
