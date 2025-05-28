@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { X, Copy, Check, Link2Off, Share2 } from "lucide-react";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
 const ShareModal: React.FC<{ 
   isOpen: boolean; 
@@ -28,7 +27,7 @@ const ShareModal: React.FC<{
   const checkSharingStatus = async () => {
     try {
       console.log('Checking sharing status in modal for menuId:', menuId);
-      const response = await axios.get(`${API_BASE_URL}/api/menuList/check-share/${menuId}`, {
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/menuList/check-share/${menuId}`, {
         withCredentials: true
       });
       console.log('Share status response:', response.data);
@@ -68,7 +67,7 @@ const ShareModal: React.FC<{
       console.log('Initiating share for menuId:', menuId);
       setIsLoading(true);
       const response = await axios.post(
-        `${API_BASE_URL}/api/menuList/share`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/menuList/share`,
         { menuId },
         { withCredentials: true }
       );
@@ -124,7 +123,7 @@ const ShareModal: React.FC<{
       console.log('Attempting to unshare menu:', menuId);
       
       const response = await axios.post(
-        `${API_BASE_URL}/api/menuList/unshare`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/menuList/unshare`,
         { menuId },
         { withCredentials: true }
       );

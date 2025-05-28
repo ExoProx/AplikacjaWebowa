@@ -15,8 +15,6 @@ import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid";
 import { Recipe } from "../types/Recipe"; 
 import { getFavoriteRecipes } from "../api/favorites"; 
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
-
 const quotes = [
   "Cooking is an art anyone can master!",
   "Food is a symbolic expression of love when words are inadequate.",
@@ -71,7 +69,7 @@ const MainPage: React.FC = () => {
     setActionMessage(null); 
 
     try {
-      const userResponse = await axios.get(`${API_BASE_URL}/api/users/userdata`, {
+      const userResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/users/userdata`, {
         withCredentials: true,
       });
       setUserName(userResponse.data.name || "User");
@@ -81,7 +79,7 @@ const MainPage: React.FC = () => {
       try {
         const favoriteIds = await getFavoriteRecipes();
         if (favoriteIds && favoriteIds.length > 0) {
-          const recipesResponse = await axios.get<Recipe[]>(`${API_BASE_URL}/foodSecret/search/recipes`, {
+          const recipesResponse = await axios.get<Recipe[]>(`${process.env.NEXT_PUBLIC_API_URL}/foodSecret/search/recipes`, {
             params: { ids: favoriteIds.join(',') },
             withCredentials: true
           });
@@ -100,7 +98,7 @@ const MainPage: React.FC = () => {
         console.error('Error fetching favorite recipes (may be normal if none):', favError);
       }
       if (!foundRecommendedRecipe) {
-        const randomRecipeResponse = await axios.get<Recipe[]>(`${API_BASE_URL}/foodSecret/search/random`, {
+        const randomRecipeResponse = await axios.get<Recipe[]>(`${process.env.NEXT_PUBLIC_API_URL}/foodSecret/search/random`, {
           withCredentials: true,
         });
         if (randomRecipeResponse.data && Array.isArray(randomRecipeResponse.data) && randomRecipeResponse.data.length > 0) {

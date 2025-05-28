@@ -12,8 +12,6 @@ interface RecipeModalProps {
   onSearch: (query: string) => Promise<void>;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000"; // Define API_BASE_URL
-
 const RecipeModal: React.FC<RecipeModalProps> = ({ isOpen, onClose, onSelect, initialRecipes }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [recipes, setRecipes] = useState<Recipe[]>(initialRecipes || []);
@@ -41,7 +39,7 @@ const RecipeModal: React.FC<RecipeModalProps> = ({ isOpen, onClose, onSelect, in
 
     setIsLoadingModalSearch(true); 
     try {
-      const res = await axios.get(`${API_BASE_URL}/foodSecret/search`, { // Use API_BASE_URL
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/foodSecret/search`, { // Use API_BASE_URL
         params: { query: searchQuery },
         withCredentials: true,
       });

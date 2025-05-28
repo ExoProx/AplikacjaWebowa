@@ -22,11 +22,10 @@ import { PlusIcon } from "lucide-react";
 import { Copy, Link2Off, Share2 } from "lucide-react";
 import Image from 'next/image'; 
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
 const mealTypes = ["Breakfast", "Second Breakfast", "Lunch", "Snack", "Dinner"];
-//Komponent tworzący stronę wyboru jadłospisów, oraz samego jadłospisu
 
+//Komponent tworzący stronę wyboru jadłospisów, oraz samego jadłospisu
 const MenuComponent: React.FC = () => {
     const [menus, setMenus] = useState<Menu[]>([]);
     const [selectedMenu, setSelectedMenu] = useState<Menu | null>(null);
@@ -54,7 +53,7 @@ const MenuComponent: React.FC = () => {
 
     const checkSharingStatus = async (menuId: number) => {
         try {
-            const response = await axios.get(`${API_BASE_URL}/api/menuList/check-share/${menuId}`, {
+            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/menuList/check-share/${menuId}`, {
                 withCredentials: true
             });
 
@@ -74,7 +73,7 @@ const MenuComponent: React.FC = () => {
             try {
                 let authResponse;
                 try {
-                    authResponse = await axios.get(`${API_BASE_URL}/api/auth/check-auth`, {
+                    authResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/check-auth`, {
                         withCredentials: true,
                         timeout: 8000,
                     });
@@ -112,7 +111,7 @@ const MenuComponent: React.FC = () => {
 
                 let menuResponse;
                 try {
-                    menuResponse = await axios.get(`${API_BASE_URL}/api/menuList/`, {
+                    menuResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/menuList/`, {
                         withCredentials: true,
                         timeout: 5000,
                     });
@@ -180,7 +179,7 @@ const MenuComponent: React.FC = () => {
             setIsLoadingContent(true);
             setErrorMessage(null);
             try {
-                const response = await axios.get(`${API_BASE_URL}/foodSecret/search?query=${query}`, {
+                const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/foodSecret/search?query=${query}`, {
                     withCredentials: true,
                 });
                 setRecipes(response.data.recipes || response.data);
@@ -240,7 +239,7 @@ const MenuComponent: React.FC = () => {
     const handleSelectMenu = async (menu: Menu) => {
         setLoading(true);
         try {
-            const mealRes = await axios.get(`${API_BASE_URL}/api/menuList/fetch?menuId=${menu.id}`, {
+            const mealRes = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/menuList/fetch?menuId=${menu.id}`, {
                 withCredentials: true,
             });
             const relatedMeals: Meal[] = mealRes.data;
@@ -259,7 +258,7 @@ const MenuComponent: React.FC = () => {
             let fetchedRecipes: Recipe[] = [];
             if (recipeIds.length > 0) {
                 try {
-                    const recipeFetchRes = await axios.get(`${API_BASE_URL}/foodSecret/search/recipes?ids=${batchedRecipeIds}`, {
+                    const recipeFetchRes = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/foodSecret/search/recipes?ids=${batchedRecipeIds}`, {
                         withCredentials: true,
                     });
                     fetchedRecipes = recipeFetchRes.data;
@@ -308,7 +307,7 @@ const MenuComponent: React.FC = () => {
     // Usuwanie jadłospisu
     const handleDeleteMenu = useCallback(async (menuIdToDelete: number) => {
         try {
-            await axios.delete(`${API_BASE_URL}/api/menuList/delete?menuId=${menuIdToDelete}`, { withCredentials: true });
+            await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/api/menuList/delete?menuId=${menuIdToDelete}`, { withCredentials: true });
 
             setMenus((prevMenus) => prevMenus.filter(m => m.id !== menuIdToDelete));
 
@@ -330,7 +329,7 @@ const MenuComponent: React.FC = () => {
 
         try {
             await axios.put(
-                `${API_BASE_URL}/api/menuList/updateMeal`,
+                `${process.env.NEXT_PUBLIC_API_URL}/api/menuList/updateMeal`,
                 {
                     menuId: selectedMenu.id,
                     dayIndex: dayIndex,
@@ -359,7 +358,7 @@ const MenuComponent: React.FC = () => {
 
         try {
             await axios.put(
-                `${API_BASE_URL}/api/menuList/updateMeal`,
+                `${process.env.NEXT_PUBLIC_API_URL}/api/menuList/updateMeal`,
                 {
                     menuId: selectedMenu.id,
                     dayIndex: dayIndex,
@@ -387,7 +386,7 @@ const MenuComponent: React.FC = () => {
     // Wyszukiwanie przepisu
     const handleRecipeSearch = useCallback(async (query: string) => {
         try {
-            const res = await axios.get(`${API_BASE_URL}/foodSecret/search?query=${query}`, {
+            const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/foodSecret/search?query=${query}`, {
                 withCredentials: true,
             });
             setRecipes(res.data.recipes || res.data);
@@ -409,7 +408,7 @@ const MenuComponent: React.FC = () => {
 
         try {
             const response = await axios.put(
-                `${API_BASE_URL}/api/menuList/extend`,
+                `${process.env.NEXT_PUBLIC_API_URL}/api/menuList/extend`,
                 {
                     menuId: menuToExtend.id,
                     additionalDays: daysToAdd
@@ -450,7 +449,7 @@ const MenuComponent: React.FC = () => {
     const handleShare = async (menuId: number) => {
         try {
             const response = await axios.post(
-                `${API_BASE_URL}/api/menuList/share`,
+                `${process.env.NEXT_PUBLIC_API_URL}/api/menuList/share`,
                 { menuId },
                 { withCredentials: true }
             );
@@ -477,7 +476,7 @@ const MenuComponent: React.FC = () => {
     const handleUnshare = async (menuId: number) => {
         try {
             await axios.post(
-                `${API_BASE_URL}/api/menuList/unshare`,
+                `${process.env.NEXT_PUBLIC_API_URL}/api/menuList/unshare`,
                 { menuId },
                 { withCredentials: true }
             );

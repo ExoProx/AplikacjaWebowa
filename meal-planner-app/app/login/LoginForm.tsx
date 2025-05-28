@@ -13,8 +13,6 @@ interface LoginData {
   password: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
-
 const LoginFormContent: React.FC = () => {
   const [formData, setFormData] = useState<LoginData>({ email: '', password: '' });
   const [message, setMessage] = useState<string>('');
@@ -56,7 +54,7 @@ const LoginFormContent: React.FC = () => {
     };
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/login`, data, {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/login`, data, {
         headers: { 'Content-Type': 'application/json' },
         withCredentials: true,
       });

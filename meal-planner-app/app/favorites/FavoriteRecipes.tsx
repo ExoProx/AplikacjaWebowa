@@ -11,9 +11,7 @@ import axios from "axios";
 import Loading from '../components/Loading';
 import RecipeModal from "../components/RecipeModal";
 import { useRouter } from "next/navigation";
-import Pagination from "../components/Pagination"; // Import the Pagination component
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+import Pagination from "../components/Pagination";
 
 const FavoriteRecipes: React.FC = () => {
   const [, setFavoriteRecipeIds] = useState<string[]>([]);
@@ -22,8 +20,8 @@ const FavoriteRecipes: React.FC = () => {
   const [ratings, setRatings] = useState<{ [key: number]: number }>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1); // State for current page
-  const recipesPerPage = 12; // Define how many recipes per page
+  const [currentPage, setCurrentPage] = useState(1);
+  const recipesPerPage = 12; 
 
   const router = useRouter();
 
@@ -35,7 +33,7 @@ const FavoriteRecipes: React.FC = () => {
         setFavoriteRecipeIds(recipeIds);
 
         if (recipeIds.length > 0) {
-          const response = await axios.get<Recipe[]>(`${API_BASE_URL}/foodSecret/search/recipes`, {
+          const response = await axios.get<Recipe[]>(`${process.env.NEXT_PUBLIC_API_URL}/foodSecret/search/recipes`, {
             params: { ids: recipeIds.join(',') },
             withCredentials: true
           });

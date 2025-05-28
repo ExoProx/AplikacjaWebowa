@@ -13,8 +13,6 @@ import { PlusIcon } from "lucide-react";
 import Image from "next/image"; // Import Image component for better optimization
 import { Meal } from "@/app/types/Meal";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
-
 const mealTypes = ["Breakfast", "Second Breakfast", "Lunch", "Snack", "Dinner"];
 
 interface DayPlan {
@@ -35,29 +33,20 @@ const SharedMealPlan = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get(`${API_BASE_URL}/api/menuList/shared/${params.token}`, {
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/menuList/shared/${params.token}`, {
 
           withCredentials: true 
         });
         const { mealPlan: planData, recipes: recipesData } = response.data;
-
-        // Extract all unique recipe IDs from the received data
         const recipeIds = recipesData.map((meal: Meal) => meal.id).join(',');
 
         let recipeDetails: Recipe[] = [];
         if (recipeIds) {
-          // Second API call to get full recipe details for the extracted IDs
-          const recipeResponse = await axios.get(`${API_BASE_URL}/foodSecret/search/recipes?ids=${recipeIds}`, {
-            // ***** REMOVED Authorization HEADER *****
-            // headers: {
-            //   Authorization: `Bearer ${authToken}`,
-            // },
-            withCredentials: true // KEEP THIS!
+          const recipeResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/foodSecret/search/recipes?ids=${recipeIds}`, {
+            withCredentials: true
           });
           recipeDetails = recipeResponse.data;
         }
-
-        // Initialize the meal plan structure based on day_count
         const plan: DayPlan[] = [];
         for (let i = 0; i < planData.days; i++) {
           const dayPlan: DayPlan = {};
@@ -67,7 +56,6 @@ const SharedMealPlan = () => {
           plan.push(dayPlan);
         }
 
-        // Populate the plan with actual recipe details
         for (const meal of recipesData) {
           const recipe = recipeDetails.find((r: Recipe) => r.id === Number(meal.id));
           const dayIndex = meal.dayindex;
@@ -83,8 +71,6 @@ const SharedMealPlan = () => {
       } catch (err) {
         if (axios.isAxiosError(err)) {
           if (err.response?.status === 401 || err.response?.status === 403) {
-            // This 401/403 now means the cookie was not sent, was invalid, or expired
-            // (handled by the browser/backend, not client-side JS)
             router.push('/login?error=auth');
           } else if (err.response?.status === 404) {
             setError("Shared meal plan not found.");
@@ -110,7 +96,7 @@ const SharedMealPlan = () => {
       setIsCopying(true);
 
       await axios.post(
-        `${API_BASE_URL}/api/menuList/copy-shared`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/menuList/copy-shared`,
         { token: params.token },
         {
 
@@ -137,7 +123,6 @@ const SharedMealPlan = () => {
    }
  };
 
-  // --- Loading State ---
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 flex flex-col">
@@ -150,7 +135,6 @@ const SharedMealPlan = () => {
     );
   }
 
-  // --- Error State (or Meal Plan Not Found) ---
   if (error || !mealPlan) {
     return (
       <div className="min-h-screen bg-gray-900 flex flex-col">
@@ -172,8 +156,6 @@ const SharedMealPlan = () => {
       </div>
     );
   }
-
-  // --- Main Content Display ---
   return (
     <div className="min-h-screen bg-gray-900 flex flex-col">
       <Navbar />

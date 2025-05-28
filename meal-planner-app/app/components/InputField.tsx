@@ -11,7 +11,7 @@ import {
 interface InputFieldProps {
   label: string;
   type: string;
-  field: string; // name == id
+  field: string; 
   value: string;
   placeholder: string;
   icon?: React.ReactNode;

@@ -1,4 +1,4 @@
-// D:\Projekty\AplikacjaWebowa\meal-planner-app\app\admin\page.tsx
+//admin\page.tsx
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -29,7 +29,7 @@ const AdminPage = () => {
     const fetchUsers = useCallback(async () => {
         setIsLoading(true);
         try {
-            const response = await axios.get("http://localhost:5000/api/users", {
+            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/users`, {
                 withCredentials: true,
             });
             console.log("Response: ", response.data);
@@ -53,7 +53,7 @@ const AdminPage = () => {
     const handleLogout = useCallback(async () => { 
         try {
             await axios.post(
-                "http://localhost:5000/api/logout",
+                `${process.env.NEXT_PUBLIC_API_URL}/api/logout`,
                 {},
                 {
                     withCredentials: true,
@@ -84,10 +84,10 @@ const AdminPage = () => {
                 phone_number: userData.phone_number,
                 password: userData.password,
             };
-            await axios.post("http://localhost:5000/api/users/add", dataToSend, {
+            await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/users/add`, dataToSend, {
                 withCredentials: true,
             });
-            await fetchUsers(); // Refresh the list
+            await fetchUsers(); 
             alert("User added successfully!");
             setShowAddUserForm(false);
             return true;
@@ -125,10 +125,10 @@ const AdminPage = () => {
                 name: userData.name,
                 phone_number: userData.phone_number,
             }
-            await axios.put(`http://localhost:5000/api/users/change`, dataToSend, {
+            await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/api/users/change`, dataToSend, {
                 withCredentials: true,
             });
-            await fetchUsers(); // Refresh the list
+            await fetchUsers(); 
             setShowEditUserForm(false);
             return true;
         } catch (error) {
@@ -155,7 +155,7 @@ const AdminPage = () => {
 
         if (window.confirm(confirmMessage)) {
             try {
-                await axios.put(`http://localhost:5000/api/users/toggle-status`, {
+                await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/api/users/toggle-status`, {
                     id_account: userId,
                     status: newStatus,
                 }, {

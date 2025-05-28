@@ -26,7 +26,6 @@ const Loading: React.FC = () => {
         }}
       />
       <p style={{ color: '#FFFFFF', marginTop: '15px', fontSize: '1.2rem' }}>Loading...</p>
-      {/* Remove the style jsx block entirely */}
     </div>
   );
 };

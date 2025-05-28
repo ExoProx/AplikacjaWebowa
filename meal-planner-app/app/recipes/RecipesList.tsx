@@ -14,8 +14,6 @@ import RecipeTile from "./RecipeTile";
 import { useRouter } from 'next/navigation';
 import { getFavoriteRecipes } from "../api/favorites";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
-
 const RecipesList: React.FC = () => {
     const [recipes, setRecipes] = useState<Recipe[]>([]);
     const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
@@ -73,7 +71,7 @@ const RecipesList: React.FC = () => {
         setIsLoadingRecipes(true);
         setErrorMessage(null);
         try {
-            const response = await axios.get<{ recipes: Recipe[] }>(`${API_BASE_URL}/foodSecret/search?query=${currentQuery}`, {
+            const response = await axios.get<{ recipes: Recipe[] }>(`${process.env.NEXT_PUBLIC_API_URL}/foodSecret/search?query=${currentQuery}`, {
                 withCredentials: true,
             });
 
@@ -111,7 +109,7 @@ const RecipesList: React.FC = () => {
             setErrorMessage(null);
 
             try {
-                await axios.get(`${API_BASE_URL}/api/users/userdata`, {
+                await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/users/userdata`, {
                     withCredentials: true,
                 });
                 await stableFetchFavorites();

@@ -25,11 +25,10 @@ const CreateMenuModal: React.FC<{
 
         try {
             const response = await axios.post(
-                "http://localhost:5000/api/menuList",
+                `${process.env.NEXT_PUBLIC_API_URL}/api/menuList`,
                 {
                     name,
-                    days: days, // Correctly sending 'days'
-                    // ⭐ REMOVE THIS LINE: description: ""
+                    days: days,
                 },
                 {
                     headers: { "Content-Type": "application/json" },
