@@ -33,7 +33,7 @@ const UserDataEdit: React.FC = () => {
     const fetchUserData = async () => {
       setIsLoading(true); // Start loading
       try {
-        const response = await axios.get("http://localhost:5000/api/users/userdata", {
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/users/userdata`, {
           withCredentials: true,
         });
         setProfileData({
@@ -104,7 +104,7 @@ const UserDataEdit: React.FC = () => {
         email: profileData.email
       };
 
-      await axios.put("http://localhost:5000/api/users/updateuserdata", dataToSend, {
+      await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/api/users/updateuserdata`, dataToSend, {
         withCredentials: true,
       });
       setMessage("Profile updated successfully!");
