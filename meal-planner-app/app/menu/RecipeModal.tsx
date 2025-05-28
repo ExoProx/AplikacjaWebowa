@@ -77,12 +77,12 @@ const RecipeModal: React.FC<RecipeModalProps> = ({ isOpen, onClose, onSelect, in
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={onInputKeyDown}
             className="flex-grow p-2 rounded-l bg-gray-800 border border-gray-700 focus:outline-none"
-            disabled={isLoadingModalSearch} // Disable input during loading
+            disabled={isLoadingModalSearch} 
           />
           <button
             onClick={handleSearch}
             className="bg-blue-600 hover:bg-blue-700 px-4 rounded-r"
-            disabled={isLoadingModalSearch} // Disable button during loading
+            disabled={isLoadingModalSearch} 
           >
             Szukaj
           </button>

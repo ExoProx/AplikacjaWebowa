@@ -25,7 +25,7 @@ const AdminPage = () => {
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
 
-    // Wrap fetchUsers in useCallback
+    
     const fetchUsers = useCallback(async () => {
         setIsLoading(true);
         try {
@@ -50,7 +50,7 @@ const AdminPage = () => {
         fetchUsers();
     }, [fetchUsers]); 
 
-    const handleLogout = useCallback(async () => { // <--- Wrap handleLogout in useCallback
+    const handleLogout = useCallback(async () => { 
         try {
             await axios.post(
                 "http://localhost:5000/api/logout",

@@ -97,7 +97,7 @@ const RegisterForm: React.FC = () => {
           />
           <InputField
             label="Phone Number:"
-            type="text" // zmieniono na "text", ponieważ maxLength nie działa z "number"
+            type="text" 
             field="phoneNumber"
             value={formData.phoneNumber}
             onChange={handleChange}

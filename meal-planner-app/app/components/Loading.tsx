@@ -15,14 +15,14 @@ const Loading: React.FC = () => {
       }}
     >
       <div
-        className="animate-spin" // Add this Tailwind class
+        className="animate-spin" 
         style={{
           width: '50px',
           height: '50px',
           border: '5px solid rgba(255, 255, 255, 0.3)',
           borderTop: '5px solid #FFFFFF',
           borderRadius: '50%',
-          // Remove the inline animation property
+          
         }}
       />
       <p style={{ color: '#FFFFFF', marginTop: '15px', fontSize: '1.2rem' }}>Loading...</p>

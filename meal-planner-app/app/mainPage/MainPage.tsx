@@ -12,8 +12,8 @@ import Loading from "../components/Loading";
 import RecipeModal from "../components/RecipeModal";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid";
-import { Recipe } from "../types/Recipe"; // Ensure this path is correct
-import { getFavoriteRecipes } from "../api/favorites"; // Ensure this path and function are correct
+import { Recipe } from "../types/Recipe"; 
+import { getFavoriteRecipes } from "../api/favorites"; 
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 

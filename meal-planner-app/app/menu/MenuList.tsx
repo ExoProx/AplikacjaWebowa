@@ -20,7 +20,7 @@ import { useRouter } from 'next/navigation';
 import Loading from "../components/Loading";
 import { PlusIcon } from "lucide-react";
 import { Copy, Link2Off, Share2 } from "lucide-react";
-import Image from 'next/image'; // Import Next.js Image component
+import Image from 'next/image'; 
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
@@ -78,7 +78,7 @@ const MenuComponent: React.FC = () => {
                         withCredentials: true,
                         timeout: 8000,
                     });
-                } catch (authError) { // authError is now typed as `unknown` by default, but we can check its instance
+                } catch (authError) { 
                     if (authError instanceof Error) {
                         if (authError.message === 'Network Error') {
                             setErrorMessage("Failed to connect to the server. Please ensure the backend server is running.");
@@ -123,7 +123,7 @@ const MenuComponent: React.FC = () => {
 
                     setMenus(menuResponse.data);
 
-                    // --- Added console.log for debugging duplicate IDs ---
+                    
                     const ids = menuResponse.data.map(menu => menu.id);
                     const uniqueIds = new Set(ids);
                     if (ids.length !== uniqueIds.size) {
@@ -131,7 +131,7 @@ const MenuComponent: React.FC = () => {
                     } else {
                         console.log("No duplicate menu IDs found immediately after fetch.");
                     }
-                    // -----------------------------------------------------
+                    
 
                     const sharingStatusUpdates: {[key: number]: boolean} = {};
                     for (const menu of menuResponse.data) {
@@ -146,7 +146,7 @@ const MenuComponent: React.FC = () => {
 
                     setSharingStatuses(sharingStatusUpdates);
 
-                } catch (menuError) { // menuError is now typed as `unknown` by default
+                } catch (menuError) { 
                     if (menuError instanceof Error) {
                         if (menuError.message === 'Network Error') {
                             setErrorMessage("Failed to fetch meal plans. Check your connection.");
@@ -158,7 +158,7 @@ const MenuComponent: React.FC = () => {
                     }
                 }
 
-            } catch (error) { // error is now typed as `unknown` by default
+            } catch (error) { 
                 if (error instanceof Error) {
                     setErrorMessage("An unexpected error occurred. Please try again later.");
                 }
@@ -186,7 +186,7 @@ const MenuComponent: React.FC = () => {
                 setRecipes(response.data.recipes || response.data);
             } catch (err) {
                 console.log(err);
-                // Handle error, e.g., setErrorMessage
+                
             } finally {
                 setLoading(false);
             }
@@ -199,13 +199,12 @@ const MenuComponent: React.FC = () => {
         return () => clearTimeout(debounceFetch);
     }, [query]);
 
-    // This derivation is crucial. Let's add a console.log here as well.
+    
     const currentMenus = menus.slice(
         (currentMenuPage - 1) * itemsPerPage,
         currentMenuPage * itemsPerPage
     );
-    // DEBUG: Log currentMenus array just before rendering pagination and MenuTiles
-    // This will show if the slicing or page change introduces duplicates
+    
     useEffect(() => {
         const slicedIds = currentMenus.map(menu => menu.id);
         const uniqueSlicedIds = new Set(slicedIds);
@@ -214,17 +213,17 @@ const MenuComponent: React.FC = () => {
         } else {
             console.log("No duplicate menu IDs found in currentMenus after slicing.");
         }
-    }, [currentMenus]); // Run this effect whenever currentMenus changes
+    }, [currentMenus]); 
 
 
     const totalMenuPages = Math.ceil(menus.length / itemsPerPage);
 
     const handleCreateMenuSuccess = (newMenu: Menu) => {
     setMenus((prevMenus) => {
-        // Ensure the ID is a number and stable
+        
         const updatedMenus = [...prevMenus, { ...newMenu, id: Number(newMenu.id) }];
 
-        // Optional: Log IDs of the updated array to confirm no temporary duplicates
+        
         const newIds = updatedMenus.map(m => m.id);
         const uniqueNewIds = new Set(newIds);
         if (newIds.length !== uniqueNewIds.size) {
@@ -266,7 +265,7 @@ const MenuComponent: React.FC = () => {
                     fetchedRecipes = recipeFetchRes.data;
                 } catch (recipeErr) {
                     console.log(recipeErr);
-                    // Handle error, e.g., console.error("Error fetching recipes:", recipeErr);
+                    
                 }
             }
 
@@ -304,7 +303,7 @@ const MenuComponent: React.FC = () => {
     const handleEditMeal = useCallback((dayIndex: number, mealType: string) => {
         setEditCell({ dayIndex, mealType });
         setIsRecipeModalOpen(true);
-    }, []); // No need for mealTypes dependency
+    }, []); 
 
     // Usuwanie jadłospisu
     const handleDeleteMenu = useCallback(async (menuIdToDelete: number) => {
@@ -319,9 +318,9 @@ const MenuComponent: React.FC = () => {
             }
         } catch (error) {
             console.log(error);
-            // Handle error, e.g., setErrorMessage
+            
         }
-    }, [selectedMenu]); // Add selectedMenu as dependency
+    }, [selectedMenu]); 
 
     // Wybór przepisu do ustawienia
     const handleSelectRecipe = useCallback(async (recipe: Recipe) => {
@@ -349,9 +348,9 @@ const MenuComponent: React.FC = () => {
             setEditCell(null);
         } catch (error) {
             console.log(error);
-            // Handle error, e.g., setErrorMessage
+            
         }
-    }, [selectedMenu, editCell]); // Add selectedMenu and editCell as dependencies
+    }, [selectedMenu, editCell]);
 
 
     // Usunięcie przepisu
@@ -375,9 +374,9 @@ const MenuComponent: React.FC = () => {
             setSelectedMenu({ ...selectedMenu, plan: updatedPlan });
         } catch (error) {
             console.log(error);
-            // Handle error, e.g., setErrorMessage
+            
         }
-    }, [selectedMenu]); // Add selectedMenu as dependency
+    }, [selectedMenu]); 
 
     // Pokazanie detali przepisu
     const handleShowDetails = useCallback((recipe: Recipe) => {
@@ -394,14 +393,14 @@ const MenuComponent: React.FC = () => {
             setRecipes(res.data.recipes || res.data);
         } catch (err) {
             console.log(err);
-            // Handle error, e.g., setErrorMessage
+            
         }
     }, []);
 
 
     const handleExtendMenu = async (menu: Menu) => {
         setMenuToExtend(menu);
-        setDaysToAdd(1); // Reset daysToAdd when opening
+        setDaysToAdd(1); 
         setIsExtendModalOpen(true);
     };
 
@@ -425,7 +424,7 @@ const MenuComponent: React.FC = () => {
                     : menu
             ));
 
-            // If the extended menu is currently selected, update its plan
+            
             if (selectedMenu?.id === menuToExtend.id) {
                 setSelectedMenu({
                     ...selectedMenu,
@@ -443,8 +442,8 @@ const MenuComponent: React.FC = () => {
             setMenuToExtend(null);
             setDaysToAdd(1);
         } catch (error) {
-            console.error("Error extending menu:", error); // Added detailed error logging
-            // Handle error, e.g., setErrorMessage
+            console.error("Error extending menu:", error); 
+            
         }
     };
 
@@ -519,8 +518,7 @@ const MenuComponent: React.FC = () => {
         );
     }
 
-    // If we reach here, main loading is complete, user is authenticated (or redirected)
-    // If there was an error during main loading (and no redirect), display it
+    
     if (errorMessage && !isLoadingMain) {
         return (
             <div className="flex flex-col h-screen bg-gray-900 text-white font-sans items-center justify-center">

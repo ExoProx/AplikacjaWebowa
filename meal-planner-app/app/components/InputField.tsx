@@ -18,7 +18,7 @@ interface InputFieldProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   maxLength?: number;
   required?: boolean;
-  className?: string; // Dodano className jako opcjonalny prop
+  className?: string; 
 }
 
 // Mapa domyślnych ikon dla konkretnych pól:

@@ -121,7 +121,7 @@ const HomePage = () => {
 
   return (
   <div className="bg-gray-900 text-white relative">
-    {/* Belka u góry -, przyciski po prawej */}
+    {/* Belka u góry */}
     <div className="absolute top-0 left-0 w-full z-20 bg-transparent py-4 shadow-md">
       <div className="max-w-7xl mx-auto flex justify-between items-center px-6">
         <h1 className="text-2xl font-bold text-white">mniamPlan</h1>
@@ -148,7 +148,7 @@ const HomePage = () => {
       </div>
     </div>
 
-    {/* Zdjęcie z napisem */}
+    {/* Zdjęcie */}
     <div className="relative h-screen flex items-center justify-center">
       <Image
         src="/jedzenie.jpg"
