@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { Users, BookOpen, Sliders, Zap, ChevronDown, ChevronUp, Utensils, Search, Share2 } from "lucide-react";
+import jedzenieImg from '../public/jedzenie.jpg'
 
 
 const HomePage = () => {
@@ -151,7 +152,7 @@ const HomePage = () => {
     {/* Zdjęcie */}
     <div className="relative h-screen flex items-center justify-center">
       <Image
-        src="/jedzenie.jpg"
+        src={jedzenieImg}
         alt="Food background"
         layout="fill"
         objectFit="cover"
