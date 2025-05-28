@@ -106,21 +106,21 @@ const LoginFormContent: React.FC = () => {
             field="email"
             value={formData.email}
             onChange={handleChange}
-            placeholder="Wpisz swój e-mail"
+            placeholder="Enter your email"
             icon={<MailCheck className="text-gray-800" size={20} />}
           />
           <InputField
-            label="Hasło"
+            label="Password"
             type="password"
             field="password"
             value={formData.password}
             onChange={handleChange}
-            placeholder="Wpisz hasło"
+            placeholder="Enter your password"
             icon={<FileLockIcon className="text-gray-800" size={20} />}
           />
           <div className="transform transition-transform hover:scale-110 duration-300">
             <SubmitButton type="submit" className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-md">
-              Zaloguj się
+              Login
             </SubmitButton>
           </div>
         </div>
@@ -135,7 +135,7 @@ const LoginFormContent: React.FC = () => {
       <div className="mt-6 transform transition-transform hover:scale-110 duration-300">
         <Link href="/">
           <SubmitButton type="button" className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-md">
-            Powrót do strony głównej
+            Back to the main page.
           </SubmitButton>
         </Link>
       </div>
@@ -144,7 +144,7 @@ const LoginFormContent: React.FC = () => {
         <p className="text-sm">Nie masz konta?</p>
         <Link href="/register">
           <button className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-md mt-2">
-            Zarejestruj się
+            Register now!
           </button>
         </Link>
       </div>
